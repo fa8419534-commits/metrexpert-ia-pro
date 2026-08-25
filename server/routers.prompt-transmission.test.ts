@@ -4,7 +4,7 @@ const { invokeLLMMock } = vi.hoisted(() => ({ invokeLLMMock: vi.fn() }));
 vi.mock("./_core/llm", () => ({ invokeLLM: invokeLLMMock }));
 
 import { appRouter } from "./routers";
-import { BTP_SYSTEM_PROMPT } from "./btpPrompt";
+import { BTP_JSON_OUTPUT_ENFORCEMENT, BTP_SYSTEM_PROMPT } from "./btpPrompt";
 import type { TrpcContext } from "./_core/context";
 
 describe("estimate.generate prompt transmission", () => {
@@ -31,6 +31,6 @@ describe("estimate.generate prompt transmission", () => {
     expect(invokeLLMMock).toHaveBeenCalledOnce();
     const request = invokeLLMMock.mock.calls[0]?.[0];
     expect(request.model).toBe("claude-sonnet-4-6");
-    expect(request.messages[0]).toEqual({ role: "system", content: BTP_SYSTEM_PROMPT });
+    expect(request.messages[0]).toEqual({ role: "system", content: `${BTP_SYSTEM_PROMPT}\n${BTP_JSON_OUTPUT_ENFORCEMENT}` });
   });
 });

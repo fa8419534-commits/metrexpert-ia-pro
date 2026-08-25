@@ -6,7 +6,8 @@ import { invokeLLM } from "./_core/llm";
 import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, router } from "./_core/trpc";
 import { buildEstimateWorkbook, type ProjectEstimate } from "./excel";
-import { BTP_SYSTEM_PROMPT } from "./btpPrompt";
+import { BTP_JSON_OUTPUT_ENFORCEMENT, BTP_SYSTEM_PROMPT } from "./btpPrompt";
+import { parseJsonObjectFromLLM } from "./json";
 
 const estimateSchema = {
   type: "object",
@@ -106,7 +107,7 @@ export const appRouter = router({
         const response = await invokeLLM({
           model: "claude-sonnet-4-6",
           messages: [
-            { role: "system", content: BTP_SYSTEM_PROMPT },
+            { role: "system", content: `${BTP_SYSTEM_PROMPT}\n${BTP_JSON_OUTPUT_ENFORCEMENT}` },
             { role: "user", content: userContent as never },
           ],
           max_tokens: 12_000,
@@ -118,8 +119,13 @@ export const appRouter = router({
         const raw = extractText(response);
         let json: unknown;
         try {
-          json = JSON.parse(raw);
-        } catch {
+          json = parseJsonObjectFromLLM(raw);
+        } catch (parseError) {
+          console.error("[Estimate] Claude response could not be parsed", {
+            length: raw.length,
+            preview: raw.slice(0, 4_000),
+            parseError: parseError instanceof Error ? parseError.message : String(parseError),
+          });
           throw new TRPCError({ code: "BAD_REQUEST", message: "La réponse de l’IA n’est pas un JSON valide." });
         }
         const estimate = validateEstimate(json);

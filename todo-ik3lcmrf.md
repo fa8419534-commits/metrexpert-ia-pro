@@ -16,3 +16,9 @@
 - [x] Renforcer et documenter les contrôles d’accessibilité minimaux : focus, labels, structure de tableau et débordement
 - [x] Exécuter le build de production et corriger toute erreur éventuelle
 - [x] Consigner une validation accessibilité explicite dans un test et une note de contrôle du projet
+- [x] Examiner les logs serveur pour identifier la forme exacte de la réponse Claude qui échoue au parsing
+- [x] Renforcer l’instruction système pour imposer un objet JSON strict sans texte parasite ni balises Markdown
+- [x] Implémenter un nettoyage serveur défensif autour du JSON avant JSON.parse
+- [x] Ajouter des tests couvrant texte avant/après, balises markdown et JSON invalide
+- [x] Exécuter les tests et le build puis créer un checkpoint du correctif
+- [x] Documenter l’absence de réponse brute dans les logs historiques et activer sa capture tronquée sur les prochains échecs de parsing
