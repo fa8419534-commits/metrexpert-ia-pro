@@ -6,7 +6,7 @@
 - [x] Affichage de la progression de l’analyse et de la génération
 - [x] Gestion claire des erreurs côté interface et serveur
 - [x] Appel serveur à Claude avec le modèle claude-sonnet-4-6
-- [ ] Support d’un prompt système métier BTP fourni ultérieurement par l’utilisateur
+- [x] Support d’un prompt système métier BTP fourni ultérieurement par l’utilisateur
 - [x] Validation stricte du JSON structuré renvoyé par Claude avant génération
 - [x] Génération serveur d’un fichier .xlsx
 - [x] Feuille Excel « Couverture »
@@ -17,3 +17,10 @@
 - [x] Tests unitaires Vitest du schéma JSON et de la génération Excel
 - [x] Vérification visuelle desktop et mobile du parcours MVP
 - [x] Vérification du build et des erreurs runtime
+
+- [x] Adapter le prompt source au mode mono-échange sans changer les règles métier
+- [x] Remplacer les questions bloquantes par le marqueur « 🔴 DONNÉE MANQUANTE — à préciser : [nom de la donnée] »
+- [x] Imposer une sortie JSON structurée exploitable par le générateur Excel serveur
+- [x] Interdire explicitement à Claude de créer ou retourner un fichier .xlsx
+- [x] Ajouter un test vérifiant que le prompt adapté est transmis à l’appel Claude
+- [x] Ajouter un test Vitest de estimate.generate vérifiant que le prompt système exact est transmis à invokeLLM

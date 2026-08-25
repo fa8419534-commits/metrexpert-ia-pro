@@ -6,8 +6,7 @@ import { invokeLLM } from "./_core/llm";
 import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, router } from "./_core/trpc";
 import { buildEstimateWorkbook, type ProjectEstimate } from "./excel";
-
-const btpSystemPrompt = `Tu es un métreur économiste de la construction. Analyse la description du projet et le document fourni, puis produis exclusivement un JSON conforme au schéma demandé. N'invente pas de données non justifiées : indique les hypothèses dans summary ou notes. Les prix unitaires peuvent être laissés à 0 lorsqu'ils ne sont pas fournis. Le livrable doit être exploitable comme base de travail et vérifié par un professionnel avant usage contractuel.\n\n[REMPLACER CE PROMPT PAR LE PROMPT MÉTIER BTP FOURNI PAR LE CLIENT]`;
+import { BTP_SYSTEM_PROMPT } from "./btpPrompt";
 
 const estimateSchema = {
   type: "object",
@@ -107,7 +106,7 @@ export const appRouter = router({
         const response = await invokeLLM({
           model: "claude-sonnet-4-6",
           messages: [
-            { role: "system", content: btpSystemPrompt },
+            { role: "system", content: BTP_SYSTEM_PROMPT },
             { role: "user", content: userContent as never },
           ],
           max_tokens: 12_000,
