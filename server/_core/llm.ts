@@ -455,7 +455,23 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
     );
   }
 
-  return (await response.json()) as InvokeResult;
+  const responseBody = (await response.json()) as InvokeResult & { error?: unknown; refusal?: unknown };
+  console.info("[LLM] Provider response envelope", JSON.stringify({
+    keys: Object.keys(responseBody),
+    id: responseBody.id,
+    model: responseBody.model,
+    choices: responseBody.choices?.map((choice) => ({
+      index: choice.index,
+      finish_reason: choice.finish_reason,
+      contentType: Array.isArray(choice.message?.content) ? "array" : typeof choice.message?.content,
+      contentLength: typeof choice.message?.content === "string" ? choice.message.content.length : choice.message?.content?.length ?? 0,
+      hasToolCalls: Boolean(choice.message?.tool_calls?.length),
+    })),
+    hasError: Boolean(responseBody.error),
+    providerError: responseBody.error,
+    hasRefusal: Boolean(responseBody.refusal),
+  }));
+  return responseBody;
 }
 
 export type ModelInfo = {

@@ -30,12 +30,12 @@ const estimateSchema = {
           factor: { type: "number" },
           notes: { type: "string" },
         },
-        required: ["code", "designation", "unit", "quantity"],
+        required: ["code", "designation", "unit", "quantity", "unitPrice", "factor", "notes"],
         additionalProperties: false,
       },
     },
   },
-  required: ["projectTitle", "measures"],
+  required: ["projectTitle", "client", "location", "summary", "currency", "measures"],
   additionalProperties: false,
 } as const;
 

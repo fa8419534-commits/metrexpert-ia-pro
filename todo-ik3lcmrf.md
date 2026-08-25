@@ -26,5 +26,6 @@
 - [x] Présenter fidèlement l’aperçu disponible sans exposer ni inventer de données non capturées
 - [x] Logger de façon redacted le corps complet de la requête envoyée au LLM : modèle, max_tokens et structure des messages
 - [x] Capturer le body complet des erreurs fournisseur, avec statut et en-têtes non sensibles
-- [ ] Comparer un essai description seule et un essai avec fichier joint
+- [x] Comparer un essai description seule et un essai avec fichier joint
 - [x] Ajouter les tests de journalisation et vérifier le build avant livraison du diagnostic
+- [x] Corriger le schéma response_format strict : tous les champs de chaque mesure doivent apparaître dans required
