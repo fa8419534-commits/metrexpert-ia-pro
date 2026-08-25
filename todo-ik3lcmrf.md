@@ -22,3 +22,9 @@
 - [x] Ajouter des tests couvrant texte avant/après, balises markdown et JSON invalide
 - [x] Exécuter les tests et le build puis créer un checkpoint du correctif
 - [x] Documenter l’absence de réponse brute dans les logs historiques et activer sa capture tronquée sur les prochains échecs de parsing
+- [x] Récupérer le diagnostic brut du dernier essai de génération et distinguer contenu capturé, troncature et absence de log
+- [x] Présenter fidèlement l’aperçu disponible sans exposer ni inventer de données non capturées
+- [x] Logger de façon redacted le corps complet de la requête envoyée au LLM : modèle, max_tokens et structure des messages
+- [x] Capturer le body complet des erreurs fournisseur, avec statut et en-têtes non sensibles
+- [ ] Comparer un essai description seule et un essai avec fichier joint
+- [x] Ajouter les tests de journalisation et vérifier le build avant livraison du diagnostic

@@ -269,6 +269,34 @@ const normalizeResponseFormat = ({
 };
 
 const RETRY_MAX_RETRIES = 4;
+
+const redactPayloadForLogs = (payload: Record<string, unknown>) => {
+  const messages = Array.isArray(payload.messages)
+    ? payload.messages.map((message) => {
+        if (!message || typeof message !== "object") return message;
+        const record = message as Record<string, unknown>;
+        const content = record.content;
+        if (!Array.isArray(content)) return record;
+        return {
+          ...record,
+          content: content.map((part) => {
+            if (!part || typeof part !== "object") return part;
+            const item = part as Record<string, unknown>;
+            if (item.type === "file_url" && item.file_url && typeof item.file_url === "object") {
+              const fileUrl = item.file_url as Record<string, unknown>;
+              return { ...item, file_url: { ...fileUrl, url: `[REDACTED file URL, ${String(fileUrl.url ?? "").length} chars]` } };
+            }
+            if (item.type === "image_url" && item.image_url && typeof item.image_url === "object") {
+              const imageUrl = item.image_url as Record<string, unknown>;
+              return { ...item, image_url: { ...imageUrl, url: `[REDACTED image URL, ${String(imageUrl.url ?? "").length} chars]` } };
+            }
+            return item;
+          }),
+        };
+      })
+    : payload.messages;
+  return { ...payload, messages };
+};
 const RETRY_BASE_DELAY_MS = 500;
 const RETRY_MAX_DELAY_MS = 30_000;
 
@@ -401,6 +429,9 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
     payload.response_format = normalizedResponseFormat;
   }
 
+  const hasFile = messages.some((message) => Array.isArray(message.content) && message.content.some((part) => typeof part === "object" && (part.type === "file_url" || part.type === "image_url")));
+  console.info("[LLM] Request payload", JSON.stringify({ ...redactPayloadForLogs(payload), hasFile }));
+
   const response = await fetchWithBackoff(resolveApiUrl(), {
     method: "POST",
     headers: {
@@ -412,6 +443,13 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
 
   if (!response.ok) {
     const errorText = await response.text();
+    const errorHeaders = Object.fromEntries(response.headers.entries());
+    console.error("[LLM] Provider error response", JSON.stringify({
+      status: response.status,
+      statusText: response.statusText,
+      headers: errorHeaders,
+      body: errorText,
+    }));
     throw new Error(
       `LLM invoke failed: ${response.status} ${response.statusText} – ${errorText}`
     );
