@@ -226,3 +226,13 @@
 - [x] Afficher le nombre exact de contacts exportables sous chaque bouton CSV
 - [x] Ajouter un export combiné avec le canal de contact préféré du prospect
 - [x] Tester ces interactions, le contenu CSV et la responsivité avant checkpoint
+
+- [x] Auditer l’architecture actuelle et les flux principaux sans modifier le code
+- [x] Auditer les contrôles d’accès, quotas, essais gratuits, cookies et données personnelles
+- [x] Auditer les risques de consommation API, concurrence et consommation de droits en cas d’échec
+- [x] Auditer la génération IA, la validation des mesures, les hypothèses et la cohérence des calculs
+- [x] Auditer le classeur Excel, les formules, les feuilles, l’impression et le périmètre métier
+- [x] Auditer les parcours Home/Admin, mobile, accessibilité, performance et gestion d’erreurs
+- [x] Produire un rapport priorisé avec sévérité, preuve, impact et plan de correction
+- [x] Présenter les résultats à Daouda avant toute modification corrective
+
