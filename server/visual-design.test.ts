@@ -36,6 +36,11 @@ describe("technical visual system", () => {
     expect(home).toContain("Le fichier est presque prêt — ne fermez pas cette page.");
     expect(home).toContain("Traitement sécurisé en cours");
     expect(home).toContain("CONTRÔLE INDÉPENDANT");
+    expect(home).toContain("Modifier avant validation");
+    expect(home).toContain("Valider et régénérer");
+    expect(home).toContain("Exporter le contrôle PDF");
+    expect(home).toContain("Progression indicative");
+    expect(home).toContain("aria-valuetext");
     expect(home).toContain("Déverrouiller l’étude");
     expect(home).toContain('id="access-code"');
     expect(home).toContain("5 / H · 50 / J");

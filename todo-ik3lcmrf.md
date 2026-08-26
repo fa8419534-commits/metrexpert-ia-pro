@@ -269,3 +269,12 @@
 - [x] Ajouter les tests de sécurité, aperçu géométrique et états de génération
 - [x] Exécuter audit production, tests, TypeScript, build et contrôles responsive
 - [x] Sauvegarder un checkpoint avec les résultats et limites restantes
+
+- [x] Permettre la modification manuelle des dimensions géométriques avant validation de la génération
+- [x] Recalculer et valider les contrôles géométriques à partir des dimensions modifiées
+- [x] Ajouter un export PDF du rapport de contrôle géométrique avec mention de vérification humaine
+- [x] Ajouter une barre de progression visuelle avec pourcentage et estimation indicative du temps restant
+- [x] Afficher des états de chargement accessibles et préciser que l’estimation est approximative
+- [x] Ajouter les tests d’édition, de validation, de PDF et de progression
+- [x] Exécuter tests, TypeScript, build et contrôles responsive avant checkpoint
+- [x] Sauvegarder un checkpoint de cette évolution
