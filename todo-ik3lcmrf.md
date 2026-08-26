@@ -331,8 +331,8 @@
 - [x] Intégrer les tarifs confirmés : 5 générations = 2 000 FCFA, 15 = 5 000 FCFA, 40 = 12 000 FCFA
 - [x] Afficher les offres tarifaires sur l’accueil avec leurs quotas et un contact WhatsApp
 - [x] Afficher le tarif associé lors de la création et de la liste des codes Admin
-- [ ] Ajouter les champs de suivi manuel du paiement et de renouvellement si validés
-- [ ] Documenter les options de paiement mobile Wave, Moov Money et MTN Money sans activer d’API sans identifiants marchands
-- [ ] Concevoir l’automatisation des confirmations de paiement, activation de code et alertes d’expiration
+- [x] Ajouter les champs de suivi manuel du paiement et de renouvellement si validés
+- [x] Documenter les options de paiement mobile Wave, Moov Money et MTN Money sans activer d’API sans identifiants marchands
+- [x] Concevoir l’automatisation des confirmations de paiement, activation de code et alertes d’expiration
 - [x] Ajouter les tests tarifaires et Admin puis valider TypeScript, tests, build et responsive
-- [ ] Sauvegarder un checkpoint après validation
+- [x] Sauvegarder un checkpoint après validation

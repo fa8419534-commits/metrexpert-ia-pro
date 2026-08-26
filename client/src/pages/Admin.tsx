@@ -86,6 +86,8 @@ export default function Admin() {
   const [clientName, setClientName] = useState("");
   const [monthlyQuota, setMonthlyQuota] =
     useState<SubscriptionQuota>(15);
+  const [paymentMethod, setPaymentMethod] = useState<"wave" | "moov" | "mtn" | "autre" | "">("");
+  const [paymentReference, setPaymentReference] = useState("");
   const [revealedCode, setRevealedCode] = useState<string | null>(null);
   const [copyState, setCopyState] = useState<"idle" | "copied">("idle");
   const [sessionUnlocked, setSessionUnlocked] = useState(false);
@@ -126,6 +128,8 @@ export default function Admin() {
   const create = trpc.security.adminCreateCode.useMutation({
     onSuccess: (data) => {
       setClientName("");
+      setPaymentMethod("");
+      setPaymentReference("");
       setRevealedCode(data.code);
       setCopyState("idle");
       void codes.refetch();
@@ -183,7 +187,7 @@ export default function Admin() {
 
   function submitCreate(event: FormEvent) {
     event.preventDefault();
-    create.mutate({ clientName, monthlyQuota });
+    create.mutate({ clientName, monthlyQuota, paymentMethod: paymentMethod || undefined, paymentReference: paymentReference.trim() || undefined });
   }
 
   async function copyRevealedCode() {
@@ -342,9 +346,12 @@ export default function Admin() {
                   >
                     {SUBSCRIPTION_PLANS.map((plan) => <option key={plan.quota} value={plan.quota}>{plan.name} — {plan.quota} générations — {formatXof(plan.priceXof)}</option>)}
                   </select>
-                  <p className="mt-2 text-xs text-[#AEB7B0]">
-                    Expiration automatique : un mois après la création.
-                  </p>
+                  <p className="mt-2 text-xs text-[#AEB7B0]">Expiration automatique : un mois après la création.</p>
+                </div>
+                <div>
+                  <Label htmlFor="payment-method">Paiement reçu</Label>
+                  <select id="payment-method" value={paymentMethod} onChange={(event) => setPaymentMethod(event.target.value as typeof paymentMethod)} className="mt-2 h-10 w-full border border-[#3A4A42] bg-[#0F1613] px-3 text-sm text-[#EDEAE2]"><option value="">À confirmer</option><option value="wave">Wave</option><option value="moov">Moov Money</option><option value="mtn">MTN Money</option><option value="autre">Autre</option></select>
+                  <Input id="payment-reference" value={paymentReference} onChange={(event) => setPaymentReference(event.target.value)} className="mt-2 border-[#3A4A42] bg-[#0F1613] text-[#EDEAE2]" placeholder="Référence de transaction (facultatif)" maxLength={120} />
                 </div>
                 <Button
                   type="submit"
@@ -421,6 +428,7 @@ export default function Admin() {
                       <tr>
                         <th className="px-3 py-3">Client</th>
                         <th className="px-3 py-3">Forfait / tarif</th>
+                        <th className="px-3 py-3">Paiement</th>
                         <th className="px-3 py-3">Quota restant</th>
                         <th className="px-3 py-3">Expiration</th>
                         <th className="px-3 py-3">État</th>
@@ -441,6 +449,7 @@ export default function Admin() {
                               {code.clientName}
                             </td>
                             <td className="px-3 py-4 font-mono text-xs">{getSubscriptionPlan(code.monthlyQuota)?.name ?? "Forfait à confirmer"}<br /><span className="text-[#C9A15A]">{getSubscriptionPlan(code.monthlyQuota) ? formatXof(getSubscriptionPlan(code.monthlyQuota)!.priceXof) : "Tarif à confirmer"}</span></td>
+                            <td className="px-3 py-4 font-mono text-xs">{code.paymentMethod ? code.paymentMethod.toUpperCase() : "À confirmer"}<br /><span className="text-[#AEB7B0]">{code.paymentReference || "Sans référence"}</span></td>
                             <td className="px-3 py-4 font-mono">
                               {code.monthlyRemaining} / {code.monthlyQuota}
                             </td>

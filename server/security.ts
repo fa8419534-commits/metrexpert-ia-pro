@@ -15,7 +15,7 @@ export const CLIENT_ACCESS_COOKIE = "metrexpert_client_access";
 const isTestRuntime = process.env.NODE_ENV === "test" || process.env.VITEST === "true" || Boolean(process.env.VITEST_WORKER_ID) || process.argv.some((argument) => argument.includes("vitest"));
 let forceMemoryForTests = false;
 const memoryWindows = new Map<string, { count: number; windowStart: number; kind: "hour" | "day" }>();
-type MemoryClientCode = { id: number; codeHash: string; clientName: string; monthlyQuota: number; monthlyUsed: number; createdAt: Date; expiresAt: Date; disabledAt: Date | null };
+type MemoryClientCode = { id: number; codeHash: string; clientName: string; monthlyQuota: number; monthlyUsed: number; paymentMethod: string | null; paymentReference: string | null; paidAt: Date | null; createdAt: Date; expiresAt: Date; disabledAt: Date | null };
 type MemoryFreeTrialContact = { id: number; clientName: string | null; phone: string | null; phoneHash: string | null; email: string | null; emailHash: string | null; trialAt: Date; convertedAt: Date | null; lastWhatsAppContactAt: Date | null; consentedAt: Date | null; unsubscribedAt: Date | null; updatedAt: Date };
 const memoryClientCodes = new Map<number, MemoryClientCode>();
 const memoryFreeTrialContacts = new Map<number, MemoryFreeTrialContact>();
@@ -264,7 +264,7 @@ export async function consumeClientMonthlyQuota(ctx: TrpcContext) {
   return { allowed: true as const, remaining: memory.monthlyQuota - memory.monthlyUsed, clientName: memory.clientName };
 }
 
-export async function createClientAccessCode(clientName: string, monthlyQuota: number) {
+export async function createClientAccessCode(clientName: string, monthlyQuota: number, paymentMethod?: string, paymentReference?: string) {
   const code = `MXP-${crypto.randomBytes(5).toString("hex").toUpperCase()}`;
   const codeHash = hashClientCode(code);
   const createdAt = new Date();
@@ -272,10 +272,10 @@ export async function createClientAccessCode(clientName: string, monthlyQuota: n
   expiresAt.setMonth(expiresAt.getMonth() + 1);
   const db = isTestRuntime || forceMemoryForTests ? null : await getDb();
   if (db) {
-    const inserted = await db.insert(clientAccessCodes).values({ codeHash, clientName, monthlyQuota, monthlyUsed: 0, createdAt, expiresAt });
-    return { id: Number(inserted[0].insertId), code, clientName, monthlyQuota, monthlyUsed: 0, createdAt, expiresAt, disabledAt: null };
+    const inserted = await db.insert(clientAccessCodes).values({ codeHash, clientName, monthlyQuota, monthlyUsed: 0, paymentMethod: paymentMethod || null, paymentReference: paymentReference || null, paidAt: paymentMethod ? createdAt : null, createdAt, expiresAt });
+    return { id: Number(inserted[0].insertId), code, clientName, monthlyQuota, monthlyUsed: 0, paymentMethod: paymentMethod || null, paymentReference: paymentReference || null, paidAt: paymentMethod ? createdAt : null, createdAt, expiresAt, disabledAt: null };
   }
-  const record = { id: nextMemoryClientCodeId++, codeHash, clientName, monthlyQuota, monthlyUsed: 0, createdAt, expiresAt, disabledAt: null };
+  const record = { id: nextMemoryClientCodeId++, codeHash, clientName, monthlyQuota, monthlyUsed: 0, paymentMethod: paymentMethod || null, paymentReference: paymentReference || null, paidAt: paymentMethod ? createdAt : null, createdAt, expiresAt, disabledAt: null };
   memoryClientCodes.set(record.id, record);
   return { ...record, code };
 }
@@ -283,7 +283,7 @@ export async function createClientAccessCode(clientName: string, monthlyQuota: n
 export async function listClientAccessCodes() {
   const db = isTestRuntime || forceMemoryForTests ? null : await getDb();
   const rows = db ? await db.select().from(clientAccessCodes).orderBy(clientAccessCodes.expiresAt) : Array.from(memoryClientCodes.values());
-  return rows.map((record) => ({ id: record.id, clientName: record.clientName, monthlyQuota: record.monthlyQuota, monthlyRemaining: Math.max(0, record.monthlyQuota - record.monthlyUsed), expiresAt: record.expiresAt, disabledAt: record.disabledAt }));
+  return rows.map((record) => ({ id: record.id, clientName: record.clientName, monthlyQuota: record.monthlyQuota, monthlyRemaining: Math.max(0, record.monthlyQuota - record.monthlyUsed), paymentMethod: record.paymentMethod, paymentReference: record.paymentReference, paidAt: record.paidAt, expiresAt: record.expiresAt, disabledAt: record.disabledAt }));
 }
 
 export function expireClientAccessCodeForTests(id: number) {
