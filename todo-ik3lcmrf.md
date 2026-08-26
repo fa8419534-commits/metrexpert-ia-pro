@@ -194,3 +194,7 @@
 - [x] Corriger le montage du panneau d’administration après ouverture de session
 - [x] Tester le parcours code administrateur → panneau → création d’un code client
 - [x] Vérifier console, TypeScript, tests, build et sauvegarder un checkpoint du correctif
+- [x] Ajouter un bouton accessible de copie du code client nouvellement créé dans le presse-papiers
+- [x] Afficher le nombre total de codes clients actifs dans le panneau d’administration
+- [x] Ajouter une modale de confirmation avant désactivation ou révocation d’un code client
+- [x] Tester les nouvelles interactions Admin, vérifier le rendu responsive et sauvegarder un checkpoint
