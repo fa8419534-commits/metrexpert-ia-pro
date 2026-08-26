@@ -1,6 +1,6 @@
 import crypto from "node:crypto";
-import { eq, like, sql } from "drizzle-orm";
-import { generationWindows } from "../drizzle/schema";
+import { and, eq, gt, isNull, like, sql } from "drizzle-orm";
+import { clientAccessCodes, generationWindows } from "../drizzle/schema";
 import { getDb } from "./db";
 import { ENV } from "./_core/env";
 import type { TrpcContext } from "./_core/context";
@@ -9,10 +9,131 @@ export const ACCESS_COOKIE = "metrexpert_access";
 export const HOURLY_LIMIT = 5;
 export const DAILY_LIMIT = 50;
 const ACCESS_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
+const ADMIN_ACCESS_MAX_AGE_MS = 8 * 60 * 60 * 1000;
+export const ADMIN_ACCESS_COOKIE = "metrexpert_admin_access";
+export const CLIENT_ACCESS_COOKIE = "metrexpert_client_access";
 const memoryWindows = new Map<string, { count: number; windowStart: number; kind: "hour" | "day" }>();
+type MemoryClientCode = { id: number; codeHash: string; clientName: string; monthlyQuota: number; monthlyUsed: number; createdAt: Date; expiresAt: Date; disabledAt: Date | null };
+const memoryClientCodes = new Map<number, MemoryClientCode>();
+let nextMemoryClientCodeId = 1;
 
 export function resetSecurityStateForTests() {
   memoryWindows.clear();
+  memoryClientCodes.clear();
+  nextMemoryClientCodeId = 1;
+}
+
+function hashClientCode(code: string) {
+  return crypto.createHash("sha256").update(code).digest("hex");
+}
+
+function signedToken(prefix: string, value: string) {
+  return crypto.createHmac("sha256", ENV.cookieSecret || "metrexpert-access").update(`${prefix}:${value}`).digest("hex");
+}
+
+export function isAdminAccessCodeValid(code: string) {
+  if (!ENV.adminAccessCode || code.length !== ENV.adminAccessCode.length) return false;
+  return crypto.timingSafeEqual(Buffer.from(code), Buffer.from(ENV.adminAccessCode));
+}
+
+export function hasValidAdminCookie(ctx: TrpcContext) {
+  return Boolean(ENV.adminAccessCode && ctx.req.cookies?.[ADMIN_ACCESS_COOKIE] === signedToken("admin", ENV.adminAccessCode));
+}
+
+export function setAdminCookie(ctx: TrpcContext) {
+  ctx.res.cookie(ADMIN_ACCESS_COOKIE, signedToken("admin", ENV.adminAccessCode), { httpOnly: true, secure: ENV.isProduction, sameSite: "lax", path: "/", maxAge: ADMIN_ACCESS_MAX_AGE_MS });
+}
+
+export function setClientAccessCookie(ctx: TrpcContext, codeHash: string) {
+  ctx.res.cookie(CLIENT_ACCESS_COOKIE, signedToken("client", codeHash), { httpOnly: true, secure: ENV.isProduction, sameSite: "lax", path: "/", maxAge: ACCESS_MAX_AGE_MS });
+}
+
+async function getClientCodeByHash(codeHash: string) {
+  const db = process.env.NODE_ENV === "test" || process.env.VITEST === "true" ? null : await getDb();
+  if (db) return (await db.select().from(clientAccessCodes).where(eq(clientAccessCodes.codeHash, codeHash)).limit(1))[0];
+  return memoryClientCodes.get(Array.from(memoryClientCodes.entries()).find(([, code]) => code.codeHash === codeHash)?.[0] ?? -1);
+}
+
+export async function verifyClientAccessCode(ctx: TrpcContext, code: string) {
+  const record = await getClientCodeByHash(hashClientCode(code));
+  if (!record || record.disabledAt || record.expiresAt.getTime() <= Date.now()) return null;
+  setClientAccessCookie(ctx, record.codeHash);
+  return { clientName: record.clientName, monthlyRemaining: Math.max(0, record.monthlyQuota - record.monthlyUsed), expiresAt: record.expiresAt };
+}
+
+export function hasValidClientAccessCookie(ctx: TrpcContext) {
+  const token = ctx.req.cookies?.[CLIENT_ACCESS_COOKIE];
+  return Boolean(token && Array.from(memoryClientCodes.values()).some((record) => signedToken("client", record.codeHash) === token && !record.disabledAt && record.expiresAt.getTime() > Date.now()));
+}
+
+export async function getClientAccessStatus(ctx: TrpcContext) {
+  const record = await getClientRecordFromCookie(ctx);
+  if (!record) return { unlocked: false as const };
+  return { unlocked: true as const, clientName: record.clientName, monthlyRemaining: Math.max(0, record.monthlyQuota - record.monthlyUsed), monthlyQuota: record.monthlyQuota, expiresAt: record.expiresAt };
+}
+
+async function getClientRecordFromCookie(ctx: TrpcContext) {
+  const token = ctx.req.cookies?.[CLIENT_ACCESS_COOKIE];
+  if (!token) return null;
+  const db = process.env.NODE_ENV === "test" || process.env.VITEST === "true" ? null : await getDb();
+  if (db) {
+    const rows = await db.select().from(clientAccessCodes).where(and(isNull(clientAccessCodes.disabledAt), gt(clientAccessCodes.expiresAt, new Date())));
+    return rows.find((record) => signedToken("client", record.codeHash) === token) ?? null;
+  }
+  return Array.from(memoryClientCodes.values()).find((record) => signedToken("client", record.codeHash) === token && !record.disabledAt && record.expiresAt.getTime() > Date.now()) ?? null;
+}
+
+export async function consumeClientMonthlyQuota(ctx: TrpcContext) {
+  const record = await getClientRecordFromCookie(ctx);
+  if (!record) return { allowed: false as const, reason: "invalid" as const, remaining: 0 };
+  if (record.monthlyUsed >= record.monthlyQuota) return { allowed: false as const, reason: "monthly" as const, remaining: 0, clientName: record.clientName };
+  const db = process.env.NODE_ENV === "test" || process.env.VITEST === "true" ? null : await getDb();
+  if (db) {
+    await db.update(clientAccessCodes).set({ monthlyUsed: sql`${clientAccessCodes.monthlyUsed} + 1` }).where(and(eq(clientAccessCodes.id, record.id), sql`${clientAccessCodes.monthlyUsed} < ${clientAccessCodes.monthlyQuota}`, isNull(clientAccessCodes.disabledAt)));
+    const updated = (await db.select().from(clientAccessCodes).where(eq(clientAccessCodes.id, record.id)).limit(1))[0];
+    if (!updated || updated.monthlyUsed > updated.monthlyQuota) return { allowed: false as const, reason: "monthly" as const, remaining: 0, clientName: record.clientName };
+    return { allowed: true as const, remaining: updated.monthlyQuota - updated.monthlyUsed, clientName: updated.clientName };
+  }
+  const memory = memoryClientCodes.get(record.id);
+  if (!memory || memory.monthlyUsed >= memory.monthlyQuota) return { allowed: false as const, reason: "monthly" as const, remaining: 0, clientName: record.clientName };
+  memory.monthlyUsed += 1;
+  return { allowed: true as const, remaining: memory.monthlyQuota - memory.monthlyUsed, clientName: memory.clientName };
+}
+
+export async function createClientAccessCode(clientName: string, monthlyQuota: number) {
+  const code = `MXP-${crypto.randomBytes(5).toString("hex").toUpperCase()}`;
+  const codeHash = hashClientCode(code);
+  const createdAt = new Date();
+  const expiresAt = new Date(createdAt);
+  expiresAt.setMonth(expiresAt.getMonth() + 1);
+  const db = process.env.NODE_ENV === "test" || process.env.VITEST === "true" ? null : await getDb();
+  if (db) {
+    const inserted = await db.insert(clientAccessCodes).values({ codeHash, clientName, monthlyQuota, monthlyUsed: 0, createdAt, expiresAt });
+    return { id: Number(inserted[0].insertId), code, clientName, monthlyQuota, monthlyUsed: 0, createdAt, expiresAt, disabledAt: null };
+  }
+  const record = { id: nextMemoryClientCodeId++, codeHash, clientName, monthlyQuota, monthlyUsed: 0, createdAt, expiresAt, disabledAt: null };
+  memoryClientCodes.set(record.id, record);
+  return { ...record, code };
+}
+
+export async function listClientAccessCodes() {
+  const db = process.env.NODE_ENV === "test" || process.env.VITEST === "true" ? null : await getDb();
+  const rows = db ? await db.select().from(clientAccessCodes).orderBy(clientAccessCodes.expiresAt) : Array.from(memoryClientCodes.values());
+  return rows.map((record) => ({ id: record.id, clientName: record.clientName, monthlyQuota: record.monthlyQuota, monthlyRemaining: Math.max(0, record.monthlyQuota - record.monthlyUsed), expiresAt: record.expiresAt, disabledAt: record.disabledAt }));
+}
+
+export function expireClientAccessCodeForTests(id: number) {
+  if (process.env.NODE_ENV !== "test" && process.env.VITEST !== "true") return;
+  const record = memoryClientCodes.get(id);
+  if (record) record.expiresAt = new Date(Date.now() - 1_000);
+}
+
+export async function disableClientAccessCode(id: number) {
+  const disabledAt = new Date();
+  const db = process.env.NODE_ENV === "test" || process.env.VITEST === "true" ? null : await getDb();
+  if (db) { await db.update(clientAccessCodes).set({ disabledAt }).where(eq(clientAccessCodes.id, id)); return; }
+  const record = memoryClientCodes.get(id);
+  if (record) record.disabledAt = disabledAt;
 }
 
 function accessToken() {

@@ -7,6 +7,7 @@ vi.mock("@/lib/trpc", () => {
       security: {
         status: { useQuery: () => unlockedStatus },
         verifyAccessCode: { useMutation: () => ({ isPending: false, mutate: vi.fn(), error: undefined }) },
+        verifyClientCode: { useMutation: () => ({ isPending: false, mutate: vi.fn(), error: undefined }) },
       },
       estimate: { generate: { useMutation: () => ({ isPending: false, mutateAsync: vi.fn(), error: undefined }) } },
     },

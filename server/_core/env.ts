@@ -8,4 +8,5 @@ export const ENV = {
   forgeApiUrl: process.env.BUILT_IN_FORGE_API_URL ?? "",
   forgeApiKey: process.env.BUILT_IN_FORGE_API_KEY ?? "",
   accessCode: process.env.METREXPERT_ACCESS_CODE ?? "",
+  adminAccessCode: process.env.METREXPERT_ADMIN_ACCESS_CODE ?? "",
 };

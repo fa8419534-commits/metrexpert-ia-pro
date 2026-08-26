@@ -109,11 +109,19 @@ export default function Home() {
     onSuccess: async () => {
       await accessStatus.refetch();
       setAccessCode("");
-      toast.success("Accès autorisé pour 7 jours.");
+      toast.success("Accès partagé autorisé pour 7 jours.");
+    },
+  });
+  const verifyClientAccess = trpc.security.verifyClientCode.useMutation({
+    onSuccess: async () => {
+      await accessStatus.refetch();
+      setClientAccessCode("");
+      toast.success("Accès client autorisé.");
     },
   });
   const generate = trpc.estimate.generate.useMutation();
   const [accessCode, setAccessCode] = useState("");
+  const [clientAccessCode, setClientAccessCode] = useState("");
   const [progressStage, setProgressStage] = useState(0);
   const documentDate = new Intl.DateTimeFormat("fr-FR").format(new Date());
 
@@ -202,6 +210,11 @@ export default function Home() {
     verifyAccess.mutate({ accessCode });
   };
 
+  const handleVerifyClientAccess = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    verifyClientAccess.mutate({ accessCode: clientAccessCode });
+  };
+
   const handleGenerate = async () => {
     if (!accessStatus.data?.unlocked) {
       toast.error("Déverrouillez l’application avant de générer.");
@@ -285,8 +298,8 @@ export default function Home() {
           <div className="min-w-0 space-y-7">
             <section className="technical-panel">
               <div className="panel-heading"><div><p className="repere">REP. 01 <span>—</span> SAISIE PROJET</p><h2 className="mt-2 font-serif text-3xl text-[#EDEAE2]">Définir l’opération</h2></div><span className="panel-index">A-01</span></div>
-              {!accessStatus.data?.unlocked && <div className="access-panel mb-6" role="region" aria-labelledby="access-title"><div className="mb-4 flex items-start justify-between gap-4"><div><p className="repere">PROTECTION <span>—</span> ACCÈS REQUIS</p><h3 id="access-title" className="mt-2 font-serif text-xl text-[#EDEAE2]">Déverrouiller l’étude</h3></div><span className="font-mono text-[10px] uppercase text-[#C9A15A]">5 / H · 50 / J</span></div><p className="mb-4 text-xs leading-5 text-[#AEB7B0]">Un code d’accès est nécessaire avant toute génération payante. Limites actives : 5 générations par heure et 50 pour toute l’application par jour.</p><form onSubmit={handleVerifyAccess} className="flex flex-col gap-3 sm:flex-row"><label htmlFor="access-code" className="sr-only">Code d’accès partagé</label><input id="access-code" type="password" autoComplete="off" value={accessCode} onChange={(event) => setAccessCode(event.target.value)} placeholder="Code d’accès" className="technical-input h-11 min-w-0 flex-1 px-3 text-sm" required /><Button type="submit" disabled={verifyAccess.isPending || !accessCode} className="technical-button h-11 rounded-none sm:w-40">{verifyAccess.isPending ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />Vérification…</> : "Déverrouiller"}</Button></form>{verifyAccess.error && <p className="mt-3 text-xs font-medium text-[#d98472]" role="alert">{verifyAccess.error.message}</p>}</div>}
-              {accessStatus.data?.unlocked && hourlyRemaining !== undefined && <HourlyQuotaIndicator remaining={hourlyRemaining} limit={hourlyLimit} />}
+              {!accessStatus.data?.unlocked && <div className="access-panel mb-6" role="region" aria-labelledby="access-title"><div className="mb-4 flex items-start justify-between gap-4"><div><p className="repere">PROTECTION <span>—</span> ACCÈS REQUIS</p><h3 id="access-title" className="mt-2 font-serif text-xl text-[#EDEAE2]">Déverrouiller l’étude</h3></div><span className="font-mono text-[10px] uppercase text-[#C9A15A]">5 / H · 50 / J</span></div><p className="mb-4 text-xs leading-5 text-[#AEB7B0]">Un code d’accès est nécessaire avant toute génération payante. Limites actives : 5 générations par heure et 50 pour toute l’application par jour.</p><form onSubmit={handleVerifyAccess} className="flex flex-col gap-3 sm:flex-row"><label htmlFor="access-code" className="sr-only">Code d’accès partagé</label><input id="access-code" type="password" autoComplete="off" value={accessCode} onChange={(event) => setAccessCode(event.target.value)} placeholder="Code d’accès partagé" className="technical-input h-11 min-w-0 flex-1 px-3 text-sm" required /><Button type="submit" disabled={verifyAccess.isPending || !accessCode} className="technical-button h-11 rounded-none sm:w-40">{verifyAccess.isPending ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />Vérification…</> : "Déverrouiller"}</Button></form>{verifyAccess.error && <p className="mt-3 text-xs font-medium text-[#d98472]" role="alert">{verifyAccess.error.message}</p>}<div className="my-4 flex items-center gap-3 font-mono text-[10px] uppercase tracking-wider text-[#607068]"><span className="h-px flex-1 bg-[#3A4A42]" />ou accès client<span className="h-px flex-1 bg-[#3A4A42]" /></div><form onSubmit={handleVerifyClientAccess} className="flex flex-col gap-3 sm:flex-row"><label htmlFor="client-access-code" className="sr-only">Code client</label><input id="client-access-code" type="password" autoComplete="off" value={clientAccessCode} onChange={(event) => setClientAccessCode(event.target.value)} placeholder="Code client transmis" className="technical-input h-11 min-w-0 flex-1 px-3 text-sm" required /><Button type="submit" disabled={verifyClientAccess.isPending || !clientAccessCode} className="technical-button h-11 rounded-none sm:w-40">{verifyClientAccess.isPending ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />Vérification…</> : "Activer mon accès"}</Button></form>{verifyClientAccess.error && <p className="mt-3 text-xs font-medium text-[#d98472]" role="alert">{verifyClientAccess.error.message}</p>}</div>}
+              {accessStatus.data?.unlocked && accessStatus.data.accessType === "client" && <div className="mb-6 border border-[#C9A15A]/60 bg-[#211d14] px-4 py-3 font-mono text-[10px] uppercase tracking-wider text-[#C9A15A]" role="status">Quota mensuel client : <strong>{accessStatus.data.monthlyRemaining} / {accessStatus.data.monthlyQuota}</strong> · expiration {accessStatus.data.expiresAt ? new Date(accessStatus.data.expiresAt).toLocaleDateString("fr-FR") : "—"}</div>}{accessStatus.data?.unlocked && hourlyRemaining !== undefined && <HourlyQuotaIndicator remaining={hourlyRemaining} limit={hourlyLimit} />}
               {accessStatus.data?.dailyTotal !== undefined && <div className="mb-6 flex items-center justify-between gap-3 border border-[#3A4A42] bg-[#16201C] px-4 py-3 font-mono text-[10px] uppercase tracking-wider text-[#AEB7B0]"><span>Compteur global du jour</span><strong className="text-[#C9A15A]">{accessStatus.data.dailyTotal} / {accessStatus.data.dailyLimit}</strong></div>}
               <label htmlFor="description" className="field-label">Description du projet <span>REQUIS</span></label>
               <Textarea id="description" value={description} onChange={(event) => setDescription(event.target.value)} placeholder="Ex. Construction d’une villa R+1 de 180 m² à Abidjan, avec fondations en béton armé, murs en agglos..." className="technical-input min-h-40 resize-none" />

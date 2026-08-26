@@ -170,4 +170,20 @@
 - [x] Revalider le rendu responsive après ces interactions et sauvegarder un checkpoint postérieur
 - [x] Adapter le test DOM au format .ts inclus par la configuration Vitest
 - [x] Sauvegarder un checkpoint postérieur à l’indicateur local, au nettoyage global et au dialogue de confirmation
-- [ ] Sauvegarder le checkpoint final après l’indicateur local, le nettoyage global et la confirmation individuelle
+- [x] Sauvegarder le checkpoint final après l’indicateur local, le nettoyage global et la confirmation individuelle
+
+- [x] Ajouter un accès administrateur séparé et protégé pour Daouda
+- [x] Créer des codes clients avec nom, quota mensuel et expiration à un mois
+- [x] Afficher les codes actifs avec quota restant et date d’expiration
+- [x] Permettre la désactivation manuelle d’un code client
+- [x] Afficher un message métier lorsque le quota mensuel est atteint
+- [x] Préserver le code partagé général pour les tests, séparé des codes clients
+- [x] Ajouter les tests de sécurité, quotas, expiration, désactivation et interface
+- [x] Vérifier le rendu du panneau et sauvegarder un checkpoint
+- [x] Corriger les itérations de Map dans la sécurité des codes clients pour la cible TypeScript du projet
+- [x] Ajouter les procédures tRPC d’administration et de connexion par code client
+- [x] Connecter la génération au quota mensuel et afficher le message de renouvellement
+- [x] Créer la page Admin Panel avec création, liste et désactivation des codes
+- [x] Ajouter les tests Vitest des codes clients, quotas et procédures admin
+- [x] Ajouter un test Vitest couvrant un code client expiré
+- [x] Ajouter un test UI dédié à l’état verrouillé du panneau Admin

@@ -1,7 +1,7 @@
 import { describe, expect, it, beforeEach } from "vitest";
 import type { TrpcContext } from "./_core/context";
 import { appRouter } from "./routers";
-import { consumeGenerationQuota, DAILY_LIMIT, HOURLY_LIMIT, resetSecurityStateForTests } from "./security";
+import { consumeGenerationQuota, DAILY_LIMIT, expireClientAccessCodeForTests, HOURLY_LIMIT, resetSecurityStateForTests } from "./security";
 
 function context(ip: string): TrpcContext {
   return { user: null, req: { ip, headers: {} } as TrpcContext["req"], res: {} as TrpcContext["res"] };
@@ -29,5 +29,59 @@ describe("generation security quotas", () => {
   it("rejects an invalid shared access code", async () => {
     const caller = appRouter.createCaller({ user: null, req: {} as TrpcContext["req"], res: { cookie: () => undefined } as unknown as TrpcContext["res"] });
     await expect(caller.security.verifyAccessCode({ accessCode: "definitely-not-the-code" })).rejects.toMatchObject({ code: "UNAUTHORIZED" });
+  });
+});
+
+
+describe("administration secret configuration", () => {
+  it("loads a distinct administrator access code without exposing its value", () => {
+    expect(process.env.METREXPERT_ADMIN_ACCESS_CODE).toBeTruthy();
+    expect(process.env.METREXPERT_ADMIN_ACCESS_CODE).not.toBe(process.env.METREXPERT_ACCESS_CODE);
+  });
+});
+
+describe("client access administration", () => {
+  beforeEach(() => resetSecurityStateForTests());
+
+  it("creates, lists and disables a client code through the protected admin procedures", async () => {
+    const req = { ip: "198.51.100.30", headers: {}, cookies: {} } as TrpcContext["req"];
+    const res = { cookie: (_name: string, value: string) => { (req.cookies as Record<string, string>)["metrexpert_admin_access"] = value; } } as unknown as TrpcContext["res"];
+    const caller = appRouter.createCaller({ user: null, req, res });
+    await caller.security.verifyAdminCode({ accessCode: process.env.METREXPERT_ADMIN_ACCESS_CODE! });
+    const created = await caller.security.adminCreateCode({ clientName: "Entreprise test", monthlyQuota: 5 });
+    expect(created.code).toMatch(/^MXP-[A-F0-9]{10}$/);
+    expect((await caller.security.adminListCodes())[0]).toMatchObject({ clientName: "Entreprise test", monthlyQuota: 5, monthlyRemaining: 5 });
+    await caller.security.adminDisableCode({ id: created.id });
+    expect((await caller.security.adminListCodes())[0].disabledAt).toBeTruthy();
+  });
+
+  it("rejects a client code after its expiration date", async () => {
+    const adminReq = { ip: "198.51.100.33", headers: {}, cookies: {} } as TrpcContext["req"];
+    const adminRes = { cookie: (_name: string, value: string) => { (adminReq.cookies as Record<string, string>)["metrexpert_admin_access"] = value; } } as unknown as TrpcContext["res"];
+    const adminCaller = appRouter.createCaller({ user: null, req: adminReq, res: adminRes });
+    await adminCaller.security.verifyAdminCode({ accessCode: process.env.METREXPERT_ADMIN_ACCESS_CODE! });
+    const created = await adminCaller.security.adminCreateCode({ clientName: "Client expiré", monthlyQuota: 5 });
+    expireClientAccessCodeForTests(created.id);
+    const clientReq = { ip: "198.51.100.34", headers: {}, cookies: {} } as TrpcContext["req"];
+    const clientRes = { cookie: () => undefined } as unknown as TrpcContext["res"];
+    const clientCaller = appRouter.createCaller({ user: null, req: clientReq, res: clientRes });
+    await expect(clientCaller.security.verifyClientCode({ accessCode: created.code })).rejects.toMatchObject({ code: "UNAUTHORIZED" });
+  });
+
+  it("accepts a client code once and blocks the monthly limit", async () => {
+    const adminReq = { ip: "198.51.100.31", headers: {}, cookies: {} } as TrpcContext["req"];
+    const adminRes = { cookie: (_name: string, value: string) => { (adminReq.cookies as Record<string, string>)["metrexpert_admin_access"] = value; } } as unknown as TrpcContext["res"];
+    const adminCaller = appRouter.createCaller({ user: null, req: adminReq, res: adminRes });
+    await adminCaller.security.verifyAdminCode({ accessCode: process.env.METREXPERT_ADMIN_ACCESS_CODE! });
+    const created = await adminCaller.security.adminCreateCode({ clientName: "Client quota", monthlyQuota: 5 });
+    const clientReq = { ip: "198.51.100.32", headers: {}, cookies: {} } as TrpcContext["req"];
+    const clientRes = { cookie: (_name: string, value: string) => { (clientReq.cookies as Record<string, string>)["metrexpert_client_access"] = value; } } as unknown as TrpcContext["res"];
+    const clientCaller = appRouter.createCaller({ user: null, req: clientReq, res: clientRes });
+    const access = await clientCaller.security.verifyClientCode({ accessCode: created.code });
+    expect(access.monthlyRemaining).toBe(5);
+    for (let attempt = 0; attempt < 5; attempt += 1) expect((await clientCaller.security.status()).monthlyRemaining).toBe(5);
+    const { consumeClientMonthlyQuota } = await import("./security");
+    for (let attempt = 0; attempt < 5; attempt += 1) expect((await consumeClientMonthlyQuota({ user: null, req: clientReq, res: clientRes } as TrpcContext)).allowed).toBe(true);
+    expect(await consumeClientMonthlyQuota({ user: null, req: clientReq, res: clientRes } as TrpcContext)).toMatchObject({ allowed: false, reason: "monthly" });
   });
 });

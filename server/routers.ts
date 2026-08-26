@@ -10,7 +10,7 @@ import { buildEstimateWorkbook, type ProjectEstimate } from "./excel";
 import { BTP_JSON_OUTPUT_ENFORCEMENT, BTP_SYSTEM_PROMPT } from "./btpPrompt";
 import { parseJsonObjectFromLLM } from "./json";
 import { normalizeEstimateAmbiguities } from "./estimateNormalization";
-import { consumeGenerationQuota, DAILY_LIMIT, getGenerationStats, getHourlyQuotaStatus, hasValidAccessCookie, HOURLY_LIMIT, isAccessCodeValid, setAccessCookie } from "./security";
+import { consumeClientMonthlyQuota, consumeGenerationQuota, createClientAccessCode, DAILY_LIMIT, disableClientAccessCode, getClientAccessStatus, getGenerationStats, getHourlyQuotaStatus, hasValidAccessCookie, hasValidAdminCookie, HOURLY_LIMIT, isAccessCodeValid, isAdminAccessCodeValid, listClientAccessCodes, setAccessCookie, setAdminCookie, verifyClientAccessCode } from "./security";
 
 const estimateSchema = {
   type: "object",
@@ -137,24 +137,45 @@ export function validateEstimate(value: unknown): ProjectEstimate {
   return parsed.data;
 }
 
+const adminProcedure = publicProcedure.use(({ ctx, next }) => {
+  if (!hasValidAdminCookie(ctx)) throw new TRPCError({ code: "UNAUTHORIZED", message: "Accès administrateur requis." });
+  return next();
+});
+
 export const appRouter = router({
   system: systemRouter,
   security: router({
     status: publicProcedure.query(async ({ ctx }) => {
-      const unlocked = hasValidAccessCookie(ctx);
+      const sharedUnlocked = hasValidAccessCookie(ctx);
+      const clientStatus = sharedUnlocked ? { unlocked: false as const } : await getClientAccessStatus(ctx);
+      const unlocked = sharedUnlocked || clientStatus.unlocked;
       return {
         unlocked,
+        accessType: sharedUnlocked ? "shared" as const : clientStatus.unlocked ? "client" as const : null,
         ...(unlocked ? await getHourlyQuotaStatus(ctx) : {}),
+        ...(clientStatus.unlocked ? { clientName: clientStatus.clientName, monthlyRemaining: clientStatus.monthlyRemaining, monthlyQuota: clientStatus.monthlyQuota, expiresAt: clientStatus.expiresAt } : {}),
         ...(ctx.user?.role === "admin" ? await getGenerationStats() : {}),
       };
     }),
     verifyAccessCode: publicProcedure.input(z.object({ accessCode: z.string().min(1).max(200) })).mutation(({ ctx, input }) => {
-      if (!isAccessCodeValid(input.accessCode)) {
-        throw new TRPCError({ code: "UNAUTHORIZED", message: "Code d’accès invalide." });
-      }
+      if (!isAccessCodeValid(input.accessCode)) throw new TRPCError({ code: "UNAUTHORIZED", message: "Code d’accès invalide." });
       setAccessCookie(ctx);
       return { valid: true as const };
     }),
+    verifyClientCode: publicProcedure.input(z.object({ accessCode: z.string().trim().min(8).max(80) })).mutation(async ({ ctx, input }) => {
+      const status = await verifyClientAccessCode(ctx, input.accessCode);
+      if (!status) throw new TRPCError({ code: "UNAUTHORIZED", message: "Code client invalide, désactivé ou expiré." });
+      return { valid: true as const, accessType: "client" as const, ...status };
+    }),
+    verifyAdminCode: publicProcedure.input(z.object({ accessCode: z.string().min(1).max(200) })).mutation(({ ctx, input }) => {
+      if (!isAdminAccessCodeValid(input.accessCode)) throw new TRPCError({ code: "UNAUTHORIZED", message: "Code administrateur invalide." });
+      setAdminCookie(ctx);
+      return { valid: true as const };
+    }),
+    adminStatus: publicProcedure.query(({ ctx }) => ({ unlocked: hasValidAdminCookie(ctx) })),
+    adminListCodes: adminProcedure.query(() => listClientAccessCodes()),
+    adminCreateCode: adminProcedure.input(z.object({ clientName: z.string().trim().min(1).max(160), monthlyQuota: z.union([z.literal(5), z.literal(15), z.literal(40)]) })).mutation(({ input }) => createClientAccessCode(input.clientName, input.monthlyQuota)),
+    adminDisableCode: adminProcedure.input(z.object({ id: z.number().int().positive() })).mutation(({ input }) => disableClientAccessCode(input.id).then(() => ({ success: true as const }))),
   }),
   auth: router({
     me: publicProcedure.query(opts => opts.ctx.user),
@@ -167,11 +188,16 @@ export const appRouter = router({
   estimate: router({
     generate: publicProcedure.input(requestSchema).mutation(async ({ ctx, input }) => {
       try {
-        if (!hasValidAccessCookie(ctx)) {
-          throw new TRPCError({ code: "UNAUTHORIZED", message: "Déverrouillez l’application avec le code d’accès avant de générer." });
-        }
+        const sharedUnlocked = hasValidAccessCookie(ctx);
+        const clientStatus = sharedUnlocked ? { unlocked: false as const } : await getClientAccessStatus(ctx);
+        if (!sharedUnlocked && !clientStatus.unlocked) throw new TRPCError({ code: "UNAUTHORIZED", message: "Déverrouillez l’application avec un code d’accès avant de générer." });
         if (input.signatureImageDataUrl) validateBrandImageDataUrl(input.signatureImageDataUrl);
         if (input.stampImageDataUrl) validateBrandImageDataUrl(input.stampImageDataUrl);
+        if (clientStatus.unlocked) {
+          const monthly = await consumeClientMonthlyQuota(ctx);
+          if (!monthly.allowed && monthly.reason === "monthly") throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Quota mensuel atteint, contactez-moi pour renouveler votre accès." });
+          if (!monthly.allowed) throw new TRPCError({ code: "UNAUTHORIZED", message: "Code client invalide ou expiré." });
+        }
         const quota = await consumeGenerationQuota(ctx);
         if (!quota.allowed) {
           throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: quota.reason === "hourly" ? `Limite atteinte : ${HOURLY_LIMIT} générations par heure.` : `Quota global atteint : ${DAILY_LIMIT} générations pour aujourd’hui.` });

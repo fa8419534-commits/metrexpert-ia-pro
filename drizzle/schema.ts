@@ -36,4 +36,19 @@ export const generationWindows = mysqlTable("generation_windows", {
 
 export type GenerationWindow = typeof generationWindows.$inferSelect;
 
+export const clientAccessCodes = mysqlTable("client_access_codes", {
+  id: int("id").autoincrement().primaryKey(),
+  codeHash: varchar("codeHash", { length: 64 }).notNull().unique(),
+  clientName: varchar("clientName", { length: 160 }).notNull(),
+  monthlyQuota: int("monthlyQuota").notNull(),
+  monthlyUsed: int("monthlyUsed").default(0).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  expiresAt: timestamp("expiresAt").notNull(),
+  disabledAt: timestamp("disabledAt"),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type ClientAccessCode = typeof clientAccessCodes.$inferSelect;
+export type InsertClientAccessCode = typeof clientAccessCodes.$inferInsert;
+
 // TODO: Add your tables here
