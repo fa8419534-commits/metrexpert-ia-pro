@@ -8,6 +8,7 @@ import { publicProcedure, router } from "./_core/trpc";
 import { buildEstimateWorkbook, type ProjectEstimate } from "./excel";
 import { BTP_JSON_OUTPUT_ENFORCEMENT, BTP_SYSTEM_PROMPT } from "./btpPrompt";
 import { parseJsonObjectFromLLM } from "./json";
+import { normalizeEstimateAmbiguities } from "./estimateNormalization";
 
 const estimateSchema = {
   type: "object",
@@ -128,7 +129,7 @@ export const appRouter = router({
           });
           throw new TRPCError({ code: "BAD_REQUEST", message: "La réponse de l’IA n’est pas un JSON valide." });
         }
-        const estimate = validateEstimate(json);
+        const estimate = normalizeEstimateAmbiguities(validateEstimate(json));
         const workbook = buildEstimateWorkbook(estimate);
         return {
           filename: `metrexpert-${Date.now()}.xlsx`,

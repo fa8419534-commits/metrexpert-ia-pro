@@ -32,5 +32,8 @@ describe("estimate.generate prompt transmission", () => {
     const request = invokeLLMMock.mock.calls[0]?.[0];
     expect(request.model).toBe("claude-sonnet-4-6");
     expect(request.messages[0]).toEqual({ role: "system", content: `${BTP_SYSTEM_PROMPT}\n${BTP_JSON_OUTPUT_ENFORCEMENT}` });
+    expect(request.messages[0].content).toContain("CONVENTION DÉTERMINISTE — PRIX DE PEINTURE AMBIGU");
+    expect(request.messages[0].content).toContain("180 m², pas 360 m²-couche");
+    expect(request.messages[0].content).toContain("HYPOTHÈSE NON DÉFINITIVE");
   });
 });

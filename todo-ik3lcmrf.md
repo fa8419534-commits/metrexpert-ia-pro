@@ -41,3 +41,11 @@
 - [x] Vérifier le rendu et exécuter tests, TypeScript et build avant checkpoint
 - [x] Afficher un état de chargement directement dans la zone du bouton de téléchargement pendant la génération Excel
 - [x] Ajouter le contrat UI couvrant ce bouton de téléchargement en attente
+- [x] Inspecter les règles existantes sur les prix indicatifs, les couches de peinture et les hypothèses DQE
+- [x] Imposer une convention fixe : sauf précision contraire, un prix de peinture couvre l’ensemble des couches prévues
+- [x] Faire inscrire la convention et le caractère non définitif dans les notes/hypothèses du résultat
+- [x] Ajouter des tests de contrat vérifiant la règle et sa transmission dans le prompt
+- [x] Exécuter tests, TypeScript et build puis sauvegarder un checkpoint
+- [x] Ajouter une normalisation serveur déterministe des postes de peinture ambigus avant création du classeur
+- [x] Garantir par test concret le marqueur exact dans notes et summary ainsi que la quantité globale par défaut
+- [x] Créer un nouveau checkpoint après ces validations métier
