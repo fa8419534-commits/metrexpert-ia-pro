@@ -51,4 +51,19 @@ export const clientAccessCodes = mysqlTable("client_access_codes", {
 export type ClientAccessCode = typeof clientAccessCodes.$inferSelect;
 export type InsertClientAccessCode = typeof clientAccessCodes.$inferInsert;
 
+export const freeTrialContacts = mysqlTable("free_trial_contacts", {
+  id: int("id").autoincrement().primaryKey(),
+  clientName: varchar("clientName", { length: 160 }),
+  phone: varchar("phone", { length: 32 }),
+  phoneHash: varchar("phoneHash", { length: 64 }).unique(),
+  email: varchar("email", { length: 320 }),
+  emailHash: varchar("emailHash", { length: 64 }).unique(),
+  trialAt: timestamp("trialAt").defaultNow().notNull(),
+  convertedAt: timestamp("convertedAt"),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type FreeTrialContact = typeof freeTrialContacts.$inferSelect;
+export type InsertFreeTrialContact = typeof freeTrialContacts.$inferInsert;
+
 // TODO: Add your tables here

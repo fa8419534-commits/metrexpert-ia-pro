@@ -10,7 +10,7 @@ import { buildEstimateWorkbook, type ProjectEstimate } from "./excel";
 import { BTP_JSON_OUTPUT_ENFORCEMENT, BTP_SYSTEM_PROMPT } from "./btpPrompt";
 import { parseJsonObjectFromLLM } from "./json";
 import { normalizeEstimateAmbiguities } from "./estimateNormalization";
-import { consumeClientMonthlyQuota, consumeGenerationQuota, createClientAccessCode, DAILY_LIMIT, disableClientAccessCode, getClientAccessStatus, getGenerationStats, getHourlyQuotaStatus, hasValidAccessCookie, hasValidAdminCookie, HOURLY_LIMIT, isAccessCodeValid, isAdminAccessCodeValid, listClientAccessCodes, setAccessCookie, setAdminCookie, verifyClientAccessCode } from "./security";
+import { consumeClientMonthlyQuota, consumeGenerationQuota, createClientAccessCode, DAILY_LIMIT, disableClientAccessCode, getClientAccessStatus, getGenerationStats, getHourlyQuotaStatus, hasValidAccessCookie, hasValidAdminCookie, HOURLY_LIMIT, isAccessCodeValid, isAdminAccessCodeValid, listClientAccessCodes, listFreeTrialContacts, markFreeTrialConverted, reserveFreeTrial, setAccessCookie, setAdminCookie, verifyClientAccessCode } from "./security";
 
 const estimateSchema = {
   type: "object",
@@ -46,6 +46,8 @@ export const requestSchema = z.object({
   description: z.string().trim().min(20, "Décrivez le projet avec au moins 20 caractères.").max(50_000),
   clientPhone: z.string().trim().max(80).optional(),
   clientEmail: z.string().trim().max(160).optional(),
+  trialPhone: z.string().trim().max(32).optional(),
+  trialEmail: z.string().trim().max(320).optional(),
   verifiedBy: z.string().trim().max(160).optional(),
   validationDate: z.string().trim().max(40).optional(),
   signatureImageDataUrl: z.string().max(2_500_000).optional(),
@@ -100,6 +102,11 @@ export function validateUploadedDataUrl(file: { mimeType: string; dataUrl: strin
   }
 }
 
+function extractTrialClientName(description: string) {
+  const match = description.match(/(?:nom du client|client|cliente)\s*[:\-]\s*([^\n,;]{2,160})/i);
+  return match?.[1]?.trim() || undefined;
+}
+
 function extractText(response: Awaited<ReturnType<typeof invokeLLM>>): string {
   const content = response.choices?.[0]?.message?.content;
   if (typeof content === "string") return content;
@@ -107,7 +114,7 @@ function extractText(response: Awaited<ReturnType<typeof invokeLLM>>): string {
   return "";
 }
 
-export type EstimateRequestMetadata = Pick<ProjectEstimate, "clientPhone" | "clientEmail" | "verifiedBy" | "validationDate" | "signatureImageDataUrl" | "stampImageDataUrl">;
+export type EstimateRequestMetadata = Pick<ProjectEstimate, "clientPhone" | "clientEmail" | "verifiedBy" | "validationDate" | "signatureImageDataUrl" | "stampImageDataUrl" | "trialVersion">;
 
 export async function buildEstimateWorkbookFromRequest(estimate: ProjectEstimate, metadata: EstimateRequestMetadata) {
   return buildEstimateWorkbook({ ...estimate, ...metadata });
@@ -174,6 +181,8 @@ export const appRouter = router({
     }),
     adminStatus: publicProcedure.query(({ ctx }) => ({ unlocked: hasValidAdminCookie(ctx) })),
     adminListCodes: adminProcedure.query(() => listClientAccessCodes()),
+    adminListFreeTrials: adminProcedure.query(() => listFreeTrialContacts()),
+    adminMarkFreeTrialConverted: adminProcedure.input(z.object({ id: z.number().int().positive() })).mutation(({ input }) => markFreeTrialConverted(input.id).then(() => ({ success: true as const }))),
     adminCreateCode: adminProcedure.input(z.object({ clientName: z.string().trim().min(1).max(160), monthlyQuota: z.union([z.literal(5), z.literal(15), z.literal(40)]) })).mutation(({ input }) => createClientAccessCode(input.clientName, input.monthlyQuota)),
     adminDisableCode: adminProcedure.input(z.object({ id: z.number().int().positive() })).mutation(({ input }) => disableClientAccessCode(input.id).then(() => ({ success: true as const }))),
   }),
@@ -190,7 +199,7 @@ export const appRouter = router({
       try {
         const sharedUnlocked = hasValidAccessCookie(ctx);
         const clientStatus = sharedUnlocked ? { unlocked: false as const } : await getClientAccessStatus(ctx);
-        if (!sharedUnlocked && !clientStatus.unlocked) throw new TRPCError({ code: "UNAUTHORIZED", message: "Déverrouillez l’application avec un code d’accès avant de générer." });
+        let isFreeTrial = false;
         if (input.signatureImageDataUrl) validateBrandImageDataUrl(input.signatureImageDataUrl);
         if (input.stampImageDataUrl) validateBrandImageDataUrl(input.stampImageDataUrl);
         if (clientStatus.unlocked) {
@@ -204,6 +213,12 @@ export const appRouter = router({
         }
         console.info("[Security] Generation accepted", { remaining: quota.remaining, identity: ctx.user?.openId ? "user" : "ip" });
         if (input.file) validateUploadedDataUrl(input.file);
+        if (!sharedUnlocked && !clientStatus.unlocked) {
+          if (!input.trialPhone?.trim() && !input.trialEmail?.trim()) throw new TRPCError({ code: "BAD_REQUEST", message: "Renseignez votre téléphone ou votre e-mail pour utiliser l’essai gratuit." });
+          const trial = await reserveFreeTrial(extractTrialClientName(input.description), input.trialPhone, input.trialEmail);
+          if (!trial.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Vous avez déjà utilisé votre essai gratuit. Contactez-moi pour un abonnement au WhatsApp +225 01 51 61 05 12." });
+          isFreeTrial = true;
+        }
         const userContent: Array<Record<string, unknown>> = [{
           type: "text",
           text: `Description du projet :\n${input.description}\n\nDocument joint : ${input.file?.name || "aucun"}`,
@@ -248,6 +263,7 @@ export const appRouter = router({
           validationDate: input.validationDate || undefined,
           signatureImageDataUrl: input.signatureImageDataUrl || undefined,
           stampImageDataUrl: input.stampImageDataUrl || undefined,
+          trialVersion: isFreeTrial,
         });
         return {
           filename: `metrexpert-${Date.now()}.xlsx`,

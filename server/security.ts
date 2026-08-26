@@ -1,6 +1,6 @@
 import crypto from "node:crypto";
-import { and, eq, gt, isNull, like, sql } from "drizzle-orm";
-import { clientAccessCodes, generationWindows } from "../drizzle/schema";
+import { and, eq, gt, isNull, like, or, sql } from "drizzle-orm";
+import { clientAccessCodes, freeTrialContacts, generationWindows } from "../drizzle/schema";
 import { getDb } from "./db";
 import { ENV } from "./_core/env";
 import type { TrpcContext } from "./_core/context";
@@ -12,19 +12,116 @@ const ACCESS_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
 const ADMIN_ACCESS_MAX_AGE_MS = 8 * 60 * 60 * 1000;
 export const ADMIN_ACCESS_COOKIE = "metrexpert_admin_access";
 export const CLIENT_ACCESS_COOKIE = "metrexpert_client_access";
+const isTestRuntime = process.env.NODE_ENV === "test" || process.env.VITEST === "true" || Boolean(process.env.VITEST_WORKER_ID) || process.argv.some((argument) => argument.includes("vitest"));
+let forceMemoryForTests = false;
 const memoryWindows = new Map<string, { count: number; windowStart: number; kind: "hour" | "day" }>();
 type MemoryClientCode = { id: number; codeHash: string; clientName: string; monthlyQuota: number; monthlyUsed: number; createdAt: Date; expiresAt: Date; disabledAt: Date | null };
+type MemoryFreeTrialContact = { id: number; clientName: string | null; phone: string | null; phoneHash: string | null; email: string | null; emailHash: string | null; trialAt: Date; convertedAt: Date | null; updatedAt: Date };
 const memoryClientCodes = new Map<number, MemoryClientCode>();
+const memoryFreeTrialContacts = new Map<number, MemoryFreeTrialContact>();
+const memoryFreeTrialContactKeys = new Set<string>();
 let nextMemoryClientCodeId = 1;
+let nextMemoryFreeTrialId = 1;
 
 export function resetSecurityStateForTests() {
+  forceMemoryForTests = true;
   memoryWindows.clear();
   memoryClientCodes.clear();
+  memoryFreeTrialContacts.clear();
+  memoryFreeTrialContactKeys.clear();
   nextMemoryClientCodeId = 1;
+  nextMemoryFreeTrialId = 1;
 }
 
 function hashClientCode(code: string) {
   return crypto.createHash("sha256").update(code).digest("hex");
+}
+
+function normalizeTrialPhone(phone: string | undefined) {
+  const normalized = phone?.trim().replace(/\D/g, "");
+  return normalized || undefined;
+}
+
+function normalizeTrialEmail(email: string | undefined) {
+  const normalized = email?.trim().toLowerCase();
+  return normalized || undefined;
+}
+
+function hashTrialContact(value: string) {
+  return crypto.createHash("sha256").update(value).digest("hex");
+}
+
+export type FreeTrialReservation =
+  | { allowed: true; contactId: number; phone?: string; email?: string }
+  | { allowed: false; reason: "already_used" };
+
+export async function hasUsedFreeTrial(phoneInput: string | undefined, emailInput: string | undefined) {
+  const phone = normalizeTrialPhone(phoneInput);
+  const email = normalizeTrialEmail(emailInput);
+  if (!phone && !email) return false;
+  const phoneHash = phone ? hashTrialContact(phone) : undefined;
+  const emailHash = email ? hashTrialContact(email) : undefined;
+  const keys = [phone ? `phone:${phone}` : null, email ? `email:${email}` : null].filter((key): key is string => Boolean(key));
+  if (keys.some((key) => memoryFreeTrialContactKeys.has(key))) return true;
+  const db = isTestRuntime || forceMemoryForTests ? null : await getDb();
+  if (!db) return false;
+  const conditions = [phoneHash ? eq(freeTrialContacts.phoneHash, phoneHash) : undefined, emailHash ? eq(freeTrialContacts.emailHash, emailHash) : undefined, phone ? eq(freeTrialContacts.phone, phone) : undefined, email ? eq(freeTrialContacts.email, email) : undefined].filter((condition): condition is NonNullable<typeof condition> => Boolean(condition));
+  if (!conditions.length) return false;
+  return (await db.select({ id: freeTrialContacts.id }).from(freeTrialContacts).where(conditions.length === 1 ? conditions[0] : or(...conditions)).limit(1)).length > 0;
+}
+
+export async function reserveFreeTrial(
+  clientName: string | undefined,
+  phoneInput: string | undefined,
+  emailInput: string | undefined,
+): Promise<FreeTrialReservation> {
+  const phone = normalizeTrialPhone(phoneInput);
+  const email = normalizeTrialEmail(emailInput);
+  if (!phone && !email) throw new Error("Un contact téléphone ou e-mail est requis pour l’essai gratuit.");
+  const phoneHash = phone ? hashTrialContact(phone) : undefined;
+  const emailHash = email ? hashTrialContact(email) : undefined;
+  const contactKeys = [phone ? `phone:${phone}` : null, email ? `email:${email}` : null].filter((key): key is string => Boolean(key));
+  if (contactKeys.some((key) => memoryFreeTrialContactKeys.has(key))) return { allowed: false, reason: "already_used" };
+  const db = isTestRuntime || forceMemoryForTests ? null : await getDb();
+  if (db) {
+    const contactConditions = [phoneHash ? eq(freeTrialContacts.phoneHash, phoneHash) : undefined, emailHash ? eq(freeTrialContacts.emailHash, emailHash) : undefined, phone ? eq(freeTrialContacts.phone, phone) : undefined, email ? eq(freeTrialContacts.email, email) : undefined].filter((condition): condition is NonNullable<typeof condition> => Boolean(condition));
+    const existing = contactConditions.length ? await db.select({ id: freeTrialContacts.id }).from(freeTrialContacts).where(contactConditions.length === 1 ? contactConditions[0] : or(...contactConditions)).limit(1) : [];
+
+    if (existing.length) return { allowed: false, reason: "already_used" };
+    try {
+      const inserted = await db.insert(freeTrialContacts).values({ clientName: clientName || null, phone: phone || null, phoneHash: phoneHash || null, email: email || null, emailHash: emailHash || null });
+      contactKeys.forEach((key) => memoryFreeTrialContactKeys.add(key));
+      return { allowed: true, contactId: Number(inserted[0].insertId), phone, email };
+    } catch (error) {
+      if (String(error).toLowerCase().includes("duplicate") || String(error).toLowerCase().includes("unique")) return { allowed: false, reason: "already_used" };
+      throw error;
+    }
+  }
+  const now = new Date();
+  const contact = { id: nextMemoryFreeTrialId++, clientName: clientName || null, phone: phone || null, phoneHash: phoneHash || null, email: email || null, emailHash: emailHash || null, trialAt: now, convertedAt: null, updatedAt: now };
+  memoryFreeTrialContacts.set(contact.id, contact);
+  contactKeys.forEach((key) => memoryFreeTrialContactKeys.add(key));
+  return { allowed: true, contactId: contact.id, phone, email };
+}
+
+export async function listFreeTrialContacts() {
+  const db = isTestRuntime || forceMemoryForTests ? null : await getDb();
+  const rows = db ? await db.select().from(freeTrialContacts).orderBy(freeTrialContacts.trialAt) : Array.from(memoryFreeTrialContacts.values()).sort((a, b) => a.trialAt.getTime() - b.trialAt.getTime());
+  return rows.map((record) => ({ id: record.id, clientName: record.clientName || "À compléter", phone: record.phone || "À compléter", email: record.email || "À compléter", trialAt: record.trialAt, convertedAt: record.convertedAt }));
+}
+
+export async function markFreeTrialConverted(id: number) {
+  const convertedAt = new Date();
+  const db = isTestRuntime || forceMemoryForTests ? null : await getDb();
+  if (db) {
+    await db.update(freeTrialContacts).set({ convertedAt }).where(eq(freeTrialContacts.id, id));
+    return;
+  }
+  const record = memoryFreeTrialContacts.get(id);
+  if (record) {
+    record.convertedAt = convertedAt;
+    record.updatedAt = convertedAt;
+  }
 }
 
 function signedToken(prefix: string, value: string) {
@@ -49,7 +146,7 @@ export function setClientAccessCookie(ctx: TrpcContext, codeHash: string) {
 }
 
 async function getClientCodeByHash(codeHash: string) {
-  const db = process.env.NODE_ENV === "test" || process.env.VITEST === "true" ? null : await getDb();
+  const db = isTestRuntime || forceMemoryForTests ? null : await getDb();
   if (db) return (await db.select().from(clientAccessCodes).where(eq(clientAccessCodes.codeHash, codeHash)).limit(1))[0];
   return memoryClientCodes.get(Array.from(memoryClientCodes.entries()).find(([, code]) => code.codeHash === codeHash)?.[0] ?? -1);
 }
@@ -75,7 +172,7 @@ export async function getClientAccessStatus(ctx: TrpcContext) {
 async function getClientRecordFromCookie(ctx: TrpcContext) {
   const token = ctx.req.cookies?.[CLIENT_ACCESS_COOKIE];
   if (!token) return null;
-  const db = process.env.NODE_ENV === "test" || process.env.VITEST === "true" ? null : await getDb();
+  const db = isTestRuntime || forceMemoryForTests ? null : await getDb();
   if (db) {
     const rows = await db.select().from(clientAccessCodes).where(and(isNull(clientAccessCodes.disabledAt), gt(clientAccessCodes.expiresAt, new Date())));
     return rows.find((record) => signedToken("client", record.codeHash) === token) ?? null;
@@ -87,7 +184,7 @@ export async function consumeClientMonthlyQuota(ctx: TrpcContext) {
   const record = await getClientRecordFromCookie(ctx);
   if (!record) return { allowed: false as const, reason: "invalid" as const, remaining: 0 };
   if (record.monthlyUsed >= record.monthlyQuota) return { allowed: false as const, reason: "monthly" as const, remaining: 0, clientName: record.clientName };
-  const db = process.env.NODE_ENV === "test" || process.env.VITEST === "true" ? null : await getDb();
+  const db = isTestRuntime || forceMemoryForTests ? null : await getDb();
   if (db) {
     await db.update(clientAccessCodes).set({ monthlyUsed: sql`${clientAccessCodes.monthlyUsed} + 1` }).where(and(eq(clientAccessCodes.id, record.id), sql`${clientAccessCodes.monthlyUsed} < ${clientAccessCodes.monthlyQuota}`, isNull(clientAccessCodes.disabledAt)));
     const updated = (await db.select().from(clientAccessCodes).where(eq(clientAccessCodes.id, record.id)).limit(1))[0];
@@ -106,7 +203,7 @@ export async function createClientAccessCode(clientName: string, monthlyQuota: n
   const createdAt = new Date();
   const expiresAt = new Date(createdAt);
   expiresAt.setMonth(expiresAt.getMonth() + 1);
-  const db = process.env.NODE_ENV === "test" || process.env.VITEST === "true" ? null : await getDb();
+  const db = isTestRuntime || forceMemoryForTests ? null : await getDb();
   if (db) {
     const inserted = await db.insert(clientAccessCodes).values({ codeHash, clientName, monthlyQuota, monthlyUsed: 0, createdAt, expiresAt });
     return { id: Number(inserted[0].insertId), code, clientName, monthlyQuota, monthlyUsed: 0, createdAt, expiresAt, disabledAt: null };
@@ -117,7 +214,7 @@ export async function createClientAccessCode(clientName: string, monthlyQuota: n
 }
 
 export async function listClientAccessCodes() {
-  const db = process.env.NODE_ENV === "test" || process.env.VITEST === "true" ? null : await getDb();
+  const db = isTestRuntime || forceMemoryForTests ? null : await getDb();
   const rows = db ? await db.select().from(clientAccessCodes).orderBy(clientAccessCodes.expiresAt) : Array.from(memoryClientCodes.values());
   return rows.map((record) => ({ id: record.id, clientName: record.clientName, monthlyQuota: record.monthlyQuota, monthlyRemaining: Math.max(0, record.monthlyQuota - record.monthlyUsed), expiresAt: record.expiresAt, disabledAt: record.disabledAt }));
 }
@@ -130,7 +227,7 @@ export function expireClientAccessCodeForTests(id: number) {
 
 export async function disableClientAccessCode(id: number) {
   const disabledAt = new Date();
-  const db = process.env.NODE_ENV === "test" || process.env.VITEST === "true" ? null : await getDb();
+  const db = isTestRuntime || forceMemoryForTests ? null : await getDb();
   if (db) { await db.update(clientAccessCodes).set({ disabledAt }).where(eq(clientAccessCodes.id, id)); return; }
   const record = memoryClientCodes.get(id);
   if (record) record.disabledAt = disabledAt;
@@ -170,7 +267,7 @@ function bucket(kind: "hour" | "day", now: Date) {
 }
 
 async function increment(scopeKey: string, kind: "hour" | "day", now: Date) {
-  const db = process.env.NODE_ENV === "test" || process.env.VITEST === "true" ? null : await getDb();
+  const db = isTestRuntime || forceMemoryForTests ? null : await getDb();
   if (db) {
     await db.insert(generationWindows).values({ scopeKey, windowKind: kind, windowStart: now, count: 1 }).onDuplicateKeyUpdate({
       set: { count: sql`${generationWindows.count} + 1` },
@@ -198,7 +295,7 @@ export async function getHourlyQuotaStatus(ctx: TrpcContext) {
   const now = new Date();
   const identity = requestIdentity(ctx);
   const scopeKey = `hour:${bucket("hour", now)}:${identity}`;
-  const db = process.env.NODE_ENV === "test" || process.env.VITEST === "true" ? null : await getDb();
+  const db = isTestRuntime || forceMemoryForTests ? null : await getDb();
   const hourlyUsed = db
     ? ((await db.select({ count: generationWindows.count }).from(generationWindows).where(eq(generationWindows.scopeKey, scopeKey)).limit(1))[0]?.count ?? 0)
     : (memoryWindows.get(scopeKey)?.count ?? 0);
@@ -207,7 +304,7 @@ export async function getHourlyQuotaStatus(ctx: TrpcContext) {
 
 export async function getGenerationStats() {
   const now = new Date();
-  const db = process.env.NODE_ENV === "test" || process.env.VITEST === "true" ? null : await getDb();
+  const db = isTestRuntime || forceMemoryForTests ? null : await getDb();
   if (db) {
     const rows = await db.select({ scopeKey: generationWindows.scopeKey, count: generationWindows.count }).from(generationWindows).where(like(generationWindows.scopeKey, `day:${bucket("day", now)}:%`));
     const dailyTotal = rows.reduce((sum, row) => sum + row.count, 0);

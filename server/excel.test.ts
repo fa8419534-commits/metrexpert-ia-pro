@@ -78,6 +78,13 @@ describe("buildEstimateWorkbook", () => {
     expect(workbook.Sheets.Couverture?.D21.v).toBe("26/08/2026");
   });
 
+  it("marks a free trial workbook without removing any required sheet or formula", async () => {
+    const workbook = XLSX.read(await buildEstimateWorkbook({ trialVersion: true, projectTitle: "Essai", measures: [{ code: "01", designation: "Béton", unit: "m³", quantity: 1, unitPrice: 85000 }] }), { type: "buffer", cellFormula: true, cellStyles: true });
+    expect(workbook.SheetNames).toEqual(["Couverture", "Métré", "DQE"]);
+    expect(workbook.Sheets.Couverture?.A2.v).toContain("VERSION D’ESSAI GRATUIT");
+    expect(workbook.Sheets.DQE?.F2.f).toBe("D2*E2");
+  });
+
   it("embeds supplied signature and stamp images in the XLSX package", async () => {
     const image = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=";
     const buffer = await buildEstimateWorkbook({

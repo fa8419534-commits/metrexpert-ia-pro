@@ -23,6 +23,7 @@ export type ProjectEstimate = {
   validationDate?: string;
   signatureImageDataUrl?: string;
   stampImageDataUrl?: string;
+  trialVersion?: boolean;
   measures: MeasureItem[];
 };
 
@@ -181,6 +182,7 @@ export async function buildEstimateWorkbook(data: ProjectEstimate): Promise<Buff
   const location = data.location || "À compléter";
   const summary = data.summary || "Généré à partir des éléments fournis. Vérifier les hypothèses, unités et prix avant usage contractuel.";
   const provider = "MÉTREXPERT IA PRO — préparé par Daouda";
+  const trialBanner = data.trialVersion ? "VERSION D’ESSAI GRATUIT — abonnement requis pour un usage régulier" : "MÉTRÉ • QUANTITATIF • DQE";
   const verifiedBy = data.verifiedBy || "À compléter";
   const validationDate = data.validationDate || "À compléter";
   const projectTitleValueStyle: CellStyle = { ...valueStyle, font: { name: "Aptos", sz: 11, bold: true, color: { rgb: COLORS.anthracite } } };
@@ -191,7 +193,7 @@ export async function buildEstimateWorkbook(data: ProjectEstimate): Promise<Buff
 
   const cover = [
     [cell("MÉTREXPERT IA PRO", titleStyle), cell("", titleStyle), cell("", titleStyle), cell("", titleStyle)],
-    [cell("MÉTRÉ • QUANTITATIF • DQE", subtitleStyle), cell("", subtitleStyle), cell("", subtitleStyle), cell("", subtitleStyle)],
+    [cell(trialBanner, subtitleStyle), cell("", subtitleStyle), cell("", subtitleStyle), cell("", subtitleStyle)],
     [cell("DOCUMENT DE TRAVAIL — COUVERTURE", sectionStyle), cell("", sectionStyle), cell("", sectionStyle), cell("", sectionStyle)],
     [cell("Référence", labelStyle), cell(reference, valueStyle), cell("Émission", labelStyle), cell(issueDate, valueStyle)],
     [cell("Version", labelStyle), cell("V1", valueStyle), cell("Devise", labelStyle), cell(currency, valueStyle)],

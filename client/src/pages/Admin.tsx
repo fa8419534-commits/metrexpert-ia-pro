@@ -57,6 +57,9 @@ export default function Admin() {
   const codes = trpc.security.adminListCodes.useQuery(undefined, {
     enabled: isAdminUnlocked,
   });
+  const trials = trpc.security.adminListFreeTrials.useQuery(undefined, {
+    enabled: isAdminUnlocked,
+  });
 
   const create = trpc.security.adminCreateCode.useMutation({
     onSuccess: (data) => {
@@ -76,6 +79,13 @@ export default function Admin() {
       void utils.security.adminListCodes.invalidate();
       setCodeToRevoke(null);
       toast.success("Code client révoqué.");
+    },
+    onError: (error) => toast.error(error.message),
+  });
+  const markTrialConverted = trpc.security.adminMarkFreeTrialConverted.useMutation({
+    onSuccess: () => {
+      void utils.security.adminListFreeTrials.invalidate();
+      toast.success("Essai marqué comme converti.");
     },
     onError: (error) => toast.error(error.message),
   });
@@ -366,6 +376,19 @@ export default function Admin() {
             </CardContent>
           </Card>
         </div>
+
+        <Card className="mt-6 border-[#3A4A42] bg-[#16201C] text-[#EDEAE2]">
+          <CardHeader className="flex flex-row items-center justify-between gap-4">
+            <div>
+              <CardTitle className="font-serif text-2xl">Essais gratuits</CardTitle>
+              <p className="mt-1 text-sm text-[#AEB7B0]">Contacts à relancer après leur génération offerte.</p>
+            </div>
+            <span className="border border-[#C9A15A]/60 bg-[#211d14] px-3 py-2 font-mono text-[10px] uppercase tracking-wider text-[#C9A15A]">{trials.data?.length ?? 0} contact{trials.data?.length === 1 ? "" : "s"}</span>
+          </CardHeader>
+          <CardContent>
+            {trials.isLoading ? <div className="flex items-center gap-2 text-sm text-[#AEB7B0]"><Loader2 className="h-4 w-4 animate-spin" />Chargement des essais…</div> : trials.data?.length ? <div className="overflow-x-auto"><table className="w-full min-w-[720px] text-left text-sm"><thead className="border-b border-[#3A4A42] font-mono text-[10px] uppercase tracking-wider text-[#C9A15A]"><tr><th className="px-3 py-3">Nom</th><th className="px-3 py-3">Téléphone</th><th className="px-3 py-3">E-mail</th><th className="px-3 py-3">Date de l’essai</th><th className="px-3 py-3">Conversion</th><th className="px-3 py-3 text-right">Action</th></tr></thead><tbody>{trials.data.map((trial) => <tr key={trial.id} className="border-b border-[#3A4A42]/70"><td className="px-3 py-4 font-medium">{trial.clientName}</td><td className="px-3 py-4 font-mono text-xs">{trial.phone}</td><td className="px-3 py-4 text-xs">{trial.email}</td><td className="px-3 py-4 text-[#AEB7B0]">{new Date(trial.trialAt).toLocaleDateString("fr-FR")}</td><td className={`px-3 py-4 font-mono text-xs uppercase ${trial.convertedAt ? "text-[#7C9A76]" : "text-[#C9A15A]"}`}>{trial.convertedAt ? "Converti" : "À relancer"}</td><td className="px-3 py-4 text-right">{!trial.convertedAt && <Button type="button" variant="outline" size="sm" className="border-[#7C9A76] text-[#7C9A76]" onClick={() => markTrialConverted.mutate({ id: trial.id })} disabled={markTrialConverted.isPending}>Marquer converti</Button>}</td></tr>)}</tbody></table></div> : <p className="py-8 text-sm text-[#AEB7B0]">Aucun essai gratuit enregistré.</p>}
+          </CardContent>
+        </Card>
       </div>
 
       <AlertDialog

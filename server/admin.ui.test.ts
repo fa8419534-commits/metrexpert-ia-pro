@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const testState = vi.hoisted(() => ({
   adminUnlocked: false,
+  trials: [] as Array<{ id: number; clientName: string; phone: string; email: string; trialAt: Date; convertedAt: Date | null }>,
   codes: [] as Array<{
     id: number;
     clientName: string;
@@ -20,6 +21,7 @@ const testState = vi.hoisted(() => ({
 beforeEach(() => {
   testState.adminUnlocked = false;
   testState.codes = [];
+  testState.trials = [];
   testState.writeText.mockReset().mockResolvedValue(undefined);
   testState.disable.mockReset();
   Object.defineProperty(navigator, "clipboard", {
@@ -36,10 +38,12 @@ vi.mock("@/lib/trpc", () => ({
       adminStatus: { useQuery: () => ({ data: { unlocked: testState.adminUnlocked }, refetch: vi.fn() }) },
       verifyAdminCode: { useMutation: (options?: { onSuccess?: () => void }) => ({ isPending: false, mutate: () => options?.onSuccess?.(), error: undefined }) },
       adminListCodes: { useQuery: () => ({ data: testState.codes, isLoading: false, refetch: vi.fn() }) },
+      adminListFreeTrials: { useQuery: () => ({ data: testState.trials, isLoading: false, refetch: vi.fn() }) },
+      adminMarkFreeTrialConverted: { useMutation: () => ({ isPending: false, mutate: vi.fn() }) },
       adminCreateCode: { useMutation: (options?: { onSuccess?: (data: { code: string }) => void }) => ({ isPending: false, mutate: () => options?.onSuccess?.({ code: "MXP-ABC1234567" }) }) },
       adminDisableCode: { useMutation: () => ({ isPending: false, mutate: testState.disable }) },
     },
-    useUtils: () => ({ security: { adminListCodes: { invalidate: vi.fn() } } }),
+    useUtils: () => ({ security: { adminListCodes: { invalidate: vi.fn() }, adminListFreeTrials: { invalidate: vi.fn() } } }),
   },
 }));
 
@@ -66,6 +70,16 @@ describe("Admin panel UI", () => {
     fireEvent.click(screen.getByRole("button", { name: "Copier le code" }));
     await waitFor(() => expect(testState.writeText).toHaveBeenCalledWith("MXP-ABC1234567"));
     expect(screen.getByRole("button", { name: "Code copié" })).toBeTruthy();
+  });
+
+  it("shows free trial contacts and their conversion status", () => {
+    testState.adminUnlocked = true;
+    testState.trials = [{ id: 2, clientName: "Prospect test", phone: "2250100000000", email: "prospect@exemple.ci", trialAt: new Date("2026-08-26T00:00:00Z"), convertedAt: null }];
+    render(React.createElement(Admin));
+    expect(screen.getByText("Essais gratuits")).toBeTruthy();
+    expect(screen.getByText("Prospect test")).toBeTruthy();
+    expect(screen.getByText("À relancer")).toBeTruthy();
+    expect(screen.getByText("1 contact")).toBeTruthy();
   });
 
   it("shows the active code count and asks for confirmation before revocation", () => {

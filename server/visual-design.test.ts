@@ -44,7 +44,7 @@ describe("technical visual system", () => {
     expect(home).toContain("security.status.useQuery");
     expect(home).toContain('aria-busy="true"');
     expect(home).toContain("En préparation");
-    expect(home).toContain("disabled={generate.isPending || !accessStatus.data?.unlocked}");
+    expect(home).toContain("disabled={generate.isPending || (!accessStatus.data?.unlocked && !hasTrialContact)}");
   });
 
   it("documents the minimum accessibility guards in the rendered contract", () => {

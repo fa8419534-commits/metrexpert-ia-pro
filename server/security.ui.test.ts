@@ -76,6 +76,10 @@ describe("generation quota UI errors", () => {
     expect(source).toContain('id="client-email"');
     expect(source).toContain("clientPhone: clientPhone.trim() || undefined");
     expect(source).toContain("clientEmail: clientEmail.trim() || undefined");
+    expect(source).toContain('id="trial-phone"');
+    expect(source).toContain('id="trial-email"');
+    expect(source).toContain("trialPhone: trialPhone.trim() || undefined");
+    expect(source).toContain("trialEmail: trialEmail.trim() || undefined");
     expect(source).toContain('id="verified-by"');
     expect(source).toContain('id="validation-date"');
     expect(source).toContain("verifiedBy: verifiedBy.trim() || undefined");

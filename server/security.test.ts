@@ -1,7 +1,11 @@
-import { describe, expect, it, beforeEach } from "vitest";
+import { describe, expect, it, beforeEach, vi } from "vitest";
+
+vi.hoisted(() => {
+  process.env.NODE_ENV = "test";
+});
 import type { TrpcContext } from "./_core/context";
 import { appRouter } from "./routers";
-import { consumeGenerationQuota, DAILY_LIMIT, expireClientAccessCodeForTests, HOURLY_LIMIT, resetSecurityStateForTests } from "./security";
+import { consumeGenerationQuota, DAILY_LIMIT, expireClientAccessCodeForTests, HOURLY_LIMIT, listFreeTrialContacts, reserveFreeTrial, resetSecurityStateForTests } from "./security";
 
 function context(ip: string): TrpcContext {
   return { user: null, req: { ip, headers: {} } as TrpcContext["req"], res: {} as TrpcContext["res"] };
@@ -83,5 +87,20 @@ describe("client access administration", () => {
     const { consumeClientMonthlyQuota } = await import("./security");
     for (let attempt = 0; attempt < 5; attempt += 1) expect((await consumeClientMonthlyQuota({ user: null, req: clientReq, res: clientRes } as TrpcContext)).allowed).toBe(true);
     expect(await consumeClientMonthlyQuota({ user: null, req: clientReq, res: clientRes } as TrpcContext)).toMatchObject({ allowed: false, reason: "monthly" });
+  });
+});
+
+
+describe("free trial contacts", () => {
+  beforeEach(() => resetSecurityStateForTests());
+
+  it("allows one trial per normalized phone or email and lists the contact for Admin", async () => {
+    const first = await reserveFreeTrial("Client Démo", "+225 01 51 61 05 12", undefined);
+    expect(first.allowed).toBe(true);
+    expect(await reserveFreeTrial(undefined, "2250151610512", undefined)).toEqual({ allowed: false, reason: "already_used" });
+    const second = await reserveFreeTrial(undefined, undefined, "Prospect@EXEMPLE.CI");
+    expect(second.allowed).toBe(true);
+    expect(await reserveFreeTrial(undefined, undefined, " prospect@exemple.ci ")).toEqual({ allowed: false, reason: "already_used" });
+    await expect(listFreeTrialContacts()).resolves.toEqual(expect.arrayContaining([expect.objectContaining({ clientName: "Client Démo", phone: "2250151610512", email: "À compléter" })]));
   });
 });

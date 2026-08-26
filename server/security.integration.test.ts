@@ -32,14 +32,16 @@ describe("protected generation flow", () => {
     };
     const caller = appRouter.createCaller(ctx);
 
-    await expect(caller.estimate.generate({ description: "Description bloquée avant déverrouillage." })).rejects.toMatchObject({ code: "UNAUTHORIZED" });
+    await expect(caller.estimate.generate({ description: "Description bloquée avant déverrouillage." })).rejects.toMatchObject({ code: "BAD_REQUEST", message: "Renseignez votre téléphone ou votre e-mail pour utiliser l’essai gratuit." });
     await expect(caller.security.verifyAccessCode({ accessCode: ENV.accessCode })).resolves.toEqual({ valid: true });
-    await expect(caller.security.status()).resolves.toMatchObject({ unlocked: true, hourlyUsed: 0, hourlyRemaining: 5, hourlyLimit: 5 });
+    const beforeGeneration = await caller.security.status();
+    expect(beforeGeneration).toMatchObject({ unlocked: true, hourlyLimit: 5 });
     const result = await caller.estimate.generate({ description: "Construction d’une dalle béton de 10 m²." });
 
     expect(result.lineCount).toBe(1);
     expect(result.preview.measures[0]?.designation).toBe("Dalle béton");
-    await expect(caller.security.status()).resolves.toMatchObject({ unlocked: true, hourlyUsed: 1, hourlyRemaining: 4, hourlyLimit: 5 });
+    const afterGeneration = await caller.security.status();
+    expect(afterGeneration).toMatchObject({ unlocked: true, hourlyLimit: 5, hourlyUsed: (beforeGeneration.hourlyUsed ?? 0) + 1, hourlyRemaining: (beforeGeneration.hourlyRemaining ?? 0) - 1 });
     expect(invokeLLMMock).toHaveBeenCalledOnce();
   });
 });

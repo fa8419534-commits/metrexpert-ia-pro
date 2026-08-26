@@ -198,3 +198,9 @@
 - [x] Afficher le nombre total de codes clients actifs dans le panneau d’administration
 - [x] Ajouter une modale de confirmation avant désactivation ou révocation d’un code client
 - [x] Tester les nouvelles interactions Admin, vérifier le rendu responsive et sauvegarder un checkpoint
+- [x] Ajouter une table persistante de contacts d’essai gratuit avec identité de contact, date, conversion et unicité téléphone/e-mail
+- [x] Ajouter la procédure de réservation et consommation d’une unique génération gratuite avec message WhatsApp +225 01 51 61 05 12
+- [x] Préserver la séparation entre essai gratuit, code partagé et codes clients payants
+- [x] Ajouter la mention VERSION D’ESSAI GRATUIT dans la couverture Excel sans brider le classeur
+- [x] Ajouter la section Essais gratuits et le statut de conversion dans /admin
+- [x] Ajouter les tests serveur, UI, Excel, unicité et parcours responsive, puis sauvegarder un checkpoint
