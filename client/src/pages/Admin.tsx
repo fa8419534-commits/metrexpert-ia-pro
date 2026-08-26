@@ -40,6 +40,13 @@ function buildWhatsAppUrl(phone: string, clientName: string) {
   return `https://wa.me/${internationalPhone}?text=${encodeURIComponent(message)}`;
 }
 
+function buildActivatedCodeWhatsAppUrl(phone: string, clientName: string, code: string) {
+  const digits = phone.replace(/\D/g, "");
+  const internationalPhone = digits.startsWith("0") ? `225${digits.slice(1)}` : digits;
+  const message = `Bonjour ${clientName}, votre paiement a été confirmé. Votre forfait MÉTREXPERT IA PRO est activé. Voici votre code d’accès : ${code}. Conservez-le précieusement.`;
+  return `https://wa.me/${internationalPhone}?text=${encodeURIComponent(message)}`;
+}
+
 type CsvTrial = { clientName: string; phone: string; email?: string };
 
 export function buildFreeTrialCsv(trials: CsvTrial[]) {
@@ -89,6 +96,7 @@ export default function Admin() {
   const [paymentMethod, setPaymentMethod] = useState<"wave" | "moov" | "mtn" | "autre" | "">("");
   const [paymentReference, setPaymentReference] = useState("");
   const [revealedCode, setRevealedCode] = useState<string | null>(null);
+  const [revealedCodeRecipient, setRevealedCodeRecipient] = useState<{ clientName: string; phone: string } | null>(null);
   const [copyState, setCopyState] = useState<"idle" | "copied">("idle");
   const [sessionUnlocked, setSessionUnlocked] = useState(false);
   const [codeToRevoke, setCodeToRevoke] = useState<CodeToRevoke>(null);
@@ -130,7 +138,10 @@ export default function Admin() {
     onSuccess: (data) => {
       void paymentRequests.refetch();
       void codes.refetch();
-      if (data.status === "confirmed" && "accessCode" in data && data.accessCode) setRevealedCode(data.accessCode);
+      if (data.status === "confirmed" && "accessCode" in data && data.accessCode) {
+        setRevealedCode(data.accessCode);
+        if ("clientName" in data && "phone" in data && typeof data.clientName === "string" && typeof data.phone === "string") setRevealedCodeRecipient({ clientName: data.clientName, phone: data.phone });
+      }
       toast.success(data.status === "confirmed" ? "Paiement confirmé et forfait activé." : "Paiement refusé.");
     },
     onError: (error) => toast.error(error.message),
@@ -405,6 +416,7 @@ export default function Admin() {
                           ? "Code copié"
                           : "Copier le code"}
                       </Button>
+                      {revealedCodeRecipient && <a href={buildActivatedCodeWhatsAppUrl(revealedCodeRecipient.phone, revealedCodeRecipient.clientName, revealedCode)} target="_blank" rel="noreferrer" className="inline-flex items-center justify-center gap-2 border border-[#7C9A76] px-4 py-2 font-mono text-[10px] uppercase tracking-wider text-[#7C9A76] hover:bg-[#7C9A76] hover:text-[#0F1613]"><MessageCircle className="h-4 w-4" aria-hidden="true" />Ouvrir WhatsApp</a>}
                       <Button
                         type="button"
                         variant="outline"

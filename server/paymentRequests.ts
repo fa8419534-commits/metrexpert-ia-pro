@@ -2,7 +2,7 @@ import crypto from "node:crypto";
 import { and, desc, eq } from "drizzle-orm";
 import { paymentRequests } from "../drizzle/schema";
 import { getDb } from "./db";
-import { createClientAccessCode } from "./security";
+import { createClientAccessCode, getClientAccessStatus } from "./security";
 import { getSubscriptionPlan, type SubscriptionQuota } from "@shared/plans";
 
 export type PaymentStatus = "pending" | "confirmed" | "rejected";
@@ -67,6 +67,17 @@ export async function createPaymentRequest(input: { clientName: string; phone: s
   const record: MemoryPaymentRequest = { id: nextId++, requestKey, clientName: input.clientName, phone: input.phone, email: input.email || null, planQuota: input.planQuota, amountXof: plan.priceXof, paymentMethod: input.paymentMethod, paymentReference: input.paymentReference, status: "pending", accessCodeId: null, accessCode: null, adminNote: null, createdAt: now, reviewedAt: null };
   memory.set(record.id, record);
   return { ...toPublic(record), alreadySubmitted: false };
+}
+
+export async function getClientPaymentHistory(ctx: Parameters<typeof getClientAccessStatus>[0]) {
+  const access = await getClientAccessStatus(ctx);
+  if (!access.unlocked) return { access, requests: [] };
+  const db = isTestRuntime ? null : await getDb();
+  if (db) {
+    const requests = await db.select().from(paymentRequests).where(eq(paymentRequests.accessCodeId, access.accessCodeId)).orderBy(desc(paymentRequests.createdAt));
+    return { access, requests: requests.map(toPublic) };
+  }
+  return { access, requests: Array.from(memory.values()).filter((request) => request.accessCodeId === access.accessCodeId).sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime()).map(toPublic) };
 }
 
 export async function listPaymentRequests() {

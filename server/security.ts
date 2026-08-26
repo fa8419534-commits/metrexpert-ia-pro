@@ -194,7 +194,7 @@ export async function verifyClientAccessCode(ctx: TrpcContext, code: string) {
   const record = await getClientCodeByHash(hashClientCode(code));
   if (!record || record.disabledAt || record.expiresAt.getTime() <= Date.now()) return null;
   setClientAccessCookie(ctx, record.codeHash);
-  return { clientName: record.clientName, monthlyRemaining: Math.max(0, record.monthlyQuota - record.monthlyUsed), expiresAt: record.expiresAt };
+  return { accessCodeId: record.id, clientName: record.clientName, monthlyRemaining: Math.max(0, record.monthlyQuota - record.monthlyUsed), monthlyQuota: record.monthlyQuota, monthlyUsed: record.monthlyUsed, createdAt: record.createdAt, expiresAt: record.expiresAt, paymentMethod: record.paymentMethod ?? null, paymentReference: record.paymentReference ?? null };
 }
 
 export function hasValidClientAccessCookie(ctx: TrpcContext) {
@@ -205,7 +205,7 @@ export function hasValidClientAccessCookie(ctx: TrpcContext) {
 export async function getClientAccessStatus(ctx: TrpcContext) {
   const record = await getClientRecordFromCookie(ctx);
   if (!record) return { unlocked: false as const };
-  return { unlocked: true as const, clientName: record.clientName, monthlyRemaining: Math.max(0, record.monthlyQuota - record.monthlyUsed), monthlyQuota: record.monthlyQuota, expiresAt: record.expiresAt };
+  return { unlocked: true as const, accessCodeId: record.id, clientName: record.clientName, monthlyRemaining: Math.max(0, record.monthlyQuota - record.monthlyUsed), monthlyQuota: record.monthlyQuota, monthlyUsed: record.monthlyUsed, createdAt: record.createdAt, expiresAt: record.expiresAt, paymentMethod: record.paymentMethod ?? null, paymentReference: record.paymentReference ?? null };
 }
 
 async function getClientRecordFromCookie(ctx: TrpcContext) {

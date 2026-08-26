@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { FileSpreadsheet, FileText, Image as ImageIcon, Loader2, Paperclip, Ruler, Trash2, UploadCloud } from "lucide-react";
 import { toast } from "sonner";
 import ThemeToggle from "@/components/ThemeToggle";
+import ClientSubscriptionPanel from "@/components/ClientSubscriptionPanel";
 import { useTheme } from "@/contexts/ThemeContext";
 import { exportGeometryReportPdf } from "@/lib/geometryPdf";
 
@@ -446,8 +447,8 @@ export default function Home() {
           <div className="cartouche-field lg:col-start-2"><span>DOCUMENT</span><strong>MÉTRÉ & DQE</strong></div>
           <div className="cartouche-field"><span>ÉTAT</span><strong className="flex items-center gap-2"><i aria-hidden="true" className="status-dot" /> {download ? "LIVRABLE PRÊT" : "PRÉPARATION"}</strong></div>
           <div className="cartouche-field"><span>DATE</span><strong>{documentDate}</strong></div>
-        </header>
-
+                </header>
+        <ClientSubscriptionPanel />
         <section className="grid min-w-0 items-start gap-14 lg:grid-cols-[0.86fr_1.14fr] lg:gap-20">
           <div className="min-w-0 max-w-xl">
             <div className="repere mb-6">REP. 00 <span>—</span> NOTE DE CALCUL</div>

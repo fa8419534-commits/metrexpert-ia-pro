@@ -9,6 +9,7 @@ vi.mock("@/lib/trpc", () => ({
       status: { useQuery: () => ({ data: { unlocked: true, hourlyRemaining: 3, hourlyLimit: 5, dailyTotal: 10, dailyLimit: 50 }, refetch: vi.fn() }) },
       verifyAccessCode: { useMutation: () => ({ isPending: false, mutate: vi.fn(), error: undefined }) },
       verifyClientCode: { useMutation: () => ({ isPending: false, mutate: vi.fn(), error: undefined }) },
+      clientPaymentDashboard: { useQuery: () => ({ data: { access: { unlocked: false }, requests: [] }, isLoading: false }) },
     },
     estimate: { generate: { useMutation: () => ({ isPending: false, mutateAsync: vi.fn(), error: undefined }) } },
   },

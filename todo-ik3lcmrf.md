@@ -344,3 +344,11 @@
 - [x] Afficher une notification utilisateur après activation sans envoyer de message externe automatiquement
 - [x] Ajouter les tests de workflow paiement, sécurité, quotas et responsive
 - [x] Valider TypeScript, tests et build puis sauvegarder un checkpoint
+
+- [x] Afficher dans l’espace client le statut actuel du forfait et le quota restant
+- [x] Afficher dans l’espace client l’historique des paiements et renouvellements
+- [x] Ajouter l’action Admin pour copier le code activé et ouvrir WhatsApp avec un message prérempli
+- [x] Ajouter une table persistante d’historique des renouvellements
+- [x] Ajouter des alertes visuelles selon la proximité de l’expiration du forfait
+- [x] Ajouter les tests de sécurité, idempotence, historique et responsive
+- [x] Valider TypeScript, tests et build puis sauvegarder un checkpoint
