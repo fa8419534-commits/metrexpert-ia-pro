@@ -318,3 +318,12 @@
 - [x] Rédiger un rapport d’audit complet avec gravité, preuve, impact et plan d’action
 - [x] Ajouter les tests des nouveaux changements UI et exécuter la validation globale
 - [x] Sauvegarder un checkpoint après l’audit et les corrections autorisées
+
+- [x] Cartographier les styles hardcodés et le ThemeProvider sur /, /etude et /admin
+- [x] Harmoniser les tokens clair/sombre sur toutes les pages internes
+- [x] Ajouter un avertissement Excel Desktop et une option de formatage/recalcul compatible
+- [x] Ajouter la case de consentement explicite à l’essai gratuit
+- [x] Ajouter une désinscription prospect persistante et exclure les contacts désinscrits des relances/exports
+- [x] Ajouter les tests de thème, Excel, consentement, désinscription et exports
+- [x] Exécuter tests, TypeScript, build et contrôles responsive
+- [x] Sauvegarder un checkpoint de cette évolution

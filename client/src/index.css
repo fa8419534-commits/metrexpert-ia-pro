@@ -119,3 +119,25 @@ html { scroll-behavior: smooth; }
 .landing-page--dark .border-\[\#B9C0B8\], .landing-page--dark .border-\[\#CBD0C8\] { border-color: #3A4A42; }
 .landing-page--dark a, .landing-page--dark button { color: #EDEAE2; }
 .landing-page--dark .landing-grid { opacity: 0.2; }
+
+/* Shared internal theme surface */
+.internal-theme-toolbar { position: fixed; top: 1rem; right: 1rem; z-index: 50; }
+.theme-toggle { display: inline-flex; align-items: center; gap: .5rem; border: 1px solid #3A4A42; background: #16201C; color: #EDEAE2; padding: .55rem .75rem; font-family: var(--font-mono); font-size: 10px; text-transform: uppercase; letter-spacing: .08em; }
+.theme-toggle:hover { border-color: #C9A15A; color: #C9A15A; }
+.excel-compatibility-notice { margin-top: 1rem; border: 1px solid #7C9A76; background: rgba(124,154,118,.12); color: #AEB7B0; padding: .75rem 1rem; font-size: .75rem; line-height: 1.55; }
+.internal-page--light { background: #F4F0E8 !important; color: #17221D !important; }
+.internal-page--light .technical-grid { opacity: .16; }
+.internal-page--light .theme-toggle { background: #F4F0E8; color: #17221D; border-color: #B9C0B8; }
+.internal-page--light .technical-panel, .internal-page--light .access-panel, .internal-page--light .plan-cartouche { background: #E8E4DA; border-color: #B9C0B8; box-shadow: 8px 8px 0 rgba(23,34,29,.08); }
+.internal-page--light .technical-input { background: #F4F0E8; color: #17221D; border-color: #B9C0B8; }
+.internal-page--light .technical-input::placeholder { color: #718078; }
+.internal-page--light .file-chip, .internal-page--light .result-download, .internal-page--light .progress-panel { background: #E8E4DA; border-color: #B9C0B8; }
+.internal-page--light .text-\[\#EDEAE2\] { color: #17221D !important; }
+.internal-page--light .text-\[\#AEB7B0\], .internal-page--light .text-\[\#87938B\], .internal-page--light .text-\[\#718078\] { color: #526159 !important; }
+.internal-page--light .bg-\[\#16201C\] { background-color: #E8E4DA !important; }
+.internal-page--light .bg-\[\#0F1613\] { background-color: #F4F0E8 !important; }
+.internal-page--light .border-\[\#3A4A42\] { border-color: #B9C0B8 !important; }
+.internal-page--light .text-\[\#C9A15A\] { color: #8A6B36 !important; }
+.internal-page--light .border-\[\#C9A15A\] { border-color: #8A6B36 !important; }
+.internal-page--light .technical-button { background: #17221D; color: #F4F0E8; }
+@media (max-width: 639px) { .internal-theme-toolbar { top: .65rem; right: .65rem; } .theme-toggle span { display: none; } }

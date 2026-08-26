@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { ArrowRight, Check, FileSpreadsheet, MessageCircle, Ruler } from "lucide-react";
 import { Link } from "wouter";
 import { useTheme } from "@/contexts/ThemeContext";
+import { trpc } from "@/lib/trpc";
 
 const whatsappUrlFor = (section: string) => `https://wa.me/2250151610512?text=${encodeURIComponent(`Bonjour Daouda, je consulte la section ${section} de MÉTREXPERT IA PRO et je souhaite en savoir plus.`)}`;
 
@@ -21,6 +22,9 @@ const audiences = ["Entrepreneurs et artisans BTP", "Architectes et bureaux d’
 
 export default function Landing() {
   const [activeSection, setActiveSection] = useState("accueil");
+  const [unsubscribeContact, setUnsubscribeContact] = useState("");
+  const [unsubscribeMessage, setUnsubscribeMessage] = useState("");
+  const unsubscribe = trpc.security.requestUnsubscribe.useMutation();
   const { theme, toggleTheme } = useTheme();
 
   useEffect(() => {
@@ -60,7 +64,8 @@ export default function Landing() {
 
       <section className="relative mx-auto max-w-7xl px-5 py-20 sm:px-8 sm:py-24 lg:px-12"><div className="border border-[#B9C0B8] bg-[#E8E4DA] p-7 sm:p-10 lg:flex lg:items-center lg:justify-between lg:gap-12"><div><p className="font-mono text-[10px] uppercase tracking-[0.28em] text-[#A8792F]">Commencer simplement</p><h2 className="mt-4 max-w-2xl font-serif text-4xl leading-tight text-[#17221D]">Apportez votre projet. Nous structurons la première base.</h2><p className="mt-4 max-w-2xl text-sm leading-6 text-[#5D6A62]">Décrivez le chantier, ajoutez les dimensions connues et joignez votre plan si nécessaire.</p></div><Link href="/etude" className="mt-7 inline-flex h-12 shrink-0 items-center justify-center gap-3 bg-[#17221D] px-6 font-mono text-[10px] uppercase tracking-[0.16em] text-[#F4F0E8] lg:mt-0">Accéder à l’étude <ArrowRight className="h-4 w-4" aria-hidden="true" /></Link></div></section>
 
-      <a href={whatsappUrl} target="_blank" rel="noreferrer" className="fixed bottom-5 right-5 z-40 inline-flex items-center gap-2 border border-[#A8792F] bg-[#17221D] px-4 py-3 font-mono text-[10px] uppercase tracking-wider text-[#F4F0E8] shadow-[6px_6px_0_#DCCCA8] hover:-translate-y-0.5"><MessageCircle className="h-4 w-4 text-[#D0A85C]" aria-hidden="true" />Parler de {activeSection === "accueil" ? "votre projet" : activeSection}</a>\n      <footer className="border-t border-[#CBD0C8] bg-[#E8E4DA]"><div className="mx-auto flex max-w-7xl flex-col gap-3 px-5 py-6 font-mono text-[10px] uppercase tracking-[0.14em] text-[#718078] sm:flex-row sm:items-center sm:justify-between sm:px-8 lg:px-12"><span>MÉTREXPERT IA PRO · Abidjan, Côte d’Ivoire</span><a href={whatsappUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 text-[#8A6B36] hover:text-[#17221D]"><MessageCircle className="h-3.5 w-3.5" aria-hidden="true" />WhatsApp Business</a></div></footer>
+      <a href={whatsappUrl} target="_blank" rel="noreferrer" className="fixed bottom-5 right-5 z-40 inline-flex items-center gap-2 border border-[#A8792F] bg-[#17221D] px-4 py-3 font-mono text-[10px] uppercase tracking-wider text-[#F4F0E8] shadow-[6px_6px_0_#DCCCA8] hover:-translate-y-0.5"><MessageCircle className="h-4 w-4 text-[#D0A85C]" aria-hidden="true" />Parler de {activeSection === "accueil" ? "votre projet" : activeSection}</a>\n      <section id="desinscription" className="border-t border-[#CBD0C8] bg-[#F4F0E8] py-10"><div className="mx-auto max-w-7xl px-5 sm:px-8 lg:px-12"><p className="font-mono text-[10px] uppercase tracking-[0.2em] text-[#A8792F]">Gestion de vos coordonnées</p><div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-end"><label className="flex-1 text-sm text-[#526159]">Téléphone ou e-mail<input value={unsubscribeContact} onChange={(event) => setUnsubscribeContact(event.target.value)} className="mt-2 h-11 w-full border border-[#B9C0B8] bg-transparent px-3" placeholder="+225… ou vous@exemple.ci" /></label><button type="button" onClick={() => { const value = unsubscribeContact.trim(); const isEmail = value.includes("@"); unsubscribe.mutate(isEmail ? { email: value } : { phone: value }, { onSuccess: (result) => setUnsubscribeMessage(result.updated ? "Votre demande de désinscription a été enregistrée." : "Aucun contact correspondant n’a été trouvé."), onError: () => setUnsubscribeMessage("Vérifiez le téléphone ou l’e-mail renseigné.") }); }} disabled={!unsubscribeContact.trim() || unsubscribe.isPending} className="h-11 border border-[#17221D] px-4 font-mono text-[10px] uppercase">{unsubscribe.isPending ? "Traitement…" : "Me désinscrire"}</button></div>{unsubscribeMessage && <p className="mt-3 text-sm text-[#526159]" role="status">{unsubscribeMessage}</p>}</div></section>
+      <footer className="border-t border-[#CBD0C8] bg-[#E8E4DA]"><div className="mx-auto flex max-w-7xl flex-col gap-3 px-5 py-6 font-mono text-[10px] uppercase tracking-[0.14em] text-[#718078] sm:flex-row sm:items-center sm:justify-between sm:px-8 lg:px-12"><span>MÉTREXPERT IA PRO · Abidjan, Côte d’Ivoire</span><a href={whatsappUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 text-[#8A6B36] hover:text-[#17221D]"><MessageCircle className="h-3.5 w-3.5" aria-hidden="true" />WhatsApp Business</a></div></footer>
     </main>
   );
 }

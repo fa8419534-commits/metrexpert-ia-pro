@@ -9,7 +9,7 @@ import { buildEstimateWorkbook, type ProjectEstimate } from "./excel";
 import { BTP_JSON_OUTPUT_ENFORCEMENT, BTP_SYSTEM_PROMPT } from "./btpPrompt";
 import { parseJsonObjectFromLLM } from "./json";
 import { normalizeEstimateAmbiguities } from "./estimateNormalization";
-import { createClientAccessCode, DAILY_LIMIT, disableClientAccessCode, getClientAccessStatus, getGenerationStats, getHourlyQuotaStatus, hasValidAccessCookie, hasValidAdminCookie, HOURLY_LIMIT, isAccessCodeValid, isAdminAccessCodeValid, listClientAccessCodes, listFreeTrialContacts, markFreeTrialConverted, markFreeTrialWhatsAppContacted, releaseClientMonthlyQuota, releaseFreeTrialReservation, releaseGenerationQuota, reserveClientMonthlyQuota, reserveGenerationQuota, reserveFreeTrial, setAccessCookie, setAdminCookie, verifyClientAccessCode } from "./security";
+import { createClientAccessCode, DAILY_LIMIT, disableClientAccessCode, getClientAccessStatus, getGenerationStats, getHourlyQuotaStatus, hasValidAccessCookie, hasValidAdminCookie, HOURLY_LIMIT, isAccessCodeValid, isAdminAccessCodeValid, listClientAccessCodes, listFreeTrialContacts, markFreeTrialConverted, markFreeTrialWhatsAppContacted, markFreeTrialUnsubscribed, unsubscribeFreeTrialContact, releaseClientMonthlyQuota, releaseFreeTrialReservation, releaseGenerationQuota, reserveClientMonthlyQuota, reserveGenerationQuota, reserveFreeTrial, setAccessCookie, setAdminCookie, verifyClientAccessCode } from "./security";
 import type { GenerationQuotaReservation } from "./security";
 import { runQuantityChecks } from "./quantityChecks";
 
@@ -93,7 +93,8 @@ export const requestSchema = z.object({
   clientPhone: z.string().trim().max(80).optional(),
   clientEmail: z.string().trim().max(160).optional(),
   trialPhone: z.string().trim().max(32).optional(),
-  trialEmail: z.string().trim().max(320).optional(),
+  trialEmail: z.string().trim().max(160).optional(),
+  trialConsent: z.literal(true).optional(),
   verifiedBy: z.string().trim().max(160).optional(),
   validationDate: z.string().trim().max(40).optional(),
   signatureImageDataUrl: z.string().max(2_500_000).optional(),
@@ -249,8 +250,10 @@ export const appRouter = router({
     adminListFreeTrials: adminProcedure.query(() => listFreeTrialContacts()),
     adminMarkFreeTrialWhatsAppContacted: adminProcedure.input(z.object({ id: z.number().int().positive() })).mutation(({ input }) => markFreeTrialWhatsAppContacted(input.id).then((lastWhatsAppContactAt) => ({ success: true as const, lastWhatsAppContactAt }))),
     adminMarkFreeTrialConverted: adminProcedure.input(z.object({ id: z.number().int().positive() })).mutation(({ input }) => markFreeTrialConverted(input.id).then(() => ({ success: true as const }))),
+    adminMarkFreeTrialUnsubscribed: adminProcedure.input(z.object({ id: z.number().int().positive() })).mutation(({ input }) => markFreeTrialUnsubscribed(input.id).then(() => ({ success: true as const }))),
     adminCreateCode: adminProcedure.input(z.object({ clientName: z.string().trim().min(1).max(160), monthlyQuota: z.union([z.literal(5), z.literal(15), z.literal(40)]) })).mutation(({ input }) => createClientAccessCode(input.clientName, input.monthlyQuota)),
     adminDisableCode: adminProcedure.input(z.object({ id: z.number().int().positive() })).mutation(({ input }) => disableClientAccessCode(input.id).then(() => ({ success: true as const }))),
+    requestUnsubscribe: publicProcedure.input(z.object({ phone: z.string().trim().max(32).optional(), email: z.string().trim().max(160).optional() })).mutation(({ input }) => unsubscribeFreeTrialContact(input.phone, input.email)),
   }),
   auth: router({
     me: publicProcedure.query(opts => opts.ctx.user),
@@ -289,7 +292,8 @@ export const appRouter = router({
         console.info("[Security] Generation reserved", { remaining: quota.remaining, identity: ctx.user?.openId ? "user" : "ip" });
         if (!sharedUnlocked && !clientStatus.unlocked) {
           if (!input.trialPhone?.trim() && !input.trialEmail?.trim()) throw new TRPCError({ code: "BAD_REQUEST", message: "Renseignez votre téléphone ou votre e-mail pour utiliser l’essai gratuit." });
-          const trial = await reserveFreeTrial(extractTrialClientName(input.description), input.trialPhone, input.trialEmail);
+          if (input.trialConsent !== true) throw new TRPCError({ code: "BAD_REQUEST", message: "Votre consentement est requis pour enregistrer vos coordonnées d’essai gratuit." });
+          const trial = await reserveFreeTrial(extractTrialClientName(input.description), input.trialPhone, input.trialEmail, new Date());
           if (!trial.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Vous avez déjà utilisé votre essai gratuit. Contactez-moi pour un abonnement au WhatsApp +225 01 51 61 05 12." });
           trialReservation = trial;
           isFreeTrial = true;

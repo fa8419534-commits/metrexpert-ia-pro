@@ -27,6 +27,8 @@ import {
 } from "lucide-react";
 import React, { FormEvent, useEffect, useState } from "react";
 import { toast } from "sonner";
+import ThemeToggle from "@/components/ThemeToggle";
+import { useTheme } from "@/contexts/ThemeContext";
 
 const quotaOptions = [5, 15, 40] as const;
 
@@ -149,6 +151,8 @@ export default function Admin() {
     onError: (error) => toast.error(error.message),
   });
 
+  const markTrialUnsubscribed = trpc.security.adminMarkFreeTrialUnsubscribed?.useMutation?.({ onSuccess: () => void utils.security.adminListFreeTrials.invalidate(), onError: (error) => toast.error(error.message) }) ?? { mutate: () => undefined, isPending: false };
+
   const markTrialConverted = trpc.security.adminMarkFreeTrialConverted.useMutation({
     onSuccess: () => {
       void utils.security.adminListFreeTrials.invalidate();
@@ -224,9 +228,11 @@ export default function Admin() {
     toast.success(`${exportableTrials.length} prospect${exportableTrials.length > 1 ? "s" : ""} exporté${exportableTrials.length > 1 ? "s" : ""}.`);
   }
 
+  const { theme } = useTheme();
+
   if (!isAdminUnlocked) {
     return (
-      <main className="min-h-screen bg-[#0F1613] px-4 py-12 text-[#EDEAE2]">
+      <main className={`internal-page internal-page--${theme} min-h-screen bg-[#0F1613] px-4 py-12 text-[#EDEAE2]`}><div className="internal-theme-toolbar"><ThemeToggle /></div>
         <section className="mx-auto max-w-md border border-[#3A4A42] bg-[#16201C] p-6 shadow-2xl">
           <div className="mb-8 border-b border-[#3A4A42] pb-5">
             <p className="font-mono text-[10px] uppercase tracking-[0.25em] text-[#C9A15A]">
@@ -272,7 +278,7 @@ export default function Admin() {
   }
 
   return (
-    <main className="min-h-screen bg-[#0F1613] px-4 py-8 text-[#EDEAE2]">
+    <main className={`internal-page internal-page--${theme} min-h-screen bg-[#0F1613] px-4 py-8 text-[#EDEAE2]`}><div className="internal-theme-toolbar"><ThemeToggle /></div>
       <div className="mx-auto max-w-6xl">
         <header className="mb-8 border-b border-[#3A4A42] pb-5">
           <p className="font-mono text-[10px] uppercase tracking-[0.25em] text-[#C9A15A]">
@@ -490,7 +496,7 @@ export default function Admin() {
             <p className="text-right text-[10px] text-[#7c8c83]">WhatsApp Business : nom complet + numéro international. Export e-mail : nom complet + adresse e-mail.</p>
           </CardHeader>
           <CardContent>
-            {trials.isLoading ? <div className="flex items-center gap-2 text-sm text-[#AEB7B0]"><Loader2 className="h-4 w-4 animate-spin" />Chargement des essais…</div> : filteredTrials.length ? <div className="overflow-x-auto"><table className="w-full min-w-[720px] text-left text-sm"><thead className="border-b border-[#3A4A42] font-mono text-[10px] uppercase tracking-wider text-[#C9A15A]"><tr><th className="px-3 py-3">Nom</th><th className="px-3 py-3">Téléphone</th><th className="px-3 py-3">E-mail</th><th className="px-3 py-3">Date de l’essai</th><th className="px-3 py-3">Conversion</th><th className="px-3 py-3">Dernière relance</th><th className="px-3 py-3 text-right">Action</th></tr></thead><tbody>{filteredTrials.map((trial) => <tr key={trial.id} className="border-b border-[#3A4A42]/70"><td className="px-3 py-4 font-medium">{trial.clientName}</td><td className="px-3 py-4 font-mono text-xs">{trial.phone}</td><td className="px-3 py-4 text-xs">{trial.email}</td><td className="px-3 py-4 text-[#AEB7B0]">{new Date(trial.trialAt).toLocaleDateString("fr-FR")}</td><td className={`px-3 py-4 font-mono text-xs uppercase ${trial.convertedAt ? "text-[#7C9A76]" : "text-[#C9A15A]"}`}>{trial.convertedAt ? "Converti" : "À relancer"}</td><td className="px-3 py-4 text-xs text-[#AEB7B0]">{trial.lastWhatsAppContactAt ? new Date(trial.lastWhatsAppContactAt).toLocaleDateString("fr-FR") : "Jamais"}</td><td className="flex flex-wrap justify-end gap-2 px-3 py-4 text-right">{trial.phone !== "À compléter" && <a href={buildWhatsAppUrl(trial.phone, trial.clientName)} onClick={() => markTrialContacted.mutate({ id: trial.id })} target="_blank" rel="noreferrer" aria-label={`Ouvrir WhatsApp pour ${trial.clientName}`} className="inline-flex h-9 items-center justify-center gap-1 border border-[#7C9A76] px-3 font-mono text-[10px] uppercase tracking-wider text-[#7C9A76] transition-colors hover:bg-[#7C9A76] hover:text-[#0F1613]"><MessageCircle className="h-4 w-4" aria-hidden="true" />WhatsApp</a>}{!trial.convertedAt && <Button type="button" variant="outline" size="sm" className="border-[#7C9A76] text-[#7C9A76]" onClick={() => markTrialConverted.mutate({ id: trial.id })} disabled={markTrialConverted.isPending}>Marquer converti</Button>}</td></tr>)}</tbody></table></div> : <p className="py-8 text-sm text-[#AEB7B0]">{trials.data?.length ? "Aucun prospect dans ce filtre." : "Aucun essai gratuit enregistré."}</p>}
+            {trials.isLoading ? <div className="flex items-center gap-2 text-sm text-[#AEB7B0]"><Loader2 className="h-4 w-4 animate-spin" />Chargement des essais…</div> : filteredTrials.length ? <div className="overflow-x-auto"><table className="w-full min-w-[720px] text-left text-sm"><thead className="border-b border-[#3A4A42] font-mono text-[10px] uppercase tracking-wider text-[#C9A15A]"><tr><th className="px-3 py-3">Nom</th><th className="px-3 py-3">Téléphone</th><th className="px-3 py-3">E-mail</th><th className="px-3 py-3">Date de l’essai</th><th className="px-3 py-3">Conversion</th><th className="px-3 py-3">Dernière relance</th><th className="px-3 py-3 text-right">Action</th></tr></thead><tbody>{filteredTrials.map((trial) => <tr key={trial.id} className="border-b border-[#3A4A42]/70"><td className="px-3 py-4 font-medium">{trial.clientName}</td><td className="px-3 py-4 font-mono text-xs">{trial.phone}</td><td className="px-3 py-4 text-xs">{trial.email}</td><td className="px-3 py-4 text-[#AEB7B0]">{new Date(trial.trialAt).toLocaleDateString("fr-FR")}</td><td className={`px-3 py-4 font-mono text-xs uppercase ${trial.convertedAt ? "text-[#7C9A76]" : "text-[#C9A15A]"}`}>{trial.convertedAt ? "Converti" : "À relancer"}</td><td className="px-3 py-4 text-xs text-[#AEB7B0]">{trial.unsubscribedAt ? "Désinscrit" : trial.lastWhatsAppContactAt ? new Date(trial.lastWhatsAppContactAt).toLocaleDateString("fr-FR") : "Jamais"}</td><td className="flex flex-wrap justify-end gap-2 px-3 py-4 text-right">{trial.phone !== "À compléter" && !trial.unsubscribedAt && <a href={buildWhatsAppUrl(trial.phone, trial.clientName)} onClick={() => markTrialContacted.mutate({ id: trial.id })} target="_blank" rel="noreferrer" aria-label={`Ouvrir WhatsApp pour ${trial.clientName}`} className="inline-flex h-9 items-center justify-center gap-1 border border-[#7C9A76] px-3 font-mono text-[10px] uppercase tracking-wider text-[#7C9A76] transition-colors hover:bg-[#7C9A76] hover:text-[#0F1613]"><MessageCircle className="h-4 w-4" aria-hidden="true" />WhatsApp</a>}{!trial.convertedAt && !trial.unsubscribedAt && <Button type="button" variant="outline" size="sm" className="border-[#7C9A76] text-[#7C9A76]" onClick={() => markTrialConverted.mutate({ id: trial.id })} disabled={markTrialConverted.isPending}>Marquer converti</Button>}<Button type="button" variant="outline" size="sm" className="border-[#9d554b] text-[#d98472]" onClick={() => markTrialUnsubscribed.mutate({ id: trial.id })} disabled={markTrialUnsubscribed.isPending}>{trial.unsubscribedAt ? "Désinscrit" : "Désinscrire"}</Button></td></tr>)}</tbody></table></div> : <p className="py-8 text-sm text-[#AEB7B0]">{trials.data?.length ? "Aucun prospect dans ce filtre." : "Aucun essai gratuit enregistré."}</p>}
           </CardContent>
         </Card>
       </div>

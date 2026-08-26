@@ -16,7 +16,7 @@ const isTestRuntime = process.env.NODE_ENV === "test" || process.env.VITEST === 
 let forceMemoryForTests = false;
 const memoryWindows = new Map<string, { count: number; windowStart: number; kind: "hour" | "day" }>();
 type MemoryClientCode = { id: number; codeHash: string; clientName: string; monthlyQuota: number; monthlyUsed: number; createdAt: Date; expiresAt: Date; disabledAt: Date | null };
-type MemoryFreeTrialContact = { id: number; clientName: string | null; phone: string | null; phoneHash: string | null; email: string | null; emailHash: string | null; trialAt: Date; convertedAt: Date | null; lastWhatsAppContactAt: Date | null; updatedAt: Date };
+type MemoryFreeTrialContact = { id: number; clientName: string | null; phone: string | null; phoneHash: string | null; email: string | null; emailHash: string | null; trialAt: Date; convertedAt: Date | null; lastWhatsAppContactAt: Date | null; consentedAt: Date | null; unsubscribedAt: Date | null; updatedAt: Date };
 const memoryClientCodes = new Map<number, MemoryClientCode>();
 const memoryFreeTrialContacts = new Map<number, MemoryFreeTrialContact>();
 const memoryFreeTrialContactKeys = new Set<string>();
@@ -97,6 +97,7 @@ export async function reserveFreeTrial(
   clientName: string | undefined,
   phoneInput: string | undefined,
   emailInput: string | undefined,
+  consentedAt = new Date(),
 ): Promise<FreeTrialReservation> {
   const phone = normalizeTrialPhone(phoneInput);
   const email = normalizeTrialEmail(emailInput);
@@ -112,7 +113,7 @@ export async function reserveFreeTrial(
 
     if (existing.length) return { allowed: false, reason: "already_used" };
     try {
-      const inserted = await db.insert(freeTrialContacts).values({ clientName: clientName || null, phone: phone || null, phoneHash: phoneHash || null, email: email || null, emailHash: emailHash || null });
+      const inserted = await db.insert(freeTrialContacts).values({ clientName: clientName || null, phone: phone || null, phoneHash: phoneHash || null, email: email || null, emailHash: emailHash || null, consentedAt });
       contactKeys.forEach((key) => memoryFreeTrialContactKeys.add(key));
       return { allowed: true, contactId: Number(inserted[0].insertId), phone, email };
     } catch (error) {
@@ -121,7 +122,7 @@ export async function reserveFreeTrial(
     }
   }
   const now = new Date();
-  const contact = { id: nextMemoryFreeTrialId++, clientName: clientName || null, phone: phone || null, phoneHash: phoneHash || null, email: email || null, emailHash: emailHash || null, trialAt: now, convertedAt: null, lastWhatsAppContactAt: null, updatedAt: now };
+  const contact = { id: nextMemoryFreeTrialId++, clientName: clientName || null, phone: phone || null, phoneHash: phoneHash || null, email: email || null, emailHash: emailHash || null, trialAt: now, convertedAt: null, lastWhatsAppContactAt: null, consentedAt, unsubscribedAt: null, updatedAt: now };
   memoryFreeTrialContacts.set(contact.id, contact);
   contactKeys.forEach((key) => memoryFreeTrialContactKeys.add(key));
   return { allowed: true, contactId: contact.id, phone, email };
@@ -130,7 +131,7 @@ export async function reserveFreeTrial(
 export async function listFreeTrialContacts() {
   const db = isTestRuntime || forceMemoryForTests ? null : await getDb();
   const rows = db ? await db.select().from(freeTrialContacts).orderBy(freeTrialContacts.trialAt) : Array.from(memoryFreeTrialContacts.values()).sort((a, b) => a.trialAt.getTime() - b.trialAt.getTime());
-  return rows.map((record) => ({ id: record.id, clientName: record.clientName || "À compléter", phone: record.phone || "À compléter", email: record.email || "À compléter", trialAt: record.trialAt, convertedAt: record.convertedAt, lastWhatsAppContactAt: record.lastWhatsAppContactAt }));
+  return rows.map((record) => ({ id: record.id, clientName: record.clientName || "À compléter", phone: record.phone || "À compléter", email: record.email || "À compléter", trialAt: record.trialAt, convertedAt: record.convertedAt, lastWhatsAppContactAt: record.lastWhatsAppContactAt, consentedAt: record.consentedAt, unsubscribedAt: record.unsubscribedAt }));
 }
 
 export async function markFreeTrialWhatsAppContacted(id: number) {
@@ -418,4 +419,30 @@ export async function getGenerationStats() {
   }
   const dailyTotal = memoryWindows.get(`day:${bucket("day", now)}:global`)?.count ?? 0;
   return { dailyTotal, dailyLimit: DAILY_LIMIT, hourlyLimit: HOURLY_LIMIT };
+}
+
+export async function unsubscribeFreeTrialContact(phoneInput?: string, emailInput?: string) {
+  const phone = normalizeTrialPhone(phoneInput);
+  const email = normalizeTrialEmail(emailInput);
+  const phoneHash = phone ? hashTrialContact(phone) : undefined;
+  const emailHash = email ? hashTrialContact(email) : undefined;
+  if (!phoneHash && !emailHash) throw new Error("Un téléphone ou un e-mail est requis.");
+  const now = new Date();
+  const db = isTestRuntime || forceMemoryForTests ? null : await getDb();
+  const conditions = [phoneHash ? eq(freeTrialContacts.phoneHash, phoneHash) : undefined, emailHash ? eq(freeTrialContacts.emailHash, emailHash) : undefined].filter((condition): condition is NonNullable<typeof condition> => Boolean(condition));
+  if (db) {
+    const result = await db.update(freeTrialContacts).set({ unsubscribedAt: now }).where(conditions.length === 1 ? conditions[0] : or(...conditions));
+    return { updated: Number(result[0]?.affectedRows ?? 0) > 0 };
+  }
+  const records = Array.from(memoryFreeTrialContacts.values()).filter((record) => (phoneHash && record.phoneHash === phoneHash) || (emailHash && record.emailHash === emailHash));
+  records.forEach((record) => { record.unsubscribedAt = now; record.updatedAt = now; });
+  return { updated: records.length > 0 };
+}
+
+export async function markFreeTrialUnsubscribed(id: number) {
+  const now = new Date();
+  const db = isTestRuntime || forceMemoryForTests ? null : await getDb();
+  if (db) { await db.update(freeTrialContacts).set({ unsubscribedAt: now }).where(eq(freeTrialContacts.id, id)); return; }
+  const record = memoryFreeTrialContacts.get(id);
+  if (record) { record.unsubscribedAt = now; record.updatedAt = now; }
 }

@@ -36,6 +36,13 @@
       "when": 1787753952701,
       "tag": "0004_eminent_hercules",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "5",
+      "when": 1787769954645,
+      "tag": "0005_smooth_husk",
+      "breakpoints": true
     }
   ]
 }

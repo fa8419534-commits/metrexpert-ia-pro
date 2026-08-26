@@ -61,6 +61,8 @@ export const freeTrialContacts = mysqlTable("free_trial_contacts", {
   trialAt: timestamp("trialAt").defaultNow().notNull(),
   convertedAt: timestamp("convertedAt"),
   lastWhatsAppContactAt: timestamp("lastWhatsAppContactAt"),
+  consentedAt: timestamp("consentedAt"),
+  unsubscribedAt: timestamp("unsubscribedAt"),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
 
