@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,700&family=Inter:wght@400;500&family=IBM+Plex+Mono&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      body { overflow: hidden; }
+      .slide-container { 
+        width: 1280px; 
+        min-height: 720px; 
+        background: #F8FAFC; 
+        display: grid;
+        grid-template-columns: 1fr 320px;
+        font-family: 'Inter', sans-serif;
+        color: #334155;
+      }
+      .main-content {
+        padding-top: 180px;
+        padding-left: 100px;
+        position: relative;
+      }
+      .metadata-panel {
+        background: #0F172A;
+        border-left: 1px solid #D97706;
+        padding-top: 180px;
+        padding-left: 40px;
+        color: #F8FAFC;
+        position: relative;
+      }
+      .brand-badge {
+        position: absolute;
+        top: 60px;
+        left: 100px;
+        font-family: 'IBM Plex Mono', monospace;
+        font-size: 12px;
+        letter-spacing: 0.3em;
+        color: #D97706;
+        text-transform: uppercase;
+      }
+      h1 {
+        font-family: 'Fraunces', serif;
+        font-size: 96px;
+        line-height: 0.95;
+        color: #0F172A;
+        letter-spacing: -0.04em;
+        margin-bottom: 40px;
+      }
+      .subtitle {
+        font-size: 24px;
+        line-height: 1.5;
+        max-width: 600px;
+        color: #475569;
+      }
+      .divider {
+        width: 80px;
+        height: 2px;
+        background: #D97706;
+        margin-top: 60px;
+      }
+      .meta-item {
+        margin-bottom: 40px;
+      }
+      .meta-label {
+        font-family: 'IBM Plex Mono', monospace;
+        font-size: 10px;
+        text-transform: uppercase;
+        letter-spacing: 0.2em;
+        color: #94A3B8;
+        margin-bottom: 8px;
+        display: block;
+      }
+      .meta-value {
+        font-size: 16px;
+        font-weight: 500;
+        color: #F8FAFC;
+      }
+      .vertical-dimension {
+        position: absolute;
+        right: 20px;
+        top: 180px;
+        bottom: 180px;
+        width: 1px;
+        background: #334155;
+      }
+      .vertical-dimension::before, .vertical-dimension::after {
+        content: '';
+        position: absolute;
+        left: -4px;
+        width: 9px;
+        height: 1px;
+        background: #D97706;
+      }
+      .vertical-dimension::before { top: 0; }
+      .vertical-dimension::after { bottom: 0; }
+    </style>
+</head>
+<body>
+    <div class="slide-container">
+        <div class="main-content">
+            <div class="brand-badge">Bureau d’études numérique</div>
+            <h1>MÉTREXPERT<br><span style="color: #D97706">IA PRO</span></h1>
+            <p class="subtitle">Nouvelle architecture d’expérience — Accueil public & espace de génération</p>
+            <div class="divider"></div>
+        </div>
+        <div class="metadata-panel">
+            <div class="meta-item">
+                <span class="meta-label">Présenté par</span>
+                <span class="meta-value">Daouda Sidibé</span>
+            </div>
+            <div class="meta-item">
+                <span class="meta-label">Localisation</span>
+                <span class="meta-value">Abidjan, Côte d’Ivoire</span>
+            </div>
+            <div class="meta-item">
+                <span class="meta-label">Date</span>
+                <span class="meta-value">Août 2026</span>
+            </div>
+            <div class="vertical-dimension"></div>
+        </div>
+    </div>
+</body>
+</html>

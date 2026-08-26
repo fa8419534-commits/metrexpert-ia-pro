@@ -1,0 +1,89 @@
+{
+  "project_info": {
+    "title": "MÉTREXPERT IA PRO",
+    "created": 1787767871.966,
+    "last_updated": 1787767955.617,
+    "total_slides": 7
+  },
+  "slides": [
+    {
+      "id": "cover",
+      "state": "edited",
+      "pageNum": 1
+    },
+    {
+      "id": "intro_vitrine",
+      "state": "edited",
+      "pageNum": 2
+    },
+    {
+      "id": "maquette_accueil_1",
+      "state": "edited",
+      "pageNum": 3
+    },
+    {
+      "id": "maquette_accueil_2",
+      "state": "edited",
+      "pageNum": 4
+    },
+    {
+      "id": "maquette_generation",
+      "state": "edited",
+      "pageNum": 5
+    },
+    {
+      "id": "parcours_utilisateur",
+      "state": "edited",
+      "pageNum": 6
+    },
+    {
+      "id": "conclusion_decision",
+      "state": "edited",
+      "pageNum": 7
+    }
+  ],
+  "outline": [
+    {
+      "id": "cover",
+      "title": "MÉTREXPERT IA PRO",
+      "summary": "Page de couverture présentant la nouvelle architecture d'expérience.",
+      "image_plan": "Use a suitable image if needed"
+    },
+    {
+      "id": "intro_vitrine",
+      "title": "Une vitrine publique avant l'outil métier",
+      "summary": "Explication de la séparation entre l'accueil et l'espace de génération.",
+      "image_plan": "Use a suitable image if needed"
+    },
+    {
+      "id": "maquette_accueil_1",
+      "title": "Maquette Accueil — Une promesse lisible",
+      "summary": "Présentation visuelle du Hero et de la proposition de valeur.",
+      "image_plan": "Use a suitable image if needed"
+    },
+    {
+      "id": "maquette_accueil_2",
+      "title": "Maquette Accueil — Vendre la méthode",
+      "summary": "Détail des étapes Transmettre, Structurer et Vérifier.",
+      "image_plan": "Use a suitable image if needed"
+    },
+    {
+      "id": "maquette_generation",
+      "title": "Maquette Espace de génération — Un atelier séparé",
+      "summary": "Présentation de l'interface métier sur /etude.",
+      "image_plan": "Use a suitable image if needed"
+    },
+    {
+      "id": "parcours_utilisateur",
+      "title": "Un parcours plus simple pour chaque public",
+      "summary": "Segmentation de l'expérience Prospect, Client et Admin.",
+      "image_plan": "Use a suitable image if needed"
+    },
+    {
+      "id": "conclusion_decision",
+      "title": "Décision de conception & Prochaines étapes",
+      "summary": "Synthèse sur l'absence d'inscription et les priorités futures.",
+      "image_plan": "Use a suitable image if needed"
+    }
+  ]
+}

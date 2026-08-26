@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,700&family=Inter:wght@400;500&family=IBM+Plex+Mono&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      body { overflow: hidden; }
+      .slide-container { 
+        width: 1280px; 
+        min-height: 720px; 
+        background: #F8FAFC; 
+        font-family: 'Inter', sans-serif;
+        color: #334155;
+        display: grid;
+        grid-template-columns: 1fr 1px 420px;
+      }
+      .col-visual {
+        padding-top: 60px;
+        padding-left: 80px;
+        padding-right: 60px;
+        background: #F1F5F9;
+        display: flex;
+        flex-direction: column;
+      }
+      .col-divider {
+        margin-top: 60px;
+        height: 600px;
+        background: #E2E8F0;
+      }
+      .col-text {
+        padding-top: 60px;
+        padding-left: 60px;
+        padding-right: 80px;
+      }
+      .repere {
+        font-family: 'IBM Plex Mono', monospace;
+        font-size: 10px;
+        letter-spacing: 0.2em;
+        color: #D97706;
+        text-transform: uppercase;
+        margin-bottom: 12px;
+      }
+      h2 {
+        font-family: 'Fraunces', serif;
+        font-size: 42px;
+        color: #0F172A;
+        line-height: 1.1;
+        margin-bottom: 30px;
+      }
+      .mockup-frame {
+        width: 680px;
+        height: 480px;
+        background: #0F1613;
+        border: 1px solid #3A4A42;
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+        overflow: hidden;
+      }
+      .mockup-img {
+        width: 680px;
+        height: 1200px;
+        object-fit: cover;
+        object-position: top;
+      }
+      .mockup-label {
+        margin-top: 20px;
+        font-family: 'IBM Plex Mono', monospace;
+        font-size: 11px;
+        color: #64748B;
+      }
+      .feature-box {
+        margin-top: 40px;
+      }
+      .feature-item {
+        margin-top: 30px;
+      }
+      .feature-item h4 {
+        font-family: 'Fraunces', serif;
+        font-size: 20px;
+        color: #0F172A;
+        margin-bottom: 8px;
+      }
+      .feature-item p {
+        font-size: 15px;
+        line-height: 1.5;
+        color: #475569;
+      }
+      .tech-tag {
+        display: inline-block;
+        padding: 4px 8px;
+        background: #F1F5F9;
+        border: 1px solid #E2E8F0;
+        font-family: 'IBM Plex Mono', monospace;
+        font-size: 9px;
+        color: #D97706;
+        margin-top: 10px;
+      }
+    </style>
+</head>
+<body>
+    <div class="slide-container">
+        <div class="col-visual">
+            <div class="repere">Slide 04 — L'Atelier Technique</div>
+            <h2>Maquette Espace de génération — Un atelier séparé</h2>
+            <div class="mockup-frame">
+                <img src="/home/ubuntu/screenshots/webdev-preview-root-1787767778556614436-1183.png" alt="Espace de génération MÉTREXPERT IA PRO" class="mockup-img">
+            </div>
+            <div class="mockup-label">Route /etude — Interface de production (Thème sombre)</div>
+        </div>
+        <div class="col-divider"></div>
+        <div class="col-text">
+            <div class="feature-box">
+                <div class="feature-item" style="margin-top: 0;">
+                    <h4>Environnement métier</h4>
+                    <p>La route <code>/etude</code> conserve le formulaire technique et le cartouche de plan pour une concentration maximale.</p>
+                    <span class="tech-tag">IDENTITÉ BTP CONSERVÉE</span>
+                </div>
+                <div class="feature-item">
+                    <h4>Contrôle géométrique</h4>
+                    <p>Saisie des dimensions explicites, unités et ouvertures au centre du flux de production.</p>
+                    <span class="tech-tag">PRÉCISION & TRAÇABILITÉ</span>
+                </div>
+                <div class="feature-item">
+                    <h4>Sécurité intégrée</h4>
+                    <p>Le déverrouillage par code, l'essai gratuit et le suivi des quotas sont regroupés dans cet espace.</p>
+                    <span class="tech-tag">ACCÈS CONTRÔLÉ</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

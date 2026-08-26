@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,700&family=Inter:wght@400;500&family=IBM+Plex+Mono&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      body { overflow: hidden; }
+      .slide-container { 
+        width: 1280px; 
+        min-height: 720px; 
+        background: #F8FAFC; 
+        font-family: 'Inter', sans-serif;
+        color: #334155;
+        position: relative;
+      }
+      .header {
+        padding-top: 80px;
+        text-align: center;
+      }
+      .repere {
+        font-family: 'IBM Plex Mono', monospace;
+        font-size: 10px;
+        letter-spacing: 0.3em;
+        color: #D97706;
+        text-transform: uppercase;
+        margin-bottom: 16px;
+      }
+      h2 {
+        font-family: 'Fraunces', serif;
+        font-size: 56px;
+        color: #0F172A;
+        margin-bottom: 60px;
+      }
+      .content-grid {
+        display: grid;
+        grid-template-columns: 1fr 1px 1fr;
+        padding-top: 20px;
+        padding-left: 120px;
+        padding-right: 120px;
+      }
+      .col-left, .col-right {
+        padding-top: 20px;
+      }
+      .col-left {
+        padding-right: 80px;
+      }
+      .col-right {
+        padding-left: 80px;
+      }
+      .divider-v {
+        background: #D97706;
+        height: 320px;
+      }
+      h3 {
+        font-family: 'Fraunces', serif;
+        font-size: 24px;
+        color: #0F172A;
+        margin-bottom: 30px;
+        display: flex;
+        align-items: center;
+        gap: 15px;
+      }
+      h3 i {
+        font-size: 20px;
+        color: #D97706;
+      }
+      .item {
+        margin-top: 25px;
+        display: flex;
+        gap: 15px;
+      }
+      .item-bullet {
+        width: 6px;
+        height: 6px;
+        background: #D97706;
+        margin-top: 8px;
+        flex-shrink: 0;
+      }
+      .item-text p {
+        font-size: 16px;
+        line-height: 1.6;
+        color: #475569;
+      }
+      .item-text strong {
+        color: #0F172A;
+      }
+      .footer-brand {
+        position: absolute;
+        bottom: 60px;
+        width: 100%;
+        text-align: center;
+        font-family: 'IBM Plex Mono', monospace;
+        font-size: 10px;
+        letter-spacing: 0.2em;
+        color: #94A3B8;
+      }
+    </style>
+</head>
+<body>
+    <div class="slide-container">
+        <div class="header">
+            <div class="repere">Conclusion & Stratégie</div>
+            <h2>Décision de conception & Prochaines étapes</h2>
+        </div>
+        
+        <div class="content-grid">
+            <div class="col-left">
+                <h3><i class="fas fa-lightbulb"></i> Décisions clés</h3>
+                <div class="item" style="margin-top: 0;">
+                    <div class="item-bullet"></div>
+                    <div class="item-text">
+                        <p><strong>Pas d'inscription classique :</strong> Le modèle par code reste plus simple et cohérent avec les paiements Mobile Money actuels.</p>
+                    </div>
+                </div>
+                <div class="item">
+                    <div class="item-bullet"></div>
+                    <div class="item-text">
+                        <p><strong>Séparation des routes :</strong> L'accueil public rassure, tandis que l'espace <code>/etude</code> sert d'atelier technique protégé.</p>
+                    </div>
+                </div>
+                <div class="item">
+                    <div class="item-bullet"></div>
+                    <div class="item-text">
+                        <p><strong>Honnêteté radicale :</strong> Affichage systématique des limites de l'IA et nécessité de vérification humaine.</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="divider-v"></div>
+            
+            <div class="col-right">
+                <h3><i class="fas fa-tasks"></i> Priorités futures</h3>
+                <div class="item" style="margin-top: 0;">
+                    <div class="item-bullet"></div>
+                    <div class="item-text">
+                        <p><strong>Navigation :</strong> Ajouter un lien « Retour à l'accueil » dans l'espace de génération pour fluidifier le parcours.</p>
+                    </div>
+                </div>
+                <div class="item">
+                    <div class="item-bullet"></div>
+                    <div class="item-text">
+                        <p><strong>Validation terrain :</strong> Tester le parcours complet avec des utilisateurs ivoiriens pour ajuster les libellés métier.</p>
+                    </div>
+                </div>
+                <div class="item">
+                    <div class="item-bullet"></div>
+                    <div class="item-text">
+                        <p><strong>Optimisation :</strong> Réduire la taille du bundle frontend pour améliorer le chargement sur les connexions mobiles.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="footer-brand">MÉTREXPERT IA PRO · CABINET D’ÉTUDES NUMÉRIQUE · 2026</div>
+    </div>
+</body>
+</html>

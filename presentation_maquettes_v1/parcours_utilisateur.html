@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,700&family=Inter:wght@400;500&family=IBM+Plex+Mono&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      body { overflow: hidden; }
+      .slide-container { 
+        width: 1280px; 
+        min-height: 720px; 
+        background: #F8FAFC; 
+        font-family: 'Inter', sans-serif;
+        color: #334155;
+        position: relative;
+      }
+      .header {
+        padding-top: 60px;
+        padding-left: 80px;
+        padding-right: 80px;
+      }
+      .repere {
+        font-family: 'IBM Plex Mono', monospace;
+        font-size: 10px;
+        letter-spacing: 0.2em;
+        color: #D97706;
+        text-transform: uppercase;
+        margin-bottom: 12px;
+      }
+      h2 {
+        font-family: 'Fraunces', serif;
+        font-size: 48px;
+        color: #0F172A;
+        margin-bottom: 30px;
+      }
+      .hairline-h {
+        width: 100%;
+        height: 1px;
+        background: #E2E8F0;
+      }
+      .segment-grid {
+        display: grid;
+        grid-template-columns: 1fr 1px 1fr 1px 1fr;
+        padding-top: 60px;
+        padding-left: 80px;
+        padding-right: 80px;
+      }
+      .segment-col {
+        padding-right: 40px;
+        padding-left: 40px;
+      }
+      .segment-col:first-child { padding-left: 0; }
+      .segment-col:last-child { padding-right: 0; }
+      .divider-v {
+        background: #E2E8F0;
+        height: 420px;
+      }
+      .segment-icon {
+        font-size: 32px;
+        color: #D97706;
+        margin-bottom: 25px;
+      }
+      h3 {
+        font-family: 'Fraunces', serif;
+        font-size: 28px;
+        color: #0F172A;
+        margin-bottom: 20px;
+      }
+      .path-label {
+        font-family: 'IBM Plex Mono', monospace;
+        font-size: 11px;
+        color: #64748B;
+        background: #F1F5F9;
+        padding: 4px 8px;
+        display: inline-block;
+        margin-bottom: 20px;
+      }
+      ul {
+        list-style: none;
+      }
+      li {
+        font-size: 15px;
+        line-height: 1.6;
+        margin-top: 15px;
+        display: flex;
+        gap: 12px;
+      }
+      li::before {
+        content: '—';
+        color: #D97706;
+      }
+      .footer-meta {
+        position: absolute;
+        bottom: 40px;
+        left: 80px;
+        font-family: 'IBM Plex Mono', monospace;
+        font-size: 9px;
+        color: #94A3B8;
+        letter-spacing: 0.1em;
+      }
+    </style>
+</head>
+<body>
+    <div class="slide-container">
+        <div class="header">
+            <div class="repere">Slide 05 — Expérience Utilisateur</div>
+            <h2>Un parcours plus simple pour chaque public</h2>
+            <div class="hairline-h"></div>
+        </div>
+        <div class="segment-grid">
+            <div class="segment-col">
+                <div class="segment-icon"><i class="fas fa-search"></i></div>
+                <h3>Prospect</h3>
+                <div class="path-label">Route /</div>
+                <ul>
+                    <li>Découvre le service et les livrables.</li>
+                    <li>Comprend la méthode IA + Humain.</li>
+                    <li>Contacte via WhatsApp ou teste l'essai gratuit.</li>
+                </ul>
+            </div>
+            <div class="divider-v"></div>
+            <div class="segment-col">
+                <div class="segment-icon"><i class="fas fa-user-tie"></i></div>
+                <h3>Client</h3>
+                <div class="path-label">Route /etude</div>
+                <ul>
+                    <li>Accède à l'atelier avec son code personnel.</li>
+                    <li>Génère ses métrés et DQE Excel.</li>
+                    <li>Suit sa consommation et son quota mensuel.</li>
+                </ul>
+            </div>
+            <div class="divider-v"></div>
+            <div class="segment-col">
+                <div class="segment-icon"><i class="fas fa-user-shield"></i></div>
+                <h3>Administrateur</h3>
+                <div class="path-label">Route /admin</div>
+                <ul>
+                    <li>Gère les codes clients et les abonnements.</li>
+                    <li>Suit les essais gratuits et les relances.</li>
+                    <li>Exporte les données commerciales CSV.</li>
+                </ul>
+            </div>
+        </div>
+        <div class="footer-meta">MÉTREXPERT IA PRO · PROJET 4FDQUVFEPGACF5RLPDSN6J · 2026</div>
+    </div>
+</body>
+</html>

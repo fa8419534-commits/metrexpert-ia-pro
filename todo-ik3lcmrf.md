@@ -288,3 +288,14 @@
 - [x] Ajouter les tests de confirmation, aperçu PDF, filtres et tri
 - [x] Exécuter tests, TypeScript, build et contrôles responsive
 - [x] Sauvegarder un checkpoint de cette évolution
+
+- [x] Rédiger le contenu commercial complet de la page d’accueil publique sans promesse non vérifiée
+- [x] Définir la séparation entre accueil public et espace de génération
+- [x] Concevoir une direction visuelle épurée avec typographie lisible et appels à l’action clairs
+- [x] Implémenter la nouvelle page d’accueil publique
+- [x] Déplacer ou exposer proprement l’espace de génération sur une route dédiée
+- [x] Préserver les protections, l’essai gratuit, les quotas et le panneau Admin
+- [x] Ajouter les tests de navigation, contenu, accessibilité et responsivité
+- [x] Préparer le contenu d’une présentation des maquettes Accueil et Génération
+- [x] Générer la présentation visuelle des deux maquettes
+- [x] Sauvegarder un checkpoint et remettre les livrables à Daouda

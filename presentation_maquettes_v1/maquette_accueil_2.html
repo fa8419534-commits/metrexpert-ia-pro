@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,700&family=Inter:wght@400;500&family=IBM+Plex+Mono&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      body { overflow: hidden; }
+      .slide-container { 
+        width: 1280px; 
+        min-height: 720px; 
+        background: #F8FAFC; 
+        font-family: 'Inter', sans-serif;
+        color: #334155;
+        position: relative;
+      }
+      .header {
+        padding-top: 60px;
+        padding-left: 80px;
+        padding-right: 80px;
+      }
+      .repere {
+        font-family: 'IBM Plex Mono', monospace;
+        font-size: 10px;
+        letter-spacing: 0.2em;
+        color: #D97706;
+        text-transform: uppercase;
+        margin-bottom: 12px;
+      }
+      h2 {
+        font-family: 'Fraunces', serif;
+        font-size: 48px;
+        color: #0F172A;
+        margin-bottom: 20px;
+      }
+      .hairline-h {
+        width: 100%;
+        height: 1px;
+        background: #E2E8F0;
+      }
+      .method-grid {
+        display: flex;
+        padding-top: 80px;
+        padding-left: 80px;
+        padding-right: 80px;
+        justify-content: space-between;
+      }
+      .step-card {
+        width: 340px;
+        position: relative;
+      }
+      .step-number {
+        font-family: 'IBM Plex Mono', monospace;
+        font-size: 14px;
+        color: #D97706;
+        margin-bottom: 25px;
+        display: block;
+      }
+      .step-title {
+        font-family: 'Fraunces', serif;
+        font-size: 32px;
+        color: #0F172A;
+        margin-bottom: 20px;
+      }
+      .step-desc {
+        font-size: 16px;
+        line-height: 1.6;
+        color: #475569;
+      }
+      .vertical-divider {
+        width: 1px;
+        height: 300px;
+        background: #E2E8F0;
+        margin-top: 20px;
+      }
+      .warning-box {
+        margin-top: 80px;
+        margin-left: 80px;
+        margin-right: 80px;
+        border: 1px solid #D97706;
+        background: #FFFBEB;
+        padding-top: 25px;
+        padding-left: 30px;
+        padding-right: 30px;
+        display: flex;
+        align-items: center;
+        gap: 20px;
+      }
+      .warning-box i {
+        color: #D97706;
+        font-size: 24px;
+      }
+      .warning-box p {
+        font-size: 15px;
+        color: #92400E;
+        font-weight: 500;
+      }
+      .footer-meta {
+        position: absolute;
+        bottom: 40px;
+        left: 80px;
+        font-family: 'IBM Plex Mono', monospace;
+        font-size: 9px;
+        color: #94A3B8;
+        letter-spacing: 0.1em;
+      }
+    </style>
+</head>
+<body>
+    <div class="slide-container">
+        <div class="header">
+            <div class="repere">Slide 03 — Méthode & Confiance</div>
+            <h2>Maquette Accueil — Vendre la méthode</h2>
+            <div class="hairline-h"></div>
+        </div>
+        
+        <div class="method-grid">
+            <div class="step-card">
+                <span class="step-number">01. TRANSMETTRE</span>
+                <h3 class="step-title">Données brutes</h3>
+                <p class="step-desc">L'utilisateur décrit son projet, saisit les dimensions connues et joint ses plans PDF ou images. C'est le point de départ de l'étude.</p>
+            </div>
+            <div class="vertical-divider"></div>
+            <div class="step-card">
+                <span class="step-number">02. STRUCTURER</span>
+                <h3 class="step-title">Assistance IA</h3>
+                <p class="step-desc">L'IA organise les informations, calcule les quantités et identifie les ambiguïtés. Elle prépare une base de travail cohérente.</p>
+            </div>
+            <div class="vertical-divider"></div>
+            <div class="step-card">
+                <span class="step-number">03. VÉRIFIER</span>
+                <h3 class="step-title">Relecture humaine</h3>
+                <p class="step-desc">Le client relit les hypothèses et les contrôles géométriques. Cette étape est obligatoire avant tout usage professionnel.</p>
+            </div>
+        </div>
+
+        <div class="warning-box">
+            <i class="fas fa-exclamation-triangle"></i>
+            <p>La page évite les promesses magiques : elle souligne que le service aide à organiser le travail mais ne remplace pas l'expertise technique.</p>
+        </div>
+
+        <div class="footer-meta">MÉTREXPERT IA PRO · PROJET 4FDQUVFEPGACF5RLPDSN6J · 2026</div>
+    </div>
+</body>
+</html>

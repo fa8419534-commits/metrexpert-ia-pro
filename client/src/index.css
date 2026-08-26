@@ -100,3 +100,10 @@
 .access-panel input { min-width: 0; }
 .access-panel input:focus-visible { border-color: #C9A15A; box-shadow: 0 0 0 1px #C9A15A; outline: none; }
 .access-panel button:focus-visible { outline: 2px solid #EDEAE2; outline-offset: 3px; }
+
+.landing-page { font-family: var(--font-sans); }
+.landing-grid { background-image: linear-gradient(rgba(111, 125, 115, 0.08) 1px, transparent 1px), linear-gradient(90deg, rgba(111, 125, 115, 0.08) 1px, transparent 1px); background-size: 42px 42px; mask-image: linear-gradient(to bottom, black, transparent 72%); }
+.landing-page a:focus-visible, .landing-page button:focus-visible { outline: 2px solid #A8792F; outline-offset: 4px; }
+.landing-page article, .landing-page section > div > div { min-width: 0; }
+@media (prefers-reduced-motion: no-preference) { .landing-page a, .landing-page button { transition: color 180ms ease, background-color 180ms ease, border-color 180ms ease, transform 180ms ease; } }
+@media (max-width: 639px) { .landing-page h1 { font-size: clamp(3rem, 15vw, 4.7rem); } }
