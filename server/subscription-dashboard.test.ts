@@ -9,6 +9,16 @@ describe("suivi abonnement client", () => {
     expect(source).toContain("Historique des paiements et renouvellements");
     expect(source).toContain("Votre forfait expire dans");
     expect(source).toContain("refetchInterval: 30000");
+    expect(source).toContain("Renouveler mon forfait");
+    expect(source).toContain("metrexpert:renew");
+  });
+
+  it("expose les filtres Admin pour les paiements et les expirations proches", () => {
+    const source = readFileSync(resolve(process.cwd(), "client/src/pages/Admin.tsx"), "utf8");
+    expect(source).toContain("Filtrer les paiements par statut");
+    expect(source).toContain("Expirent sous 7 jours");
+    expect(source).toContain("filteredPaymentRequests");
+    expect(source).toContain("filteredCodes");
   });
 
   it("prépare un message WhatsApp contenant le code activé", () => {

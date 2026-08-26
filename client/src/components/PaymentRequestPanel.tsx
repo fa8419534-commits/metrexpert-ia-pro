@@ -31,6 +31,15 @@ export default function PaymentRequestPanel() {
     if (status.data?.status === "rejected") setMessage("La demande a été refusée. Vérifiez la référence ou contactez MÉTREXPERT IA PRO.");
   }, [status.data?.status]);
 
+  useEffect(() => {
+    const handleRenewal = (event: Event) => {
+      const planValue = (event as CustomEvent<{ planQuota?: SubscriptionQuota }>).detail?.planQuota;
+      if (planValue === 5 || planValue === 15 || planValue === 40) setPlanQuota(planValue);
+    };
+    window.addEventListener("metrexpert:renew", handleRenewal);
+    return () => window.removeEventListener("metrexpert:renew", handleRenewal);
+  }, []);
+
   function submitRequest(event: React.FormEvent) {
     event.preventDefault();
     submit.mutate({ clientName, phone, email: email || undefined, planQuota, paymentMethod, paymentReference });

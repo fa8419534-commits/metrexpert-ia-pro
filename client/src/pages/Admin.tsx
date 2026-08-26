@@ -95,6 +95,8 @@ export default function Admin() {
     useState<SubscriptionQuota>(15);
   const [paymentMethod, setPaymentMethod] = useState<"wave" | "moov" | "mtn" | "autre" | "">("");
   const [paymentReference, setPaymentReference] = useState("");
+  const [paymentFilter, setPaymentFilter] = useState<"all" | "pending" | "confirmed" | "rejected">("all");
+  const [codeFilter, setCodeFilter] = useState<"all" | "expiring">("all");
   const [revealedCode, setRevealedCode] = useState<string | null>(null);
   const [revealedCodeRecipient, setRevealedCodeRecipient] = useState<{ clientName: string; phone: string } | null>(null);
   const [copyState, setCopyState] = useState<"idle" | "copied">("idle");
@@ -194,6 +196,12 @@ export default function Admin() {
         !code.disabledAt && new Date(code.expiresAt).getTime() > Date.now(),
     ).length ?? 0;
   const invalidDateRange = Boolean(trialStartDate && trialEndDate && trialStartDate > trialEndDate);
+  const filteredPaymentRequests = paymentRequests.data?.filter((request) => paymentFilter === "all" || request.status === paymentFilter) ?? [];
+  const filteredCodes = codes.data?.filter((code) => {
+    if (codeFilter === "all") return true;
+    const daysRemaining = (new Date(code.expiresAt).getTime() - Date.now()) / 86_400_000;
+    return !code.disabledAt && daysRemaining >= 0 && daysRemaining <= 7;
+  }) ?? [];
   const filteredTrials = trials.data?.filter((trial) => {
     const statusMatches = trialFilter === "all" || (trialFilter === "converted" ? Boolean(trial.convertedAt) : !trial.convertedAt);
     const trialTime = new Date(trial.trialAt).getTime();
@@ -433,17 +441,15 @@ export default function Admin() {
           </Card>
 
           <Card className="border-[#3A4A42] bg-[#16201C] text-[#EDEAE2]">
-            <CardHeader><CardTitle className="font-serif text-2xl">Demandes de paiement</CardTitle></CardHeader>
+            <CardHeader><div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><CardTitle className="font-serif text-2xl">Demandes de paiement</CardTitle><div className="flex flex-wrap gap-2" aria-label="Filtrer les paiements par statut">{([['all', 'Tous'], ['pending', 'En attente'], ['confirmed', 'Confirmés'], ['rejected', 'Refusés']] as const).map(([value, label]) => <Button key={value} type="button" size="sm" variant="outline" onClick={() => setPaymentFilter(value)} className={paymentFilter === value ? "border-[#C9A15A] bg-[#C9A15A] text-[#0F1613]" : "border-[#3A4A42] text-[#AEB7B0]"}>{label}</Button>)}</div></div><p className="mt-2 font-mono text-[10px] uppercase tracking-wider text-[#AEB7B0]">{filteredPaymentRequests.length} demande{filteredPaymentRequests.length > 1 ? "s" : ""} affichée{filteredPaymentRequests.length > 1 ? "s" : ""}</p></CardHeader>
             <CardContent>
-              {paymentRequests.isLoading ? <div className="flex items-center gap-2 text-sm text-[#AEB7B0]"><Loader2 className="h-4 w-4 animate-spin" />Chargement des paiements…</div> : paymentRequests.data?.length ? <div className="overflow-x-auto"><table className="w-full min-w-[900px] text-left text-sm"><thead className="border-b border-[#3A4A42] font-mono text-[10px] uppercase tracking-wider text-[#C9A15A]"><tr><th className="px-3 py-3">Client</th><th className="px-3 py-3">Forfait / montant</th><th className="px-3 py-3">Moyen / référence</th><th className="px-3 py-3">Statut</th><th className="px-3 py-3 text-right">Décision</th></tr></thead><tbody>{paymentRequests.data.map((request) => <tr key={request.id} className="border-b border-[#3A4A42]/70"><td className="px-3 py-4"><span className="font-medium">{request.clientName}</span><br /><span className="text-xs text-[#AEB7B0]">{request.phone}</span></td><td className="px-3 py-4 font-mono text-xs">{getSubscriptionPlan(request.planQuota)?.name}<br /><span className="text-[#C9A15A]">{formatXof(request.amountXof)}</span></td><td className="px-3 py-4 font-mono text-xs">{request.paymentMethod.toUpperCase()}<br /><span className="text-[#AEB7B0]">{request.paymentReference}</span></td><td className={`px-3 py-4 font-mono text-xs uppercase ${request.status === "confirmed" ? "text-[#7C9A76]" : request.status === "rejected" ? "text-[#D98472]" : "text-[#C9A15A]"}`}>{request.status === "confirmed" ? "Confirmé" : request.status === "rejected" ? "Refusé" : "En attente"}</td><td className="px-3 py-4 text-right">{request.status === "pending" && <div className="flex justify-end gap-2"><Button type="button" size="sm" className="bg-[#7C9A76] text-[#0F1613]" disabled={reviewPayment.isPending} onClick={() => reviewPayment.mutate({ id: request.id, status: "confirmed" })}>Confirmer</Button><Button type="button" size="sm" variant="outline" className="border-[#D98472] text-[#D98472]" disabled={reviewPayment.isPending} onClick={() => reviewPayment.mutate({ id: request.id, status: "rejected" })}>Refuser</Button></div>}</td></tr>)}</tbody></table></div> : <p className="py-8 text-sm text-[#AEB7B0]">Aucune demande de paiement enregistrée.</p>}
+              {paymentRequests.isLoading ? <div className="flex items-center gap-2 text-sm text-[#AEB7B0]"><Loader2 className="h-4 w-4 animate-spin" />Chargement des paiements…</div> : filteredPaymentRequests.length ? <div className="overflow-x-auto"><table className="w-full min-w-[900px] text-left text-sm"><thead className="border-b border-[#3A4A42] font-mono text-[10px] uppercase tracking-wider text-[#C9A15A]"><tr><th className="px-3 py-3">Client</th><th className="px-3 py-3">Forfait / montant</th><th className="px-3 py-3">Moyen / référence</th><th className="px-3 py-3">Statut</th><th className="px-3 py-3 text-right">Décision</th></tr></thead><tbody>{filteredPaymentRequests.map((request) => <tr key={request.id} className="border-b border-[#3A4A42]/70"><td className="px-3 py-4"><span className="font-medium">{request.clientName}</span><br /><span className="text-xs text-[#AEB7B0]">{request.phone}</span></td><td className="px-3 py-4 font-mono text-xs">{getSubscriptionPlan(request.planQuota)?.name}<br /><span className="text-[#C9A15A]">{formatXof(request.amountXof)}</span></td><td className="px-3 py-4 font-mono text-xs">{request.paymentMethod.toUpperCase()}<br /><span className="text-[#AEB7B0]">{request.paymentReference}</span></td><td className={`px-3 py-4 font-mono text-xs uppercase ${request.status === "confirmed" ? "text-[#7C9A76]" : request.status === "rejected" ? "text-[#D98472]" : "text-[#C9A15A]"}`}>{request.status === "confirmed" ? "Confirmé" : request.status === "rejected" ? "Refusé" : "En attente"}</td><td className="px-3 py-4 text-right">{request.status === "pending" && <div className="flex justify-end gap-2"><Button type="button" size="sm" className="bg-[#7C9A76] text-[#0F1613]" disabled={reviewPayment.isPending} onClick={() => reviewPayment.mutate({ id: request.id, status: "confirmed" })}>Confirmer</Button><Button type="button" size="sm" variant="outline" className="border-[#D98472] text-[#D98472]" disabled={reviewPayment.isPending} onClick={() => reviewPayment.mutate({ id: request.id, status: "rejected" })}>Refuser</Button></div>}</td></tr>)}</tbody></table></div> : <p className="py-8 text-sm text-[#AEB7B0]">{paymentRequests.data?.length ? "Aucune demande ne correspond à ce filtre." : "Aucune demande de paiement enregistrée."}</p>}
             </CardContent>
           </Card>
 
           <Card className="border-[#3A4A42] bg-[#16201C] text-[#EDEAE2]">
             <CardHeader>
-              <CardTitle className="font-serif text-2xl">
-                Codes actifs et historiques
-              </CardTitle>
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><CardTitle className="font-serif text-2xl">Codes actifs et historiques</CardTitle><div className="flex flex-wrap gap-2" aria-label="Filtrer les expirations"><Button type="button" size="sm" variant="outline" onClick={() => setCodeFilter("all")} className={codeFilter === "all" ? "border-[#C9A15A] bg-[#C9A15A] text-[#0F1613]" : "border-[#3A4A42] text-[#AEB7B0]"}>Tous</Button><Button type="button" size="sm" variant="outline" onClick={() => setCodeFilter("expiring")} className={codeFilter === "expiring" ? "border-[#C9A15A] bg-[#C9A15A] text-[#0F1613]" : "border-[#3A4A42] text-[#AEB7B0]"}>Expirent sous 7 jours</Button></div></div><p className="mt-2 font-mono text-[10px] uppercase tracking-wider text-[#AEB7B0]">{filteredCodes.length} code{filteredCodes.length > 1 ? "s" : ""} affiché{filteredCodes.length > 1 ? "s" : ""}</p>
             </CardHeader>
             <CardContent>
               {codes.isLoading ? (
@@ -451,7 +457,7 @@ export default function Admin() {
                   <Loader2 className="h-4 w-4 animate-spin" />
                   Chargement des accès…
                 </div>
-              ) : codes.data?.length ? (
+              ) : filteredCodes.length ? (
                 <div className="overflow-x-auto">
                   <table className="w-full min-w-[650px] text-left text-sm">
                     <thead className="border-b border-[#3A4A42] font-mono text-[10px] uppercase tracking-wider text-[#C9A15A]">
@@ -466,7 +472,7 @@ export default function Admin() {
                       </tr>
                     </thead>
                     <tbody>
-                      {codes.data.map((code) => {
+                      {filteredCodes.map((code) => {
                         const disabled =
                           Boolean(code.disabledAt) ||
                           new Date(code.expiresAt).getTime() <= Date.now();
@@ -518,7 +524,7 @@ export default function Admin() {
                 </div>
               ) : (
                 <p className="py-8 text-sm text-[#AEB7B0]">
-                  Aucun code client créé.
+                  {codes.data?.length ? "Aucun code ne correspond à ce filtre." : "Aucun code client créé."}
                 </p>
               )}
             </CardContent>
