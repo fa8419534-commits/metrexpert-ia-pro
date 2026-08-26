@@ -1,0 +1,1 @@
+ALTER TABLE `free_trial_contacts` ADD `lastWhatsAppContactAt` timestamp;

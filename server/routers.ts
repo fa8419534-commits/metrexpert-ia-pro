@@ -10,7 +10,7 @@ import { buildEstimateWorkbook, type ProjectEstimate } from "./excel";
 import { BTP_JSON_OUTPUT_ENFORCEMENT, BTP_SYSTEM_PROMPT } from "./btpPrompt";
 import { parseJsonObjectFromLLM } from "./json";
 import { normalizeEstimateAmbiguities } from "./estimateNormalization";
-import { consumeClientMonthlyQuota, consumeGenerationQuota, createClientAccessCode, DAILY_LIMIT, disableClientAccessCode, getClientAccessStatus, getGenerationStats, getHourlyQuotaStatus, hasValidAccessCookie, hasValidAdminCookie, HOURLY_LIMIT, isAccessCodeValid, isAdminAccessCodeValid, listClientAccessCodes, listFreeTrialContacts, markFreeTrialConverted, reserveFreeTrial, setAccessCookie, setAdminCookie, verifyClientAccessCode } from "./security";
+import { consumeClientMonthlyQuota, consumeGenerationQuota, createClientAccessCode, DAILY_LIMIT, disableClientAccessCode, getClientAccessStatus, getGenerationStats, getHourlyQuotaStatus, hasValidAccessCookie, hasValidAdminCookie, HOURLY_LIMIT, isAccessCodeValid, isAdminAccessCodeValid, listClientAccessCodes, listFreeTrialContacts, markFreeTrialConverted, markFreeTrialWhatsAppContacted, reserveFreeTrial, setAccessCookie, setAdminCookie, verifyClientAccessCode } from "./security";
 
 const estimateSchema = {
   type: "object",
@@ -182,6 +182,7 @@ export const appRouter = router({
     adminStatus: publicProcedure.query(({ ctx }) => ({ unlocked: hasValidAdminCookie(ctx) })),
     adminListCodes: adminProcedure.query(() => listClientAccessCodes()),
     adminListFreeTrials: adminProcedure.query(() => listFreeTrialContacts()),
+    adminMarkFreeTrialWhatsAppContacted: adminProcedure.input(z.object({ id: z.number().int().positive() })).mutation(({ input }) => markFreeTrialWhatsAppContacted(input.id).then((lastWhatsAppContactAt) => ({ success: true as const, lastWhatsAppContactAt }))),
     adminMarkFreeTrialConverted: adminProcedure.input(z.object({ id: z.number().int().positive() })).mutation(({ input }) => markFreeTrialConverted(input.id).then(() => ({ success: true as const }))),
     adminCreateCode: adminProcedure.input(z.object({ clientName: z.string().trim().min(1).max(160), monthlyQuota: z.union([z.literal(5), z.literal(15), z.literal(40)]) })).mutation(({ input }) => createClientAccessCode(input.clientName, input.monthlyQuota)),
     adminDisableCode: adminProcedure.input(z.object({ id: z.number().int().positive() })).mutation(({ input }) => disableClientAccessCode(input.id).then(() => ({ success: true as const }))),

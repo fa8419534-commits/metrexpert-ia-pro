@@ -60,6 +60,7 @@ export const freeTrialContacts = mysqlTable("free_trial_contacts", {
   emailHash: varchar("emailHash", { length: 64 }).unique(),
   trialAt: timestamp("trialAt").defaultNow().notNull(),
   convertedAt: timestamp("convertedAt"),
+  lastWhatsAppContactAt: timestamp("lastWhatsAppContactAt"),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
 

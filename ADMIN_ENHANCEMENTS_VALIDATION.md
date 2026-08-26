@@ -12,3 +12,7 @@ Les captures desktop et mobile de `/admin` ont été réalisées après le build
 ## Validation WhatsApp et essai gratuit
 
 Les captures mobile du 26 août 2026 montrent que le formulaire d’essai reste lisible sans débordement et que la page `/admin` conserve un écran de connexion compact et utilisable. Les tests automatisés couvrent la section « Essais gratuits », le lien WhatsApp pré-rempli et la validation des formats de contact. La capture Admin verrouillée ne montre pas les prospects, car cette vue nécessite une session administrateur authentifiée.
+
+## Validation filtres et relances
+
+La capture mobile du 26 août 2026 confirme que Home et l’écran de connexion `/admin` restent lisibles sans débordement après l’ajout du suivi de relance. Les états du tableau Admin, les filtres et la date de dernière relance sont couverts par les tests UI ; la capture verrouillée ne montre pas le tableau, car une session administrateur authentifiée est nécessaire.

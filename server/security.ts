@@ -16,7 +16,7 @@ const isTestRuntime = process.env.NODE_ENV === "test" || process.env.VITEST === 
 let forceMemoryForTests = false;
 const memoryWindows = new Map<string, { count: number; windowStart: number; kind: "hour" | "day" }>();
 type MemoryClientCode = { id: number; codeHash: string; clientName: string; monthlyQuota: number; monthlyUsed: number; createdAt: Date; expiresAt: Date; disabledAt: Date | null };
-type MemoryFreeTrialContact = { id: number; clientName: string | null; phone: string | null; phoneHash: string | null; email: string | null; emailHash: string | null; trialAt: Date; convertedAt: Date | null; updatedAt: Date };
+type MemoryFreeTrialContact = { id: number; clientName: string | null; phone: string | null; phoneHash: string | null; email: string | null; emailHash: string | null; trialAt: Date; convertedAt: Date | null; lastWhatsAppContactAt: Date | null; updatedAt: Date };
 const memoryClientCodes = new Map<number, MemoryClientCode>();
 const memoryFreeTrialContacts = new Map<number, MemoryFreeTrialContact>();
 const memoryFreeTrialContactKeys = new Set<string>();
@@ -98,7 +98,7 @@ export async function reserveFreeTrial(
     }
   }
   const now = new Date();
-  const contact = { id: nextMemoryFreeTrialId++, clientName: clientName || null, phone: phone || null, phoneHash: phoneHash || null, email: email || null, emailHash: emailHash || null, trialAt: now, convertedAt: null, updatedAt: now };
+  const contact = { id: nextMemoryFreeTrialId++, clientName: clientName || null, phone: phone || null, phoneHash: phoneHash || null, email: email || null, emailHash: emailHash || null, trialAt: now, convertedAt: null, lastWhatsAppContactAt: null, updatedAt: now };
   memoryFreeTrialContacts.set(contact.id, contact);
   contactKeys.forEach((key) => memoryFreeTrialContactKeys.add(key));
   return { allowed: true, contactId: contact.id, phone, email };
@@ -107,7 +107,22 @@ export async function reserveFreeTrial(
 export async function listFreeTrialContacts() {
   const db = isTestRuntime || forceMemoryForTests ? null : await getDb();
   const rows = db ? await db.select().from(freeTrialContacts).orderBy(freeTrialContacts.trialAt) : Array.from(memoryFreeTrialContacts.values()).sort((a, b) => a.trialAt.getTime() - b.trialAt.getTime());
-  return rows.map((record) => ({ id: record.id, clientName: record.clientName || "À compléter", phone: record.phone || "À compléter", email: record.email || "À compléter", trialAt: record.trialAt, convertedAt: record.convertedAt }));
+  return rows.map((record) => ({ id: record.id, clientName: record.clientName || "À compléter", phone: record.phone || "À compléter", email: record.email || "À compléter", trialAt: record.trialAt, convertedAt: record.convertedAt, lastWhatsAppContactAt: record.lastWhatsAppContactAt }));
+}
+
+export async function markFreeTrialWhatsAppContacted(id: number) {
+  const contactedAt = new Date();
+  const db = isTestRuntime || forceMemoryForTests ? null : await getDb();
+  if (db) {
+    await db.update(freeTrialContacts).set({ lastWhatsAppContactAt: contactedAt }).where(eq(freeTrialContacts.id, id));
+    return contactedAt;
+  }
+  const record = memoryFreeTrialContacts.get(id);
+  if (record) {
+    record.lastWhatsAppContactAt = contactedAt;
+    record.updatedAt = contactedAt;
+  }
+  return contactedAt;
 }
 
 export async function markFreeTrialConverted(id: number) {

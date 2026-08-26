@@ -207,3 +207,7 @@
 - [x] Ajouter un bouton WhatsApp pré-rempli à côté de chaque prospect dans /admin, sans envoi automatique
 - [x] Ajouter la validation visuelle en temps réel du format téléphone/e-mail d’essai gratuit dans Home
 - [x] Ajouter les tests UI, accessibilité et responsivité, vérifier TypeScript/build et sauvegarder un checkpoint
+- [x] Ajouter le champ persisté de dernière relance WhatsApp pour les prospects d’essai
+- [x] Enregistrer la dernière relance lors de l’ouverture du lien WhatsApp sans envoyer automatiquement de message
+- [x] Ajouter les filtres « À relancer » et « Convertis » dans la section Essais gratuits
+- [x] Afficher la date de dernière relance et tester les filtres, la persistance et le rendu responsive avant checkpoint

@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const testState = vi.hoisted(() => ({
   adminUnlocked: false,
-  trials: [] as Array<{ id: number; clientName: string; phone: string; email: string; trialAt: Date; convertedAt: Date | null }>,
+  trials: [] as Array<{ id: number; clientName: string; phone: string; email: string; trialAt: Date; convertedAt: Date | null; lastWhatsAppContactAt?: Date | null }>,
   codes: [] as Array<{
     id: number;
     clientName: string;
@@ -16,6 +16,7 @@ const testState = vi.hoisted(() => ({
   }>,
   writeText: vi.fn(),
   disable: vi.fn(),
+  contacted: vi.fn(),
 }));
 
 beforeEach(() => {
@@ -24,6 +25,7 @@ beforeEach(() => {
   testState.trials = [];
   testState.writeText.mockReset().mockResolvedValue(undefined);
   testState.disable.mockReset();
+  testState.contacted.mockReset();
   Object.defineProperty(navigator, "clipboard", {
     configurable: true,
     value: { writeText: testState.writeText },
@@ -39,6 +41,7 @@ vi.mock("@/lib/trpc", () => ({
       verifyAdminCode: { useMutation: (options?: { onSuccess?: () => void }) => ({ isPending: false, mutate: () => options?.onSuccess?.(), error: undefined }) },
       adminListCodes: { useQuery: () => ({ data: testState.codes, isLoading: false, refetch: vi.fn() }) },
       adminListFreeTrials: { useQuery: () => ({ data: testState.trials, isLoading: false, refetch: vi.fn() }) },
+      adminMarkFreeTrialWhatsAppContacted: { useMutation: () => ({ isPending: false, mutate: testState.contacted }) },
       adminMarkFreeTrialConverted: { useMutation: () => ({ isPending: false, mutate: vi.fn() }) },
       adminCreateCode: { useMutation: (options?: { onSuccess?: (data: { code: string }) => void }) => ({ isPending: false, mutate: () => options?.onSuccess?.({ code: "MXP-ABC1234567" }) }) },
       adminDisableCode: { useMutation: () => ({ isPending: false, mutate: testState.disable }) },
@@ -74,14 +77,34 @@ describe("Admin panel UI", () => {
 
   it("shows free trial contacts and their conversion status", () => {
     testState.adminUnlocked = true;
-    testState.trials = [{ id: 2, clientName: "Prospect test", phone: "2250100000000", email: "prospect@exemple.ci", trialAt: new Date("2026-08-26T00:00:00Z"), convertedAt: null }];
+    testState.trials = [{ id: 2, clientName: "Prospect test", phone: "2250100000000", email: "prospect@exemple.ci", trialAt: new Date("2026-08-26T00:00:00Z"), convertedAt: null, lastWhatsAppContactAt: new Date("2026-08-25T00:00:00Z") }];
     render(React.createElement(Admin));
     expect(screen.getByText("Essais gratuits")).toBeTruthy();
     expect(screen.getByText("Prospect test")).toBeTruthy();
-    expect(screen.getByText("À relancer")).toBeTruthy();
-    expect(screen.getByText("1 contact")).toBeTruthy();
+    expect(screen.getAllByText("À relancer").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByLabelText("1 prospect affiché sur 1")).toBeTruthy();
     const whatsapp = screen.getByRole("link", { name: "Ouvrir WhatsApp pour Prospect test" });
     expect(whatsapp.getAttribute("href")).toContain("https://wa.me/2250100000000?text=");
+    expect(screen.getByText("25/08/2026")).toBeTruthy();
+    fireEvent.click(whatsapp);
+    expect(testState.contacted).toHaveBeenCalledWith({ id: 2 });
+  });
+
+  it("filters free trial contacts by follow-up and conversion status", () => {
+    testState.adminUnlocked = true;
+    testState.trials = [
+      { id: 3, clientName: "Prospect à relancer", phone: "2250700000000", email: "a@exemple.ci", trialAt: new Date(), convertedAt: null },
+      { id: 4, clientName: "Prospect converti", phone: "2250500000000", email: "b@exemple.ci", trialAt: new Date(), convertedAt: new Date() },
+    ];
+    render(React.createElement(Admin));
+    expect(screen.getByText("Prospect à relancer")).toBeTruthy();
+    expect(screen.getByText("Prospect converti")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Convertis" }));
+    expect(screen.queryByText("Prospect à relancer")).toBeNull();
+    expect(screen.getByText("Prospect converti")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "À relancer" }));
+    expect(screen.getByText("Prospect à relancer")).toBeTruthy();
+    expect(screen.queryByText("Prospect converti")).toBeNull();
   });
 
   it("shows the active code count and asks for confirmation before revocation", () => {

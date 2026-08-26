@@ -5,7 +5,7 @@ vi.hoisted(() => {
 });
 import type { TrpcContext } from "./_core/context";
 import { appRouter } from "./routers";
-import { consumeGenerationQuota, DAILY_LIMIT, expireClientAccessCodeForTests, HOURLY_LIMIT, listFreeTrialContacts, reserveFreeTrial, resetSecurityStateForTests } from "./security";
+import { consumeGenerationQuota, DAILY_LIMIT, expireClientAccessCodeForTests, HOURLY_LIMIT, listFreeTrialContacts, markFreeTrialWhatsAppContacted, reserveFreeTrial, resetSecurityStateForTests } from "./security";
 
 function context(ip: string): TrpcContext {
   return { user: null, req: { ip, headers: {} } as TrpcContext["req"], res: {} as TrpcContext["res"] };
@@ -93,6 +93,15 @@ describe("client access administration", () => {
 
 describe("free trial contacts", () => {
   beforeEach(() => resetSecurityStateForTests());
+
+  it("records the last WhatsApp follow-up for Admin", async () => {
+    const reservation = await reserveFreeTrial("Prospect relancé", "2250700000000", undefined);
+    expect(reservation.allowed).toBe(true);
+    if (!reservation.allowed) return;
+    const contactedAt = await markFreeTrialWhatsAppContacted(reservation.contactId);
+    const contacts = await listFreeTrialContacts();
+    expect(contacts.find((contact) => contact.id === reservation.contactId)?.lastWhatsAppContactAt).toEqual(contactedAt);
+  });
 
   it("allows one trial per normalized phone or email and lists the contact for Admin", async () => {
     const first = await reserveFreeTrial("Client Démo", "+225 01 51 61 05 12", undefined);
