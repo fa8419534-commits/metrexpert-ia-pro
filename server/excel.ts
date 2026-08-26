@@ -1,5 +1,5 @@
-import XLSX from "xlsx-js-style";
 import ExcelJS from "exceljs";
+import { buildHypotheses, runQuantityChecks, type QuantityCheck } from "./quantityChecks";
 
 export type MeasureItem = {
   code: string;
@@ -24,99 +24,31 @@ export type ProjectEstimate = {
   signatureImageDataUrl?: string;
   stampImageDataUrl?: string;
   trialVersion?: boolean;
+  hypotheses?: string[];
+  quantityChecks?: QuantityCheck[];
   measures: MeasureItem[];
 };
 
-type CellStyle = Record<string, unknown>;
+const COLORS = { anthracite: "0F1613", card: "16201C", gold: "C9A15A", paper: "EDEAE2", line: "3A4A42", sage: "7C9A76", muted: "AEB7B0", red: "9D554B" };
+const argb = (hex: string) => `FF${hex}`;
 
-const COLORS = {
-  anthracite: "0F1613",
-  card: "16201C",
-  gold: "C9A15A",
-  paper: "EDEAE2",
-  line: "3A4A42",
-  sage: "7C9A76",
-  muted: "AEB7B0",
-};
-
-const border = (color = COLORS.line): CellStyle => ({
-  top: { style: "thin", color: { rgb: color } },
-  bottom: { style: "thin", color: { rgb: color } },
-  left: { style: "thin", color: { rgb: color } },
-  right: { style: "thin", color: { rgb: color } },
-});
-
-const cell = (value: unknown, style?: CellStyle): XLSX.CellObject => ({
-  v: (value ?? "") as string | number | boolean | Date,
-  t: typeof value === "number" ? "n" : "s",
-  ...(style ? { s: style } : {}),
-});
-
-const formula = (f: string, style?: CellStyle): XLSX.CellObject => ({
-  f: f.replace(/^=+/, ""),
-  v: 0,
-  t: "n",
-  ...(style ? { s: style } : {}),
-});
-
-const titleStyle: CellStyle = {
-  fill: { fgColor: { rgb: COLORS.anthracite } },
-  font: { name: "Aptos Display", sz: 20, bold: true, color: { rgb: COLORS.gold } },
-  alignment: { vertical: "center" },
-};
-
-const subtitleStyle: CellStyle = {
-  fill: { fgColor: { rgb: COLORS.anthracite } },
-  font: { name: "Aptos", sz: 11, color: { rgb: COLORS.paper }, italic: true },
-  alignment: { vertical: "center" },
-};
-
-const sectionStyle: CellStyle = {
-  fill: { fgColor: { rgb: COLORS.gold } },
-  font: { name: "Aptos", sz: 10, bold: true, color: { rgb: COLORS.anthracite } },
-  alignment: { vertical: "center" },
-  border: border(COLORS.gold),
-};
-
-const labelStyle: CellStyle = {
-  fill: { fgColor: { rgb: COLORS.card } },
-  font: { name: "Aptos", sz: 10, bold: true, color: { rgb: COLORS.gold } },
-  alignment: { vertical: "center" },
-  border: border(),
-};
-
-const valueStyle: CellStyle = {
-  fill: { fgColor: { rgb: "F5F3ED" } },
-  font: { name: "Aptos", sz: 10, color: { rgb: COLORS.anthracite } },
-  alignment: { vertical: "center", wrapText: true },
-  border: border(),
-};
-
-const tableHeaderStyle: CellStyle = {
-  fill: { fgColor: { rgb: COLORS.anthracite } },
-  font: { name: "Aptos", sz: 10, bold: true, color: { rgb: COLORS.gold } },
-  alignment: { horizontal: "center", vertical: "center", wrapText: true },
-  border: border(COLORS.gold),
-};
-
-const tableTextStyle: CellStyle = {
-  fill: { fgColor: { rgb: "F7F6F1" } },
-  font: { name: "Aptos", sz: 10, color: { rgb: COLORS.anthracite } },
-  alignment: { vertical: "center", wrapText: true },
-  border: border(),
-};
-
-const tableNumberStyle: CellStyle = {
-  ...tableTextStyle,
-  alignment: { horizontal: "right", vertical: "center" },
-  numFmt: "#,##0.00",
-};
-
-const formulaStyle: CellStyle = {
-  ...tableNumberStyle,
-  fill: { fgColor: { rgb: "E8F0E7" } },
-  font: { name: "Aptos", sz: 10, color: { rgb: COLORS.anthracite }, bold: true },
-};
+function applyFill(cell: ExcelJS.Cell, color: string) { cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: argb(color) } }; }
+function applyBorder(cell: ExcelJS.Cell, color = COLORS.line) { cell.border = { top: { style: "thin", color: { argb: argb(color) } }, bottom: { style: "thin", color: { argb: argb(color) } }, left: { style: "thin", color: { argb: argb(color) } }, right: { style: "thin", color: { argb: argb(color) } } }; }
+function styleCell(cell: ExcelJS.Cell, options: { fill?: string; color?: string; size?: number; bold?: boolean; italic?: boolean; align?: ExcelJS.Alignment["horizontal"]; wrap?: boolean; border?: string; font?: string }) {
+  if (options.fill) applyFill(cell, options.fill);
+  if (options.border !== "none") applyBorder(cell, options.border);
+  cell.font = { name: options.font || "Aptos", size: options.size || 10, bold: options.bold, italic: options.italic, color: { argb: argb(options.color || COLORS.anthracite) } };
+  cell.alignment = { vertical: "middle", horizontal: options.align || "left", wrapText: options.wrap ?? true };
+}
+function columnNumber(column: string) { return column.split("").reduce((value, char) => value * 26 + char.charCodeAt(0) - 64, 0); }
+function styleRange(sheet: ExcelJS.Worksheet, range: string, options: Parameters<typeof styleCell>[1]) {
+  const match = range.match(/^([A-Z]+)(\d+):([A-Z]+)(\d+)$/);
+  if (!match) return;
+  for (let row = Number(match[2]); row <= Number(match[4]); row += 1) {
+    for (let column = columnNumber(match[1]); column <= columnNumber(match[3]); column += 1) styleCell(sheet.getCell(row, column), options);
+  }
+}
+function setFormula(cell: ExcelJS.Cell, formula: string, result: number, options: Parameters<typeof styleCell>[1]) { cell.value = { formula: formula.replace(/^=+/, ""), result }; styleCell(cell, options); }
 
 function decodeBrandImage(dataUrl: string): { buffer: Buffer; extension: "png" | "jpeg" } {
   const match = dataUrl.match(/^data:(image\/(?:png|jpeg));base64,([A-Za-z0-9+/=\r\n]+)$/);
@@ -124,171 +56,79 @@ function decodeBrandImage(dataUrl: string): { buffer: Buffer; extension: "png" |
   return { buffer: Buffer.from(match[2].replace(/\s/g, ""), "base64"), extension: match[1] === "image/png" ? "png" : "jpeg" };
 }
 
-async function embedCoverageImages(xlsxBuffer: Buffer, data: ProjectEstimate): Promise<Buffer> {
-  if (!data.signatureImageDataUrl && !data.stampImageDataUrl) return xlsxBuffer;
-  const sourceWorkbook = XLSX.read(xlsxBuffer, { type: "buffer", cellFormula: true });
-  const workbook = new ExcelJS.Workbook();
-  await workbook.xlsx.load(xlsxBuffer as any);
-  Object.entries(sourceWorkbook.Sheets).forEach(([sheetName, sourceSheet]) => {
-    const targetSheet = workbook.getWorksheet(sheetName);
-    if (!targetSheet) return;
-    Object.entries(sourceSheet).forEach(([address, sourceCell]) => {
-      if (!address.startsWith("!") && sourceCell && typeof sourceCell === "object" && "f" in sourceCell && sourceCell.f && "v" in sourceCell) {
-        targetSheet.getCell(address).value = { formula: String(sourceCell.f), result: sourceCell.v as string | number | boolean };
-      }
-    });
-  });
-  const calculatedQuantities = data.measures.map((measure) => measure.quantity * (measure.factor ?? 1));
-  const calculatedTotal = data.measures.reduce((sum, measure, index) => sum + calculatedQuantities[index] * (measure.unitPrice ?? 0), 0);
-  const measureTarget = workbook.getWorksheet("Métré");
-  const dqeTarget = workbook.getWorksheet("DQE");
-  data.measures.forEach((measure, index) => {
-    const row = index + 2;
-    if (measureTarget) measureTarget.getCell(`F${row}`).value = { formula: `D${row}*E${row}`, result: calculatedQuantities[index] };
-    if (dqeTarget) {
-      dqeTarget.getCell(`D${row}`).value = { formula: `IFERROR('Métré'!F${row},0)`, result: calculatedQuantities[index] };
-      dqeTarget.getCell(`F${row}`).value = { formula: `D${row}*E${row}`, result: calculatedQuantities[index] * (measure.unitPrice ?? 0) };
-    }
-  });
-  const totalRow = data.measures.length + 2;
-  if (dqeTarget) dqeTarget.getCell(`F${totalRow}`).value = { formula: `SUM(F2:F${totalRow - 1})`, result: calculatedTotal };
-  const sheet = workbook.getWorksheet("Couverture");
-  if (!sheet) return xlsxBuffer;
-  sheet.getCell("B15").value = { formula: `'DQE'!F${totalRow}`, result: calculatedTotal };
-  if (data.signatureImageDataUrl) {
-    const image = decodeBrandImage(data.signatureImageDataUrl);
-    const imageId = workbook.addImage({ buffer: image.buffer as any, extension: image.extension });
-    sheet.addImage(imageId, "B23:B24");
-  }
-  if (data.stampImageDataUrl) {
-    const image = decodeBrandImage(data.stampImageDataUrl);
-    const imageId = workbook.addImage({ buffer: image.buffer as any, extension: image.extension });
-    sheet.addImage(imageId, "D23:D24");
-  }
-  return Buffer.from(await workbook.xlsx.writeBuffer());
-}
-
 export async function buildEstimateWorkbook(data: ProjectEstimate): Promise<Buffer> {
-  const workbook = XLSX.utils.book_new();
+  const workbook = new ExcelJS.Workbook();
+  workbook.creator = "MÉTREXPERT IA PRO";
+  workbook.lastModifiedBy = "MÉTREXPERT IA PRO";
+  workbook.created = new Date();
+  workbook.calcProperties.fullCalcOnLoad = true;
+
   const currency = data.currency || "FCFA";
-  const issuedAt = new Date();
-  const issueDate = issuedAt.toLocaleDateString("fr-FR");
-  const reference = `MXP-${issuedAt.getFullYear()}-${String(issuedAt.getTime()).slice(-6)}`;
-  const totalRow = data.measures.length + 2;
+  const issueDate = new Intl.DateTimeFormat("fr-FR", { timeZone: "Africa/Abidjan" }).format(new Date());
+  const reference = `MXP-${new Date().getFullYear()}-${String(Date.now()).slice(-6)}`;
   const clientName = data.client || "À compléter";
-  const clientPhone = data.clientPhone || "À compléter";
-  const clientEmail = data.clientEmail || "À compléter";
   const projectTitle = data.projectTitle || "À compléter";
-  const location = data.location || "À compléter";
-  const summary = data.summary || "Généré à partir des éléments fournis. Vérifier les hypothèses, unités et prix avant usage contractuel.";
-  const provider = "MÉTREXPERT IA PRO — préparé par Daouda";
-  const trialBanner = data.trialVersion ? "VERSION D’ESSAI GRATUIT — abonnement requis pour un usage régulier" : "MÉTRÉ • QUANTITATIF • DQE";
-  const verifiedBy = data.verifiedBy || "À compléter";
-  const validationDate = data.validationDate || "À compléter";
-  const projectTitleValueStyle: CellStyle = { ...valueStyle, font: { name: "Aptos", sz: 11, bold: true, color: { rgb: COLORS.anthracite } } };
-  const totalLabelStyle: CellStyle = { ...labelStyle, font: { name: "Aptos Display", sz: 13, bold: true, color: { rgb: COLORS.gold } } };
-  const totalFormulaStyle: CellStyle = { ...formulaStyle, fill: { fgColor: { rgb: COLORS.gold } }, font: { name: "Aptos Display", sz: 18, bold: true, color: { rgb: COLORS.anthracite } }, alignment: { horizontal: "right", vertical: "center" } };
-  const totalCurrencyStyle: CellStyle = { ...valueStyle, font: { name: "Aptos Display", sz: 13, bold: true, color: { rgb: COLORS.gold } }, fill: { fgColor: { rgb: COLORS.anthracite } } };
-  const totalLinkStyle: CellStyle = { ...valueStyle, fill: { fgColor: { rgb: COLORS.anthracite } }, font: { name: "Aptos", sz: 10, italic: true, color: { rgb: COLORS.paper } } };
+  const total = data.measures.reduce((sum, item) => sum + item.quantity * (item.factor ?? 1) * (item.unitPrice ?? 0), 0);
+  const totalRow = data.measures.length + 2;
+  const cover = workbook.addWorksheet("Couverture");
+  cover.columns = [{ width: 18 }, { width: 17 }, { width: 18 }, { width: 17 }];
+  cover.pageSetup = { orientation: "portrait", fitToPage: true, fitToWidth: 1, fitToHeight: 1, paperSize: 9 };
+  cover.pageSetup.margins = { left: 0.25, right: 0.25, top: 0.35, bottom: 0.35, header: 0.1, footer: 0.1 };
+  const set = (address: string, value: string | number) => { cover.getCell(address).value = value; };
+  const merged = (range: string, value: string, opts: Parameters<typeof styleCell>[1]) => { cover.mergeCells(range); const cell = cover.getCell(range.split(":")[0]); cell.value = value; styleCell(cell, opts); styleRange(cover, range, opts); };
+  const section = (row: number, value: string) => merged(`A${row}:D${row}`, value, { fill: COLORS.gold, color: COLORS.anthracite, bold: true, border: COLORS.gold });
+  merged("A1:D1", "MÉTREXPERT IA PRO", { fill: COLORS.anthracite, color: COLORS.gold, size: 20, bold: true, font: "Aptos Display", border: COLORS.line });
+  merged("A2:D2", data.trialVersion ? "VERSION D’ESSAI GRATUIT — abonnement requis pour un usage régulier" : "MÉTRÉ • QUANTITATIF • DQE", { fill: COLORS.anthracite, color: COLORS.paper, italic: true, border: COLORS.line });
+  section(3, "DOCUMENT DE TRAVAIL — COUVERTURE");
+  [["A4", "Référence"], ["C4", "Émission"], ["A5", "Version"], ["C5", "Devise"]].forEach(([address, value]) => { set(address, value); styleCell(cover.getCell(address), { fill: COLORS.card, color: COLORS.gold, bold: true }); });
+  [["B4", reference], ["D4", issueDate], ["B5", "V1"], ["D5", currency]].forEach(([address, value]) => { set(address, value); styleCell(cover.getCell(address), { fill: "F5F3ED", color: COLORS.anthracite }); });
+  section(7, "IDENTITÉ DU PROJET");
+  [["A8", "Nom du projet"], ["C8", "Localisation"], ["B8", projectTitle], ["D8", data.location || "À compléter"]].forEach(([address, value]) => { set(address, value); styleCell(cover.getCell(address), { fill: address[0] === "A" || address[0] === "C" ? COLORS.card : "F5F3ED", color: address[0] === "A" || address[0] === "C" ? COLORS.gold : COLORS.anthracite, bold: address[0] === "A" || address[0] === "C" }); });
+  section(10, "INFORMATIONS CLIENT");
+  [["A11", "Nom"], ["B11", clientName], ["C11", "Téléphone"], ["D11", data.clientPhone || "À compléter"], ["A12", "E-mail"], ["B12", data.clientEmail || "À compléter"], ["C12", "Statut"], ["D12", "À confirmer"]].forEach(([address, value]) => { set(address, value); styleCell(cover.getCell(address), { fill: ["A11", "C11", "A12", "C12"].includes(address) ? COLORS.card : "F5F3ED", color: ["A11", "C11", "A12", "C12"].includes(address) ? COLORS.gold : COLORS.anthracite, bold: ["A11", "C11", "A12", "C12"].includes(address) }); });
+  section(14, "RÉSUMÉ FINANCIER");
+  set("A15", "TOTAL GÉNÉRAL"); styleCell(cover.getCell("A15"), { fill: COLORS.card, color: COLORS.gold, bold: true, size: 13, font: "Aptos Display" });
+  setFormula(cover.getCell("B15"), `'DQE'!F${totalRow}`, total, { fill: COLORS.gold, color: COLORS.anthracite, bold: true, size: 18, align: "right", font: "Aptos Display" });
+  set("C15", currency); styleCell(cover.getCell("C15"), { fill: COLORS.anthracite, color: COLORS.gold, bold: true, size: 13, font: "Aptos Display" });
+  set("D15", "Voir feuille DQE"); styleCell(cover.getCell("D15"), { fill: COLORS.anthracite, color: COLORS.paper, italic: true });
+  [["A16", "Contrôle"], ["B16", "Requis avant usage contractuel"], ["C16", "Postes"], ["D16", String(data.measures.length)]].forEach(([address, value]) => { set(address, value); styleCell(cover.getCell(address), { fill: address[0] === "A" || address[0] === "C" ? COLORS.card : "F5F3ED", color: address[0] === "A" || address[0] === "C" ? COLORS.gold : COLORS.anthracite, bold: address[0] === "A" || address[0] === "C" }); });
+  section(18, "PRESTATAIRE");
+  [["A19", "Structure"], ["B19", "MÉTREXPERT IA PRO — préparé par Daouda"], ["C19", "Téléphone"], ["D19", "07 67 15 93 51"], ["A20", "E-mail"], ["B20", "dawoud.digitallab@gmail.com"], ["C20", "WhatsApp"], ["D20", "01 51 61 05 12"], ["A21", "Vérifié par"], ["B21", data.verifiedBy || "À compléter"], ["C21", "Date de validation"], ["D21", data.validationDate || "À compléter"]].forEach(([address, value]) => { set(address, value); styleCell(cover.getCell(address), { fill: ["A19", "C19", "A20", "C20", "A21", "C21"].includes(address) ? COLORS.card : "F5F3ED", color: ["A19", "C19", "A20", "C20", "A21", "C21"].includes(address) ? COLORS.gold : COLORS.anthracite, bold: ["A19", "C19", "A20", "C20", "A21", "C21"].includes(address) }); });
+  section(22, "SIGNATURE NUMÉRIQUE / TAMPON D’ENTREPRISE");
+  [["A23", "Signature numérique"], ["B23", "À compléter"], ["C23", "Tampon d’entreprise"], ["D23", "À compléter"], ["A24", "Nom du signataire"], ["B24", "À compléter"], ["C24", "Référence du tampon"], ["D24", "À compléter"]].forEach(([address, value]) => { set(address, value); styleCell(cover.getCell(address), { fill: ["A23", "C23", "A24", "C24"].includes(address) ? COLORS.card : "F5F3ED", color: ["A23", "C23", "A24", "C24"].includes(address) ? COLORS.gold : COLORS.anthracite, bold: ["A23", "C23", "A24", "C24"].includes(address) }); });
+  section(25, "MENTIONS, HYPOTHÈSES ET AVERTISSEMENT");
+  merged("A26:D26", data.summary || "Généré à partir des éléments fournis. Vérifier les hypothèses, unités et prix avant usage contractuel.", { fill: "F5F3ED", color: COLORS.anthracite, border: COLORS.line });
+  merged("A27:D27", "Les informations absentes sont indiquées « À compléter ». Ce document est une base de travail assistée par IA : vérifier données d’entrée, hypothèses, unités, prix, quantités et périmètre des lots avant toute utilisation contractuelle.", { fill: COLORS.anthracite, color: COLORS.paper, italic: true, size: 9, border: COLORS.gold });
+  for (let row = 1; row <= 27; row += 1) cover.getRow(row).height = [1, 2, 3, 4, 5, 7, 8, 10, 11, 12, 14, 15, 16, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27].includes(row) ? 22 : 6;
 
-  const cover = [
-    [cell("MÉTREXPERT IA PRO", titleStyle), cell("", titleStyle), cell("", titleStyle), cell("", titleStyle)],
-    [cell(trialBanner, subtitleStyle), cell("", subtitleStyle), cell("", subtitleStyle), cell("", subtitleStyle)],
-    [cell("DOCUMENT DE TRAVAIL — COUVERTURE", sectionStyle), cell("", sectionStyle), cell("", sectionStyle), cell("", sectionStyle)],
-    [cell("Référence", labelStyle), cell(reference, valueStyle), cell("Émission", labelStyle), cell(issueDate, valueStyle)],
-    [cell("Version", labelStyle), cell("V1", valueStyle), cell("Devise", labelStyle), cell(currency, valueStyle)],
-    [],
-    [cell("IDENTITÉ DU PROJET", sectionStyle), cell("", sectionStyle), cell("", sectionStyle), cell("", sectionStyle)],
-    [cell("Nom du projet", labelStyle), cell(projectTitle, projectTitleValueStyle), cell("Localisation", labelStyle), cell(location, valueStyle)],
-    [],
-    [cell("INFORMATIONS CLIENT", sectionStyle), cell("", sectionStyle), cell("", sectionStyle), cell("", sectionStyle)],
-    [cell("Nom", labelStyle), cell(clientName, valueStyle), cell("Téléphone", labelStyle), cell(clientPhone, valueStyle)],
-    [cell("E-mail", labelStyle), cell(clientEmail, valueStyle), cell("Statut", labelStyle), cell("À confirmer", valueStyle)],
-    [],
-    [cell("RÉSUMÉ FINANCIER", sectionStyle), cell("", sectionStyle), cell("", sectionStyle), cell("", sectionStyle)],
-    [cell("TOTAL GÉNÉRAL", totalLabelStyle), formula(`'DQE'!F${totalRow}`, totalFormulaStyle), cell(currency, totalCurrencyStyle), cell("Voir feuille DQE", totalLinkStyle)],
-    [cell("Contrôle", labelStyle), cell("Requis avant usage contractuel", valueStyle), cell("Postes", labelStyle), cell(String(data.measures.length), valueStyle)],
-    [],
-    [cell("PRESTATAIRE", sectionStyle), cell("", sectionStyle), cell("", sectionStyle), cell("", sectionStyle)],
-    [cell("Structure", labelStyle), cell(provider, valueStyle), cell("Téléphone", labelStyle), cell("07 67 15 93 51", valueStyle)],
-    [cell("E-mail", labelStyle), cell("dawoud.digitallab@gmail.com", valueStyle), cell("WhatsApp", labelStyle), cell("01 51 61 05 12", valueStyle)],
-    [cell("Vérifié par", labelStyle), cell(verifiedBy, valueStyle), cell("Date de validation", labelStyle), cell(validationDate, valueStyle)],
-    [cell("SIGNATURE NUMÉRIQUE / TAMPON D’ENTREPRISE", sectionStyle), cell("", sectionStyle), cell("", sectionStyle), cell("", sectionStyle)],
-    [cell("Signature numérique", labelStyle), cell("À compléter", valueStyle), cell("Tampon d’entreprise", labelStyle), cell("À compléter", valueStyle)],
-    [cell("Nom du signataire", labelStyle), cell("À compléter", valueStyle), cell("Référence du tampon", labelStyle), cell("À compléter", valueStyle)],
-    [cell("MENTIONS, HYPOTHÈSES ET AVERTISSEMENT", sectionStyle), cell("", sectionStyle), cell("", sectionStyle), cell("", sectionStyle)],
-    [cell(summary, { ...valueStyle, alignment: { wrapText: true, vertical: "top" } }), cell("", valueStyle), cell("", valueStyle), cell("", valueStyle)],
-    [cell("Les informations absentes sont indiquées « À compléter ». Ce document est une base de travail assistée par IA : vérifier données d’entrée, hypothèses, unités, prix, quantités et périmètre des lots avant toute utilisation contractuelle.", { fill: { fgColor: { rgb: COLORS.anthracite } }, font: { name: "Aptos", sz: 9, italic: true, color: { rgb: COLORS.paper } }, alignment: { wrapText: true, vertical: "center" }, border: border(COLORS.gold) }), cell("", { fill: { fgColor: { rgb: COLORS.anthracite } }, border: border(COLORS.gold) }), cell("", { fill: { fgColor: { rgb: COLORS.anthracite } }, border: border(COLORS.gold) }), cell("", { fill: { fgColor: { rgb: COLORS.anthracite } }, border: border(COLORS.gold) })],
-  ];
-  const coverSheet = XLSX.utils.aoa_to_sheet(cover);
-  coverSheet["!merges"] = [
-    { s: { r: 0, c: 0 }, e: { r: 0, c: 3 } },
-    { s: { r: 1, c: 0 }, e: { r: 1, c: 3 } },
-    { s: { r: 2, c: 0 }, e: { r: 2, c: 3 } },
-    { s: { r: 6, c: 0 }, e: { r: 6, c: 3 } },
-    { s: { r: 9, c: 0 }, e: { r: 9, c: 3 } },
-    { s: { r: 13, c: 0 }, e: { r: 13, c: 3 } },
-    { s: { r: 17, c: 0 }, e: { r: 17, c: 3 } },
-    { s: { r: 21, c: 0 }, e: { r: 21, c: 3 } },
-    { s: { r: 24, c: 0 }, e: { r: 24, c: 3 } },
-    { s: { r: 25, c: 0 }, e: { r: 25, c: 3 } },
-    { s: { r: 26, c: 0 }, e: { r: 26, c: 3 } },
-  ];
-  coverSheet["!cols"] = [{ wch: 18 }, { wch: 17 }, { wch: 18 }, { wch: 17 }];
-  coverSheet["!rows"] = [{ hpt: 32 }, { hpt: 18 }, { hpt: 20 }, { hpt: 22 }, { hpt: 22 }, { hpt: 6 }, { hpt: 20 }, { hpt: 26 }, { hpt: 6 }, { hpt: 20 }, { hpt: 24 }, { hpt: 24 }, { hpt: 6 }, { hpt: 20 }, { hpt: 38 }, { hpt: 24 }, { hpt: 6 }, { hpt: 20 }, { hpt: 24 }, { hpt: 24 }, { hpt: 22 }, { hpt: 24 }, { hpt: 22 }, { hpt: 20 }, { hpt: 28 }, { hpt: 44 }];
-  coverSheet["!pageSetup"] = { orientation: "portrait", fitToWidth: 1, fitToHeight: 1, scale: 80 };
-  coverSheet["!margins"] = { left: 0.25, right: 0.25, top: 0.35, bottom: 0.35, header: 0.1, footer: 0.1 };
-  XLSX.utils.book_append_sheet(workbook, coverSheet, "Couverture");
+  const hypotheses = data.hypotheses?.length ? data.hypotheses : buildHypotheses(data);
+  const hypothesisSheet = workbook.addWorksheet("Hypothèses");
+  hypothesisSheet.columns = [{ width: 8 }, { width: 105 }, { width: 18 }];
+  [["N°", "HYPOTHÈSE / DONNÉE À CONFIRMER", "STATUT"], ...hypotheses.map((value, index) => [index + 1, value, "À CONFIRMER"])].forEach((row) => hypothesisSheet.addRow(row));
+  styleRange(hypothesisSheet, `A1:C${hypothesisSheet.rowCount}`, { fill: "F7F6F1", color: COLORS.anthracite, border: COLORS.line }); styleRange(hypothesisSheet, "A1:C1", { fill: COLORS.anthracite, color: COLORS.gold, bold: true, align: "center", border: COLORS.gold });
+  hypothesisSheet.views = [{ state: "frozen", ySplit: 1 }];
 
-  const measureRows: XLSX.CellObject[][] = [
-    ["Code", "Désignation", "Unité", "Quantité de base", "Coefficient", "Quantité calculée", "Observations"].map((value) => cell(value, tableHeaderStyle)),
-  ];
-  data.measures.forEach((item) => {
-    const row = measureRows.length + 1;
-    measureRows.push([
-      cell(item.code, tableTextStyle),
-      cell(item.designation, tableTextStyle),
-      cell(item.unit, tableTextStyle),
-      cell(item.quantity, tableNumberStyle),
-      cell(item.factor ?? 1, tableNumberStyle),
-      formula(`=D${row}*E${row}`, formulaStyle),
-      cell(item.notes || "", tableTextStyle),
-    ]);
-  });
-  const measureSheet = XLSX.utils.aoa_to_sheet(measureRows);
-  measureSheet["!cols"] = [{ wch: 14 }, { wch: 52 }, { wch: 12 }, { wch: 18 }, { wch: 14 }, { wch: 20 }, { wch: 52 }];
-  measureSheet["!freeze"] = { xSplit: 0, ySplit: 1 };
-  measureSheet["!autofilter"] = { ref: `A1:G${measureRows.length}` };
-  XLSX.utils.book_append_sheet(workbook, measureSheet, "Métré");
+  const checks = data.quantityChecks?.length ? data.quantityChecks : runQuantityChecks(data);
+  const checkSheet = workbook.addWorksheet("Contrôles");
+  checkSheet.columns = [{ width: 14 }, { width: 36 }, { width: 16 }, { width: 36 }, { width: 38 }, { width: 62 }];
+  checkSheet.addRow(["Code", "Poste", "Statut", "Règle", "Constat", "Recommandation"]);
+  checks.forEach((check) => checkSheet.addRow([check.code, check.designation, check.status, check.rule, check.observed, check.recommendation]));
+  styleRange(checkSheet, `A1:F${checkSheet.rowCount}`, { fill: "F7F6F1", color: COLORS.anthracite, border: COLORS.line }); styleRange(checkSheet, "A1:F1", { fill: COLORS.anthracite, color: COLORS.gold, bold: true, align: "center", border: COLORS.gold });
+  checkSheet.getColumn(3).eachCell((cell, row) => { if (row > 1) { const status = String(cell.value); cell.font = { name: "Aptos", size: 10, bold: true, color: { argb: argb(status === "OK" ? COLORS.sage : status === "BLOQUANT" ? COLORS.red : COLORS.gold) } }; } }); checkSheet.autoFilter = { from: "A1", to: `F${checkSheet.rowCount}` }; checkSheet.views = [{ state: "frozen", ySplit: 1 }];
 
-  const dqeRows: XLSX.CellObject[][] = [
-    ["Code", "Désignation", "Unité", "Quantité", `Prix unitaire (${currency})`, `Montant (${currency})`].map((value) => cell(value, tableHeaderStyle)),
-  ];
-  data.measures.forEach((item, index) => {
-    const row = index + 2;
-    dqeRows.push([
-      cell(item.code, tableTextStyle),
-      cell(item.designation, tableTextStyle),
-      cell(item.unit, tableTextStyle),
-      formula(`=IFERROR('Métré'!F${row},0)`, formulaStyle),
-      cell(item.unitPrice ?? 0, tableNumberStyle),
-      formula(`=D${row}*E${row}`, formulaStyle),
-    ]);
-  });
-  dqeRows.push([
-    cell("", sectionStyle), cell("TOTAL ESTIMATIF", sectionStyle), cell("", sectionStyle), cell("", sectionStyle), cell("", sectionStyle), formula(`=SUM(F2:F${totalRow - 1})`, { ...formulaStyle, fill: { fgColor: { rgb: COLORS.gold } }, font: { name: "Aptos", sz: 10, bold: true, color: { rgb: COLORS.anthracite } } }),
-  ]);
-  const dqeSheet = XLSX.utils.aoa_to_sheet(dqeRows);
-  dqeSheet["!cols"] = [{ wch: 14 }, { wch: 52 }, { wch: 12 }, { wch: 16 }, { wch: 22 }, { wch: 22 }];
-  dqeSheet["!freeze"] = { xSplit: 0, ySplit: 1 };
-  dqeSheet["!autofilter"] = { ref: `A1:F${totalRow - 1}` };
-  XLSX.utils.book_append_sheet(workbook, dqeSheet, "DQE");
+  const measure = workbook.addWorksheet("Métré");
+  measure.columns = [{ width: 14 }, { width: 52 }, { width: 12 }, { width: 18 }, { width: 14 }, { width: 20 }, { width: 52 }];
+  measure.addRow(["Code", "Désignation", "Unité", "Quantité de base", "Coefficient", "Quantité calculée", "Observations"]);
+  data.measures.forEach((item, index) => { const row = index + 2; measure.addRow([item.code, item.designation, item.unit, item.quantity, item.factor ?? 1, null, item.notes || ""]); setFormula(measure.getCell(`F${row}`), `D${row}*E${row}`, item.quantity * (item.factor ?? 1), { fill: "E8F0E7", color: COLORS.anthracite, bold: true, align: "right", border: COLORS.line }); });
+  styleRange(measure, `A1:G${measure.rowCount}`, { fill: "F7F6F1", color: COLORS.anthracite, border: COLORS.line }); styleRange(measure, "A1:G1", { fill: COLORS.anthracite, color: COLORS.gold, bold: true, align: "center", border: COLORS.gold }); measure.autoFilter = { from: "A1", to: `G${measure.rowCount}` }; measure.views = [{ state: "frozen", ySplit: 1 }];
 
-  workbook.Workbook = {
-    ...(workbook.Workbook || {}),
-    CalcPr: { calcMode: "auto", fullCalcOnLoad: true, forceFullCalc: true },
-  } as typeof workbook.Workbook;
+  const dqe = workbook.addWorksheet("DQE");
+  dqe.columns = [{ width: 14 }, { width: 52 }, { width: 12 }, { width: 16 }, { width: 22 }, { width: 22 }];
+  dqe.addRow(["Code", "Désignation", "Unité", "Quantité", `Prix unitaire (${currency})`, `Montant (${currency})`]);
+  data.measures.forEach((item, index) => { const row = index + 2; dqe.addRow([item.code, item.designation, item.unit, null, item.unitPrice ?? 0, null]); setFormula(dqe.getCell(`D${row}`), `IFERROR('Métré'!F${row},0)`, item.quantity * (item.factor ?? 1), { fill: "E8F0E7", color: COLORS.anthracite, bold: true, align: "right", border: COLORS.line }); setFormula(dqe.getCell(`F${row}`), `D${row}*E${row}`, item.quantity * (item.factor ?? 1) * (item.unitPrice ?? 0), { fill: "E8F0E7", color: COLORS.anthracite, bold: true, align: "right", border: COLORS.line }); });
+  dqe.addRow(["", "TOTAL ESTIMATIF", "", "", "", null]); setFormula(dqe.getCell(`F${totalRow}`), `SUM(F2:F${totalRow - 1})`, total, { fill: COLORS.gold, color: COLORS.anthracite, bold: true, align: "right", border: COLORS.gold }); styleRange(dqe, `A1:F${dqe.rowCount}`, { fill: "F7F6F1", color: COLORS.anthracite, border: COLORS.line }); styleRange(dqe, "A1:F1", { fill: COLORS.anthracite, color: COLORS.gold, bold: true, align: "center", border: COLORS.gold }); styleRange(dqe, `A${totalRow}:F${totalRow}`, { fill: COLORS.gold, color: COLORS.anthracite, bold: true, border: COLORS.gold }); dqe.autoFilter = { from: "A1", to: `F${totalRow - 1}` }; dqe.views = [{ state: "frozen", ySplit: 1 }];
 
-  const xlsxBuffer = XLSX.write(workbook, { type: "buffer", bookType: "xlsx", cellStyles: true });
-  return embedCoverageImages(xlsxBuffer, data);
+  if (data.signatureImageDataUrl) { const image = decodeBrandImage(data.signatureImageDataUrl); cover.addImage(workbook.addImage({ buffer: image.buffer as any, extension: image.extension }), "B23:B24"); }
+  if (data.stampImageDataUrl) { const image = decodeBrandImage(data.stampImageDataUrl); cover.addImage(workbook.addImage({ buffer: image.buffer as any, extension: image.extension }), "D23:D24"); }
+  return Buffer.from(await workbook.xlsx.writeBuffer());
 }

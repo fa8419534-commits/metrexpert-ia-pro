@@ -55,6 +55,29 @@ export type FreeTrialReservation =
   | { allowed: true; contactId: number; phone?: string; email?: string }
   | { allowed: false; reason: "already_used" };
 
+export type GenerationQuotaReservation = {
+  hourScopeKey: string;
+  dayScopeKey: string;
+  released: boolean;
+};
+
+export async function releaseFreeTrialReservation(reservation: Extract<FreeTrialReservation, { allowed: true }>) {
+  if (reservation.contactId <= 0) return;
+  const db = isTestRuntime || forceMemoryForTests ? null : await getDb();
+  if (db) {
+    await db.delete(freeTrialContacts).where(eq(freeTrialContacts.id, reservation.contactId));
+    if (reservation.phone) memoryFreeTrialContactKeys.delete(`phone:${reservation.phone}`);
+    if (reservation.email) memoryFreeTrialContactKeys.delete(`email:${reservation.email}`);
+  } else {
+    const contact = memoryFreeTrialContacts.get(reservation.contactId);
+    if (contact) {
+      memoryFreeTrialContacts.delete(reservation.contactId);
+      if (contact.phone) memoryFreeTrialContactKeys.delete(`phone:${contact.phone}`);
+      if (contact.email) memoryFreeTrialContactKeys.delete(`email:${contact.email}`);
+    }
+  }
+}
+
 export async function hasUsedFreeTrial(phoneInput: string | undefined, emailInput: string | undefined) {
   const phone = normalizeTrialPhone(phoneInput);
   const email = normalizeTrialEmail(emailInput);
@@ -195,6 +218,34 @@ async function getClientRecordFromCookie(ctx: TrpcContext) {
   return Array.from(memoryClientCodes.values()).find((record) => signedToken("client", record.codeHash) === token && !record.disabledAt && record.expiresAt.getTime() > Date.now()) ?? null;
 }
 
+export async function reserveClientMonthlyQuota(ctx: TrpcContext) {
+  const record = await getClientRecordFromCookie(ctx);
+  if (!record) return { allowed: false as const, reason: "invalid" as const, remaining: 0 };
+  if (record.monthlyUsed >= record.monthlyQuota) return { allowed: false as const, reason: "monthly" as const, remaining: 0, clientName: record.clientName };
+  const db = isTestRuntime || forceMemoryForTests ? null : await getDb();
+  if (db) {
+    const result = await db.update(clientAccessCodes).set({ monthlyUsed: sql`${clientAccessCodes.monthlyUsed} + 1` }).where(and(eq(clientAccessCodes.id, record.id), sql`${clientAccessCodes.monthlyUsed} < ${clientAccessCodes.monthlyQuota}`, isNull(clientAccessCodes.disabledAt)));
+    const updated = (await db.select().from(clientAccessCodes).where(eq(clientAccessCodes.id, record.id)).limit(1))[0];
+    if (!updated || updated.monthlyUsed > updated.monthlyQuota || Number(result[0]?.affectedRows ?? 0) === 0) return { allowed: false as const, reason: "monthly" as const, remaining: 0, clientName: record.clientName };
+    return { allowed: true as const, remaining: updated.monthlyQuota - updated.monthlyUsed, clientName: updated.clientName, clientId: updated.id };
+  }
+  const memory = memoryClientCodes.get(record.id);
+  if (!memory || memory.monthlyUsed >= memory.monthlyQuota) return { allowed: false as const, reason: "monthly" as const, remaining: 0, clientName: record.clientName };
+  memory.monthlyUsed += 1;
+  return { allowed: true as const, remaining: memory.monthlyQuota - memory.monthlyUsed, clientName: memory.clientName, clientId: memory.id };
+}
+
+export async function releaseClientMonthlyQuota(clientId: number) {
+  const db = isTestRuntime || forceMemoryForTests ? null : await getDb();
+  if (db) {
+    await db.update(clientAccessCodes).set({ monthlyUsed: sql`GREATEST(${clientAccessCodes.monthlyUsed} - 1, 0)` }).where(and(eq(clientAccessCodes.id, clientId), sql`${clientAccessCodes.monthlyUsed} > 0`));
+    return;
+  }
+  const record = memoryClientCodes.get(clientId);
+  if (record) record.monthlyUsed = Math.max(0, record.monthlyUsed - 1);
+}
+
+/** Compatibility wrapper for existing callers and tests. */
 export async function consumeClientMonthlyQuota(ctx: TrpcContext) {
   const record = await getClientRecordFromCookie(ctx);
   if (!record) return { allowed: false as const, reason: "invalid" as const, remaining: 0 };
@@ -296,14 +347,53 @@ async function increment(scopeKey: string, kind: "hour" | "day", now: Date) {
   return next;
 }
 
-export async function consumeGenerationQuota(ctx: TrpcContext) {
+export async function reserveGenerationQuota(ctx: TrpcContext): Promise<{ allowed: true; remaining: number; reservation: GenerationQuotaReservation } | { allowed: false; reason: "hourly" | "daily"; remaining: 0 }> {
   const now = new Date();
   const identity = requestIdentity(ctx);
-  const hourCount = await increment(`hour:${bucket("hour", now)}:${identity}`, "hour", now);
-  if (hourCount > HOURLY_LIMIT) return { allowed: false as const, reason: "hourly", remaining: 0 };
-  const dayCount = await increment(`day:${bucket("day", now)}:global`, "day", now);
-  if (dayCount > DAILY_LIMIT) return { allowed: false as const, reason: "daily", remaining: 0 };
-  return { allowed: true as const, remaining: Math.min(HOURLY_LIMIT - hourCount, DAILY_LIMIT - dayCount) };
+  const hourScopeKey = `hour:${bucket("hour", now)}:${identity}`;
+  const dayScopeKey = `day:${bucket("day", now)}:global`;
+  const hourCount = await increment(hourScopeKey, "hour", now);
+  if (hourCount > HOURLY_LIMIT) {
+    await decrement(hourScopeKey);
+    return { allowed: false as const, reason: "hourly", remaining: 0 };
+  }
+  const dayCount = await increment(dayScopeKey, "day", now);
+  if (dayCount > DAILY_LIMIT) {
+    await decrement(hourScopeKey);
+    await decrement(dayScopeKey);
+    return { allowed: false as const, reason: "daily", remaining: 0 };
+  }
+  return {
+    allowed: true as const,
+    remaining: Math.min(HOURLY_LIMIT - hourCount, DAILY_LIMIT - dayCount),
+    reservation: { hourScopeKey, dayScopeKey, released: false },
+  };
+}
+
+export async function releaseGenerationQuota(reservation: GenerationQuotaReservation) {
+  if (reservation.released) return;
+  reservation.released = true;
+  await decrement(reservation.hourScopeKey);
+  await decrement(reservation.dayScopeKey);
+}
+
+/** Compatibility wrapper for existing callers and tests. */
+export async function consumeGenerationQuota(ctx: TrpcContext) {
+  const result = await reserveGenerationQuota(ctx);
+  if (!result.allowed) return result;
+  return { allowed: true as const, remaining: result.remaining };
+}
+
+async function decrement(scopeKey: string) {
+  const db = isTestRuntime || forceMemoryForTests ? null : await getDb();
+  if (db) {
+    await db.update(generationWindows).set({ count: sql`GREATEST(${generationWindows.count} - 1, 0)` }).where(and(eq(generationWindows.scopeKey, scopeKey), sql`${generationWindows.count} > 0`));
+    return;
+  }
+  const existing = memoryWindows.get(scopeKey);
+  if (!existing) return;
+  if (existing.count <= 1) memoryWindows.delete(scopeKey);
+  else existing.count -= 1;
 }
 
 export async function getHourlyQuotaStatus(ctx: TrpcContext) {

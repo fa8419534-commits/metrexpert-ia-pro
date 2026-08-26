@@ -236,3 +236,14 @@
 - [x] Produire un rapport priorisé avec sévérité, preuve, impact et plan de correction
 - [x] Présenter les résultats à Daouda avant toute modification corrective
 
+
+- [x] Clarifier et documenter le fait que chaque génération appelle actuellement un seul modèle LLM via le service intégré du projet, sans ajouter d’API de secours
+- [x] Remplacer la consommation immédiate des quotas horaire, global et mensuel par une réservation confirmable après génération réussie
+- [x] Rendre la réservation de l’essai gratuit libérable en cas d’échec technique et idempotente contre les doubles soumissions
+- [x] Ajouter un moteur indépendant de contrôle des quantités avec alertes de cohérence sans correction silencieuse
+- [x] Ajouter une feuille Excel structurée pour les hypothèses, contrôles, inclusions et exclusions
+- [x] Mettre à jour les dépendances critiques signalées et vérifier la compatibilité du projet
+- [x] Ajouter les tests de régression des quotas, de l’essai gratuit, du contrôle métier et du classeur
+- [x] Vérifier tests, TypeScript, build, génération XLSX, logs et stabilité globale avant livraison
+- [x] Présenter clairement à Daouda le modèle de coût, les limites de l’audit et l’absence d’API de secours
+

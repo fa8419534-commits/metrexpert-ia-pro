@@ -5,6 +5,7 @@ import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { buildEstimateWorkbook, type ProjectEstimate } from "./excel";
+import { buildHypotheses, runQuantityChecks } from "./quantityChecks";
 
 describe("buildEstimateWorkbook", () => {
   it("creates the required sheets with live formulas", async () => {
@@ -18,7 +19,7 @@ describe("buildEstimateWorkbook", () => {
     };
 
     const workbook = XLSX.read(await buildEstimateWorkbook(input), { type: "buffer", cellFormula: true, cellStyles: true });
-    expect(workbook.SheetNames).toEqual(["Couverture", "Métré", "DQE"]);
+    expect(workbook.SheetNames).toEqual(["Couverture", "Hypothèses", "Contrôles", "Métré", "DQE"]);
     expect(workbook.Sheets.Métré?.F2.f).toBe("D2*E2");
     expect(workbook.Sheets.DQE?.D2.f).toBe("IFERROR('Métré'!F2,0)");
     expect(workbook.Sheets.DQE?.F2.f).toBe("D2*E2");
@@ -80,9 +81,20 @@ describe("buildEstimateWorkbook", () => {
 
   it("marks a free trial workbook without removing any required sheet or formula", async () => {
     const workbook = XLSX.read(await buildEstimateWorkbook({ trialVersion: true, projectTitle: "Essai", measures: [{ code: "01", designation: "Béton", unit: "m³", quantity: 1, unitPrice: 85000 }] }), { type: "buffer", cellFormula: true, cellStyles: true });
-    expect(workbook.SheetNames).toEqual(["Couverture", "Métré", "DQE"]);
+    expect(workbook.SheetNames).toEqual(["Couverture", "Hypothèses", "Contrôles", "Métré", "DQE"]);
     expect(workbook.Sheets.Couverture?.A2.v).toContain("VERSION D’ESSAI GRATUIT");
     expect(workbook.Sheets.DQE?.F2.f).toBe("D2*E2");
+  });
+
+  it("runs independent numeric checks and writes explicit hypotheses", () => {
+    const estimate: ProjectEstimate = { projectTitle: "Contrôle", measures: [
+      { code: "01", designation: "Béton", unit: "m³", quantity: 2, unitPrice: 85000 },
+      { code: "02", designation: "Poste sans prix", unit: "m²", quantity: 12 },
+    ] };
+    const checks = runQuantityChecks(estimate);
+    expect(checks[0]?.status).toBe("OK");
+    expect(checks[1]?.status).toBe("À VÉRIFIER");
+    expect(buildHypotheses(estimate).some((hypothesis) => hypothesis.includes("Prix unitaire non fourni"))).toBe(true);
   });
 
   it("embeds supplied signature and stamp images in the XLSX package", async () => {
@@ -114,7 +126,7 @@ describe("buildEstimateWorkbook", () => {
         projectTitle: "XML test",
         measures: [{ code: "01", designation: "Béton", unit: "m³", quantity: 2, unitPrice: 85000 }],
       }));
-      const worksheetXml = ["sheet1.xml", "sheet2.xml", "sheet3.xml"].map((name) =>
+      const worksheetXml = ["sheet1.xml", "sheet2.xml", "sheet3.xml", "sheet4.xml", "sheet5.xml"].map((name) =>
         execFileSync("unzip", ["-p", xlsxPath, `xl/worksheets/${name}`], { encoding: "utf8" }),
       ).join("\\n");
       const formulas = [...worksheetXml.matchAll(/<f(?: [^>]*)?>([^<]*)<\/f>/g)].map((match) => match[1]);

@@ -5,7 +5,7 @@ vi.hoisted(() => {
 });
 import type { TrpcContext } from "./_core/context";
 import { appRouter } from "./routers";
-import { consumeGenerationQuota, DAILY_LIMIT, expireClientAccessCodeForTests, HOURLY_LIMIT, listFreeTrialContacts, markFreeTrialWhatsAppContacted, reserveFreeTrial, resetSecurityStateForTests } from "./security";
+import { consumeGenerationQuota, DAILY_LIMIT, expireClientAccessCodeForTests, HOURLY_LIMIT, listFreeTrialContacts, markFreeTrialWhatsAppContacted, releaseFreeTrialReservation, releaseGenerationQuota, reserveFreeTrial, reserveGenerationQuota, resetSecurityStateForTests } from "./security";
 
 function context(ip: string): TrpcContext {
   return { user: null, req: { ip, headers: {} } as TrpcContext["req"], res: {} as TrpcContext["res"] };
@@ -21,6 +21,16 @@ describe("generation security quotas", () => {
     }
     const blocked = await consumeGenerationQuota(ctx);
     expect(blocked).toEqual({ allowed: false, reason: "hourly", remaining: 0 });
+  });
+
+  it("restores the hourly and daily counters when a reservation is released", async () => {
+    const ctx = context("198.51.100.11");
+    const reservation = await reserveGenerationQuota(ctx);
+    expect(reservation.allowed).toBe(true);
+    if (!reservation.allowed) return;
+    await releaseGenerationQuota(reservation.reservation);
+    for (let attempt = 0; attempt < HOURLY_LIMIT; attempt += 1) expect((await consumeGenerationQuota(ctx)).allowed).toBe(true);
+    expect((await consumeGenerationQuota(ctx)).allowed).toBe(false);
   });
 
   it(`blocks the ${DAILY_LIMIT + 1}th generation globally in the same UTC day`, async () => {
@@ -101,6 +111,14 @@ describe("free trial contacts", () => {
     const contactedAt = await markFreeTrialWhatsAppContacted(reservation.contactId);
     const contacts = await listFreeTrialContacts();
     expect(contacts.find((contact) => contact.id === reservation.contactId)?.lastWhatsAppContactAt).toEqual(contactedAt);
+  });
+
+  it("releases a reserved trial after a failed generation so the contact can retry", async () => {
+    const first = await reserveFreeTrial("Client reprise", "2250700000000", undefined);
+    expect(first.allowed).toBe(true);
+    if (!first.allowed) return;
+    await releaseFreeTrialReservation(first);
+    expect(await reserveFreeTrial("Client reprise", "2250700000000", undefined)).toMatchObject({ allowed: true });
   });
 
   it("allows one trial per normalized phone or email and lists the contact for Admin", async () => {

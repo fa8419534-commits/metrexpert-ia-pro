@@ -1,6 +1,5 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import imageSize from "image-size";
 import { COOKIE_NAME } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { invokeLLM } from "./_core/llm";
@@ -10,7 +9,8 @@ import { buildEstimateWorkbook, type ProjectEstimate } from "./excel";
 import { BTP_JSON_OUTPUT_ENFORCEMENT, BTP_SYSTEM_PROMPT } from "./btpPrompt";
 import { parseJsonObjectFromLLM } from "./json";
 import { normalizeEstimateAmbiguities } from "./estimateNormalization";
-import { consumeClientMonthlyQuota, consumeGenerationQuota, createClientAccessCode, DAILY_LIMIT, disableClientAccessCode, getClientAccessStatus, getGenerationStats, getHourlyQuotaStatus, hasValidAccessCookie, hasValidAdminCookie, HOURLY_LIMIT, isAccessCodeValid, isAdminAccessCodeValid, listClientAccessCodes, listFreeTrialContacts, markFreeTrialConverted, markFreeTrialWhatsAppContacted, reserveFreeTrial, setAccessCookie, setAdminCookie, verifyClientAccessCode } from "./security";
+import { createClientAccessCode, DAILY_LIMIT, disableClientAccessCode, getClientAccessStatus, getGenerationStats, getHourlyQuotaStatus, hasValidAccessCookie, hasValidAdminCookie, HOURLY_LIMIT, isAccessCodeValid, isAdminAccessCodeValid, listClientAccessCodes, listFreeTrialContacts, markFreeTrialConverted, markFreeTrialWhatsAppContacted, releaseClientMonthlyQuota, releaseFreeTrialReservation, releaseGenerationQuota, reserveClientMonthlyQuota, reserveGenerationQuota, reserveFreeTrial, setAccessCookie, setAdminCookie, verifyClientAccessCode } from "./security";
+import type { GenerationQuotaReservation } from "./security";
 
 const estimateSchema = {
   type: "object",
@@ -59,6 +59,21 @@ export const requestSchema = z.object({
   }).optional(),
 });
 
+function readRasterDimensions(buffer: Buffer, mimeType: "image/png" | "image/jpeg") {
+  if (mimeType === "image/png") return { width: buffer.readUInt32BE(16), height: buffer.readUInt32BE(20) };
+  let offset = 2;
+  while (offset + 9 < buffer.length) {
+    if (buffer[offset] !== 0xff) { offset += 1; continue; }
+    const marker = buffer[offset + 1];
+    const segmentLength = buffer.readUInt16BE(offset + 2);
+    const isStartOfFrame = marker >= 0xc0 && marker <= 0xc3 || marker >= 0xc5 && marker <= 0xc7 || marker >= 0xc9 && marker <= 0xcb || marker >= 0xcd && marker <= 0xcf;
+    if (isStartOfFrame && offset + 8 < buffer.length) return { width: buffer.readUInt16BE(offset + 7), height: buffer.readUInt16BE(offset + 5) };
+    if (!segmentLength) break;
+    offset += 2 + segmentLength;
+  }
+  throw new Error("Dimensions JPEG introuvables");
+}
+
 export function validateBrandImageDataUrl(dataUrl: string) {
   const match = dataUrl.match(/^data:(image\/(?:png|jpeg));base64,([A-Za-z0-9+/=\r\n]+)$/);
   if (!match) throw new TRPCError({ code: "BAD_REQUEST", message: "Les images de signature et de tampon doivent être au format PNG ou JPEG." });
@@ -69,7 +84,7 @@ export function validateBrandImageDataUrl(dataUrl: string) {
   if ((match[1] === "image/png" && !isPng) || (match[1] === "image/jpeg" && !isJpeg)) throw new TRPCError({ code: "BAD_REQUEST", message: "Le contenu binaire de l’image ne correspond pas à son format déclaré." });
   let dimensions: { width?: number; height?: number };
   try {
-    dimensions = imageSize(buffer);
+    dimensions = readRasterDimensions(buffer, match[1] as "image/png" | "image/jpeg");
   } catch {
     throw new TRPCError({ code: "BAD_REQUEST", message: "Impossible de lire les dimensions de l’image de validation." });
   }
@@ -197,27 +212,33 @@ export const appRouter = router({
   }),
   estimate: router({
     generate: publicProcedure.input(requestSchema).mutation(async ({ ctx, input }) => {
+      let quotaReservation: GenerationQuotaReservation | undefined;
+      let monthlyClientId: number | undefined;
+      let trialReservation: Extract<Awaited<ReturnType<typeof reserveFreeTrial>>, { allowed: true }> | undefined;
       try {
         const sharedUnlocked = hasValidAccessCookie(ctx);
         const clientStatus = sharedUnlocked ? { unlocked: false as const } : await getClientAccessStatus(ctx);
         let isFreeTrial = false;
         if (input.signatureImageDataUrl) validateBrandImageDataUrl(input.signatureImageDataUrl);
         if (input.stampImageDataUrl) validateBrandImageDataUrl(input.stampImageDataUrl);
+        if (input.file) validateUploadedDataUrl(input.file);
         if (clientStatus.unlocked) {
-          const monthly = await consumeClientMonthlyQuota(ctx);
+          const monthly = await reserveClientMonthlyQuota(ctx);
           if (!monthly.allowed && monthly.reason === "monthly") throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Quota mensuel atteint, contactez-moi pour renouveler votre accès." });
           if (!monthly.allowed) throw new TRPCError({ code: "UNAUTHORIZED", message: "Code client invalide ou expiré." });
+          monthlyClientId = monthly.clientId;
         }
-        const quota = await consumeGenerationQuota(ctx);
+        const quota = await reserveGenerationQuota(ctx);
         if (!quota.allowed) {
           throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: quota.reason === "hourly" ? `Limite atteinte : ${HOURLY_LIMIT} générations par heure.` : `Quota global atteint : ${DAILY_LIMIT} générations pour aujourd’hui.` });
         }
-        console.info("[Security] Generation accepted", { remaining: quota.remaining, identity: ctx.user?.openId ? "user" : "ip" });
-        if (input.file) validateUploadedDataUrl(input.file);
+        quotaReservation = quota.reservation;
+        console.info("[Security] Generation reserved", { remaining: quota.remaining, identity: ctx.user?.openId ? "user" : "ip" });
         if (!sharedUnlocked && !clientStatus.unlocked) {
           if (!input.trialPhone?.trim() && !input.trialEmail?.trim()) throw new TRPCError({ code: "BAD_REQUEST", message: "Renseignez votre téléphone ou votre e-mail pour utiliser l’essai gratuit." });
           const trial = await reserveFreeTrial(extractTrialClientName(input.description), input.trialPhone, input.trialEmail);
           if (!trial.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Vous avez déjà utilisé votre essai gratuit. Contactez-moi pour un abonnement au WhatsApp +225 01 51 61 05 12." });
+          trialReservation = trial;
           isFreeTrial = true;
         }
         const userContent: Array<Record<string, unknown>> = [{
@@ -279,9 +300,12 @@ export const appRouter = router({
           },
         };
       } catch (error) {
+        if (trialReservation) await releaseFreeTrialReservation(trialReservation);
+        if (monthlyClientId !== undefined) await releaseClientMonthlyQuota(monthlyClientId);
+        if (quotaReservation) await releaseGenerationQuota(quotaReservation);
         if (error instanceof TRPCError) throw error;
         console.error("[Estimate] Generation failed", error);
-        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "La génération a échoué. Vérifiez votre saisie puis réessayez." });
+        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "La génération a échoué. Votre droit a été restauré ; vous pouvez réessayer." });
       }
     }),
   }),
