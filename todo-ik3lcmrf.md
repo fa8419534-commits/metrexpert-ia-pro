@@ -158,3 +158,16 @@
 - [x] Ajouter un contrat UI responsive pour les contrôles d’image persistés et le bouton « Effacer »
 - [x] Sauvegarder un nouveau checkpoint après la persistance locale et la validation finale
 - [x] Sauvegarder un checkpoint postérieur à la persistance locale des images et à la validation finale
+
+- [x] Afficher un indicateur discret confirmant qu’une image est enregistrée localement
+- [x] Ajouter un bouton global pour effacer toutes les données locales enregistrées
+- [x] Ajouter une boîte de dialogue de confirmation avant suppression individuelle
+- [x] Ajouter les tests d’interaction, accessibilité et responsive de ces actions
+- [x] Vérifier tests, TypeScript, build et rendu puis sauvegarder un checkpoint
+- [x] Corriger l’assertion UI responsive après le remplacement des contrôles imbriqués par le conteneur d’actions d’image
+- [x] Mettre à jour les assertions UI après le remplacement du contrôle d’effacement imbriqué par des boutons accessibles
+- [x] Ajouter un vrai test UI d’ouverture, annulation, confirmation individuelle et nettoyage global
+- [x] Revalider le rendu responsive après ces interactions et sauvegarder un checkpoint postérieur
+- [x] Adapter le test DOM au format .ts inclus par la configuration Vitest
+- [x] Sauvegarder un checkpoint postérieur à l’indicateur local, au nettoyage global et au dialogue de confirmation
+- [ ] Sauvegarder le checkpoint final après l’indicateur local, le nettoyage global et la confirmation individuelle

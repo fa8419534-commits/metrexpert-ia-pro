@@ -4,7 +4,8 @@ import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { FileSpreadsheet, FileText, Image as ImageIcon, Loader2, Paperclip, Ruler, UploadCloud } from "lucide-react";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { FileSpreadsheet, FileText, Image as ImageIcon, Loader2, Paperclip, Ruler, Trash2, UploadCloud } from "lucide-react";
 import { toast } from "sonner";
 
 const MAX_FILE_SIZE = 8 * 1024 * 1024;
@@ -94,6 +95,7 @@ export default function Home() {
   const [validationDate, setValidationDate] = useState("");
   const [signatureImage, setSignatureImage] = useState<BrandImage | null>(null);
   const [stampImage, setStampImage] = useState<BrandImage | null>(null);
+  const [pendingRemoval, setPendingRemoval] = useState<"signature" | "stamp" | "all" | null>(null);
   const [brandImageError, setBrandImageError] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [fileError, setFileError] = useState("");
@@ -177,6 +179,23 @@ export default function Home() {
     else setStampImage(null);
     if (!cleared) setBrandImageError("Le cache local n’a pas pu être modifié dans ce navigateur.");
   };
+
+  const clearAllBrandImages = () => {
+    const signatureCleared = persistBrandImage(SIGNATURE_STORAGE_KEY, null);
+    const stampCleared = persistBrandImage(STAMP_STORAGE_KEY, null);
+    setSignatureImage(null);
+    setStampImage(null);
+    if (!signatureCleared || !stampCleared) setBrandImageError("Le cache local n’a pas pu être entièrement effacé dans ce navigateur.");
+  };
+
+  const confirmPendingRemoval = () => {
+    if (pendingRemoval === "all") clearAllBrandImages();
+    else if (pendingRemoval) clearBrandImage(pendingRemoval);
+    setPendingRemoval(null);
+  };
+
+  const clearBrandImageRequest = (kind: "signature" | "stamp") => setPendingRemoval(kind);
+
 
   const handleVerifyAccess = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -278,10 +297,17 @@ export default function Home() {
                 <div className="min-w-0"><label htmlFor="validation-date" className="field-label">Date de validation <span>OPTIONNEL</span></label><input id="validation-date" type="text" inputMode="numeric" value={validationDate} onChange={(event) => setValidationDate(event.target.value)} placeholder="JJ/MM/AAAA" className="technical-input h-11 w-full min-w-0 px-3 text-sm" /></div>
               </div>
               <div className="mt-5 grid min-w-0 gap-4 sm:grid-cols-2">
-                <div className="min-w-0"><label htmlFor="signature-image" className="field-label">Image de signature <span>OPTIONNEL</span></label><input ref={signatureInputRef} id="signature-image" type="file" accept="image/png,image/jpeg" className="sr-only" onChange={(event) => void onBrandImageChange("signature", event.target.files?.[0])} /><button type="button" onClick={() => signatureInputRef.current?.click()} className="upload-zone w-full justify-between"><span className="min-w-0 truncate text-left text-sm text-[#AEB7B0]">{signatureImage?.name || "Importer une image"}</span><span className="flex shrink-0 items-center gap-2">{signatureImage && <span role="button" tabIndex={0} onClick={(event) => { event.stopPropagation(); clearBrandImage("signature"); }} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); event.stopPropagation(); clearBrandImage("signature"); } }} className="font-mono text-[9px] uppercase tracking-wide text-[#C9A15A]">Effacer</span>}<UploadCloud className="h-4 w-4 text-[#C9A15A]" /></span></button></div>
-                <div className="min-w-0"><label htmlFor="stamp-image" className="field-label">Image de tampon <span>OPTIONNEL</span></label><input ref={stampInputRef} id="stamp-image" type="file" accept="image/png,image/jpeg" className="sr-only" onChange={(event) => void onBrandImageChange("stamp", event.target.files?.[0])} /><button type="button" onClick={() => stampInputRef.current?.click()} className="upload-zone w-full justify-between"><span className="min-w-0 truncate text-left text-sm text-[#AEB7B0]">{stampImage?.name || "Importer une image"}</span><span className="flex shrink-0 items-center gap-2">{stampImage && <span role="button" tabIndex={0} onClick={(event) => { event.stopPropagation(); clearBrandImage("stamp"); }} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); event.stopPropagation(); clearBrandImage("stamp"); } }} className="font-mono text-[9px] uppercase tracking-wide text-[#C9A15A]">Effacer</span>}<UploadCloud className="h-4 w-4 text-[#C9A15A]" /></span></button></div>
+                <div className="min-w-0"><label htmlFor="signature-image" className="field-label">Image de signature <span>OPTIONNEL</span></label><input ref={signatureInputRef} id="signature-image" type="file" accept="image/png,image/jpeg" className="sr-only" onChange={(event) => void onBrandImageChange("signature", event.target.files?.[0])} /><div className="flex min-w-0 gap-2"><button type="button" onClick={() => signatureInputRef.current?.click()} className="upload-zone min-w-0 flex-1 justify-between"><span className="min-w-0 text-left text-sm text-[#AEB7B0]"><span className="block truncate">{signatureImage?.name || "Importer une image"}</span>{signatureImage && <span className="mt-1 block text-[9px] uppercase tracking-wide text-[#7C9A76]">Enregistrée localement</span>}</span><UploadCloud className="h-4 w-4 shrink-0 text-[#C9A15A]" /></button>{signatureImage && <button type="button" onClick={() => clearBrandImageRequest("signature")} className="shrink-0 border border-[#3A4A42] px-2 font-mono text-[9px] uppercase tracking-wide text-[#C9A15A] hover:border-[#C9A15A]" aria-label="Effacer l’image de signature mémorisée">Effacer</button>}</div></div>
+                <div className="min-w-0"><label htmlFor="stamp-image" className="field-label">Image de tampon <span>OPTIONNEL</span></label><input ref={stampInputRef} id="stamp-image" type="file" accept="image/png,image/jpeg" className="sr-only" onChange={(event) => void onBrandImageChange("stamp", event.target.files?.[0])} /><div className="flex min-w-0 gap-2"><button type="button" onClick={() => stampInputRef.current?.click()} className="upload-zone min-w-0 flex-1 justify-between"><span className="min-w-0 text-left text-sm text-[#AEB7B0]"><span className="block truncate">{stampImage?.name || "Importer une image"}</span>{stampImage && <span className="mt-1 block text-[9px] uppercase tracking-wide text-[#7C9A76]">Enregistrée localement</span>}</span><UploadCloud className="h-4 w-4 shrink-0 text-[#C9A15A]" /></button>{stampImage && <button type="button" onClick={() => clearBrandImageRequest("stamp")} className="shrink-0 border border-[#3A4A42] px-2 font-mono text-[9px] uppercase tracking-wide text-[#C9A15A] hover:border-[#C9A15A]" aria-label="Effacer l’image de tampon mémorisée">Effacer</button>}</div></div>
               </div>
               {brandImageError && <p className="mt-2 flex items-center gap-2 text-xs font-medium text-[#d98472]" role="alert"><ImageIcon className="h-3.5 w-3.5" />{brandImageError}</p>}
+              {(signatureImage || stampImage) && <button type="button" onClick={() => setPendingRemoval("all")} className="mt-3 inline-flex items-center gap-2 border border-[#3A4A42] px-3 py-2 font-mono text-[9px] uppercase tracking-wide text-[#C9A15A] hover:border-[#C9A15A]" aria-label="Effacer toutes les données locales de signature et de tampon"><Trash2 className="h-3.5 w-3.5" />Effacer toutes les données locales</button>}
+              <Dialog open={pendingRemoval !== null} onOpenChange={(open) => { if (!open) setPendingRemoval(null); }}>
+                <DialogContent className="border-[#C9A15A] bg-[#16201C] text-[#EDEAE2]">
+                  <DialogHeader><DialogTitle className="font-serif text-2xl text-[#EDEAE2]">Confirmer la suppression</DialogTitle><DialogDescription className="text-[#AEB7B0]">{pendingRemoval === "all" ? "Les images mémorisées de signature et de tampon seront supprimées de ce navigateur." : `L’image de ${pendingRemoval === "signature" ? "signature" : "tampon"} sera supprimée de ce navigateur.`}</DialogDescription></DialogHeader>
+                  <DialogFooter><button type="button" onClick={() => setPendingRemoval(null)} className="border border-[#3A4A42] px-4 py-2 font-mono text-[10px] uppercase tracking-wide text-[#AEB7B0]">Annuler</button><button type="button" onClick={confirmPendingRemoval} className="bg-[#C9A15A] px-4 py-2 font-mono text-[10px] uppercase tracking-wide text-[#0F1613]">Confirmer la suppression</button></DialogFooter>
+                </DialogContent>
+              </Dialog>
               <div className="mt-5">
                 <input ref={fileInputRef} type="file" accept=".pdf,image/png,image/jpeg,image/webp" className="sr-only" onChange={(event) => onFileChange(event.target.files?.[0])} />
                 <button type="button" onClick={() => fileInputRef.current?.click()} className="upload-zone group">

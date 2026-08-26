@@ -70,9 +70,12 @@ describe("generation quota UI errors", () => {
     expect(source).toContain("signatureImageDataUrl: signatureImage?.dataUrl");
     expect(source).toContain("stampImageDataUrl: stampImage?.dataUrl");
     expect(source).toContain('className="mt-5 grid min-w-0 gap-4 sm:grid-cols-2"');
-    expect(source).toContain('className="flex shrink-0 items-center gap-2"');
-    expect(source).toContain('className="min-w-0 truncate text-left text-sm text-[#AEB7B0]"');
-    expect(source).toContain('className="font-mono text-[9px] uppercase tracking-wide text-[#C9A15A]">Effacer</span>');
+    expect(source).toContain('className="flex min-w-0 gap-2"');
+    expect(source).toContain('className="min-w-0 text-left text-sm text-[#AEB7B0]"');
+    expect(source).toContain("Enregistrée localement");
+    expect(source).toContain("aria-label=\"Effacer l’image de signature mémorisée\"");
+    expect(source).toContain("aria-label=\"Effacer toutes les données locales de signature et de tampon\"");
+    expect(source).toContain("Confirmer la suppression");
     expect(source).toContain('localStorage.setItem');
     expect(source).toContain('localStorage.removeItem');
   });
