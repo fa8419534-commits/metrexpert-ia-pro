@@ -27,10 +27,11 @@ import {
 } from "lucide-react";
 import React, { FormEvent, useEffect, useState } from "react";
 import { toast } from "sonner";
+import { SUBSCRIPTION_PLANS, type SubscriptionQuota, formatXof, getSubscriptionPlan } from "@shared/plans";
 import ThemeToggle from "@/components/ThemeToggle";
 import { useTheme } from "@/contexts/ThemeContext";
 
-const quotaOptions = [5, 15, 40] as const;
+const quotaOptions = SUBSCRIPTION_PLANS.map((plan) => plan.quota) as readonly SubscriptionQuota[];
 
 function buildWhatsAppUrl(phone: string, clientName: string) {
   const digits = phone.replace(/\D/g, "");
@@ -84,7 +85,7 @@ export default function Admin() {
   const [adminCode, setAdminCode] = useState("");
   const [clientName, setClientName] = useState("");
   const [monthlyQuota, setMonthlyQuota] =
-    useState<(typeof quotaOptions)[number]>(15);
+    useState<SubscriptionQuota>(15);
   const [revealedCode, setRevealedCode] = useState<string | null>(null);
   const [copyState, setCopyState] = useState<"idle" | "copied">("idle");
   const [sessionUnlocked, setSessionUnlocked] = useState(false);
@@ -339,9 +340,7 @@ export default function Admin() {
                     }
                     className="mt-2 h-10 w-full border border-[#3A4A42] bg-[#0F1613] px-3 text-sm text-[#EDEAE2]"
                   >
-                    <option value={5}>5 générations</option>
-                    <option value={15}>15 générations</option>
-                    <option value={40}>40 générations</option>
+                    {SUBSCRIPTION_PLANS.map((plan) => <option key={plan.quota} value={plan.quota}>{plan.name} — {plan.quota} générations — {formatXof(plan.priceXof)}</option>)}
                   </select>
                   <p className="mt-2 text-xs text-[#AEB7B0]">
                     Expiration automatique : un mois après la création.
@@ -421,6 +420,7 @@ export default function Admin() {
                     <thead className="border-b border-[#3A4A42] font-mono text-[10px] uppercase tracking-wider text-[#C9A15A]">
                       <tr>
                         <th className="px-3 py-3">Client</th>
+                        <th className="px-3 py-3">Forfait / tarif</th>
                         <th className="px-3 py-3">Quota restant</th>
                         <th className="px-3 py-3">Expiration</th>
                         <th className="px-3 py-3">État</th>
@@ -440,6 +440,7 @@ export default function Admin() {
                             <td className="px-3 py-4 font-medium">
                               {code.clientName}
                             </td>
+                            <td className="px-3 py-4 font-mono text-xs">{getSubscriptionPlan(code.monthlyQuota)?.name ?? "Forfait à confirmer"}<br /><span className="text-[#C9A15A]">{getSubscriptionPlan(code.monthlyQuota) ? formatXof(getSubscriptionPlan(code.monthlyQuota)!.priceXof) : "Tarif à confirmer"}</span></td>
                             <td className="px-3 py-4 font-mono">
                               {code.monthlyRemaining} / {code.monthlyQuota}
                             </td>
