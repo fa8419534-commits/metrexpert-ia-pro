@@ -107,3 +107,15 @@
 .landing-page article, .landing-page section > div > div { min-width: 0; }
 @media (prefers-reduced-motion: no-preference) { .landing-page a, .landing-page button { transition: color 180ms ease, background-color 180ms ease, border-color 180ms ease, transform 180ms ease; } }
 @media (max-width: 639px) { .landing-page h1 { font-size: clamp(3rem, 15vw, 4.7rem); } }
+
+html { scroll-behavior: smooth; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+.landing-page--dark { background: #0F1613 !important; color: #EDEAE2 !important; }
+.landing-page--dark header, .landing-page--dark footer, .landing-page--dark section { border-color: #3A4A42; }
+.landing-page--dark header { background: rgba(15, 22, 19, 0.95); }
+.landing-page--dark h1, .landing-page--dark h2, .landing-page--dark h3, .landing-page--dark .font-serif { color: #EDEAE2; }
+.landing-page--dark p, .landing-page--dark .text-\[\#526159\], .landing-page--dark .text-\[\#5D6A62\] { color: #AEB7B0; }
+.landing-page--dark .bg-\[\#E8E4DA\], .landing-page--dark .bg-\[\#F4F0E8\] { background-color: #16201C; }
+.landing-page--dark .border-\[\#B9C0B8\], .landing-page--dark .border-\[\#CBD0C8\] { border-color: #3A4A42; }
+.landing-page--dark a, .landing-page--dark button { color: #EDEAE2; }
+.landing-page--dark .landing-grid { opacity: 0.2; }

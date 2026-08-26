@@ -18,6 +18,9 @@ describe("public landing page", () => {
     expect(landing).toContain("Questions fréquentes");
     expect(landing).toContain("whatsappUrlFor");
     expect(landing).toContain("Que se passe-t-il lorsque mon quota est atteint ?");
+    expect(landing).toContain("Activer le mode");
+    expect(landing).toContain("Retours vérifiés");
+    expect(landing).toContain("Les témoignages clients seront publiés ici uniquement après une prestation réelle");
   });
 
   it("keeps the public landing and generation workspace on separate routes", () => {

@@ -1,136 +1,123 @@
-# Audit complet — MÉTREXPERT IA PRO
+# Audit complet actualisé — MÉTREXPERT IA PRO
 
-**Date de l’audit : 26 août 2026**  
-**Périmètre :** application web, génération IA, sécurité d’accès, quotas, essai gratuit, administration commerciale, classeur Excel, responsive mobile, performance et préparation à l’usage client.
+**Date : 26 août 2026**  
+**Périmètre :** page publique, espace `/etude`, `/admin`, authentification, quotas, essai gratuit, génération IA, contrôles géométriques, Excel, PDF, exports CSV, responsive, accessibilité, performance et dépendances.
 
 ## Conclusion exécutive
 
-L’application possède déjà une base solide pour un MVP commercial : l’accès est protégé, les quotas sont présents, l’essai gratuit est séparé des abonnements, les fichiers entrants sont contrôlés par signature binaire, le classeur comporte une couverture premium et les tests automatisés couvrent 17 fichiers pour 61 tests réussis au dernier passage. L’identité visuelle est distinctive et cohérente avec le positionnement de bureau d’études.
+MÉTREXPERT IA PRO est maintenant un **MVP commercial cohérent pour un pilote limité avec validation humaine**. L’application sépare l’accueil public de l’espace de génération, protège les générations par accès et quotas, gère l’essai gratuit, produit un classeur Excel structuré, affiche des contrôles géométriques et conserve un panneau Admin commercial.
 
-Cependant, **je ne recommande pas encore de présenter le service comme un outil de métré totalement fiable ou comme un DQE complet sans validation humaine**. Le principal risque n’est plus l’interface : c’est la fiabilité métier et la maîtrise de la consommation API. La génération IA peut encore produire une quantité plausible mais fausse, un prix unitaire nul par défaut, ou un périmètre incomplet sans bloquer suffisamment le livrable. Le second risque important est que les droits sont consommés avant plusieurs validations et avant la réussite de l’appel IA.
+La dernière évolution ajoute une navigation fixe, un retour à l’accueil, le défilement fluide, une FAQ et un bouton de thème clair/sombre. Une section de confiance est également présente, mais elle ne fabrique pas de témoignages : elle explique que les retours clients seront publiés uniquement après de vraies prestations et avec accord.
 
-## Niveau global de maturité
+La stabilité technique est bonne au niveau automatisé : **69 tests Vitest réussis**, TypeScript sans erreur et build de production réussi. Le build signale toutefois un bundle JavaScript principal d’environ **1,31 Mo avant gzip**, ce qui mérite une optimisation pour les connexions mobiles. L’audit de production ne signale plus de vulnérabilité high/critical ; il reste **une vulnérabilité moderate liée à `uuid@8.3.2`, transitive via `exceljs@4.4.0`**.
 
-| Domaine | État constaté | Niveau | Décision recommandée |
+> Décision recommandée : poursuivre avec des prestations pilotes clairement limitées, mais ne pas présenter le fichier comme un DQE contractuel entièrement validé sans relecture humaine et sans test sur Microsoft Excel Desktop.
+
+## Synthèse par domaine
+
+| Domaine | État actuel | Gravité résiduelle | Décision |
 |---|---|---:|---|
-| Interface et identité | Design blueprint anthracite/or, responsive contrôlé | Bon | Conserver, polir les détails |
-| Tests automatisés | 61 tests Vitest réussis, typage et build réussis | Bon pour un MVP | Ajouter des tests de production et d’intégration réelle |
-| Accès et administration | Code partagé, codes clients, admin séparé, cookies HTTP-only | Acceptable mais durcissable | Corriger les quotas et ajouter une vraie session admin |
-| Génération IA | Prompt strict, parsing défensif, timeout et retries | Correct techniquement | Ajouter validation métier déterministe et reprise contrôlée |
-| Fiabilité des quantités | Dépend encore largement de Claude | Insuffisant pour usage contractuel | Mettre un moteur de contrôle et des hypothèses structurées |
-| Excel | Couverture premium, Métré et DQE, formules nettoyées | Correct visuellement | Étendre les feuilles et verrouiller le recalcul/contrôle |
-| Données personnelles | Contacts conservés pour relance commerciale | À encadrer | Ajouter consentement, rétention et export/suppression |
-| Dépendances | `pnpm audit --prod` signale 86 vulnérabilités, dont 25 high et 1 critical | Prioritaire | Mettre à jour et vérifier la compatibilité avant exposition publique |
+| Accueil et navigation | `/` public, `/etude` génération, `/admin` administration, header fixe, FAQ, smooth scroll | Faible | Conserver et améliorer le mobile |
+| Thème clair/sombre | Bouton disponible dans le header public, préférence persistée | Moyenne | Harmoniser le comportement avec `/etude` et `/admin` |
+| Accès et quotas | Codes clients, code partagé, Admin séparé, réservation et restitution | Faible à moyenne | Tester davantage la concurrence SQL en production |
+| Essai gratuit | Une génération par téléphone/e-mail normalisé, restitution en cas d’échec technique | Faible | Ajouter consentement et politique de rétention |
+| Idempotence | Clé navigateur et verrou serveur temporaire | Faible | Ajouter une persistance idempotente pour les reprises après redémarrage |
+| IA et parsing | Prompt strict, nettoyage défensif, timeout, retries et logs redacted | Moyenne | Réduire les retries sur erreurs non temporaires |
+| Contrôle géométrique | Linéaire, surface, volume, comptage, tolérance et aperçu éditable | Moyenne | Étendre les règles aux unités BTP et aux ouvertures complexes |
+| Excel et PDF | ExcelJS, feuilles Hypothèses/Contrôles/Géométrie, rapport PDF local | Moyenne | Tester sur Excel Desktop et vérifier les impressions réelles |
+| Données personnelles | Contacts d’essai conservés pour relance | Moyenne | Ajouter consentement, durée de conservation et suppression |
+| Dépendances | Aucun high/critical signalé ; un moderate `uuid` reste | Moyenne | Mettre à jour/remplacer la chaîne compatible ExcelJS |
+| Performance | Build réussi, bundle principal important | Moyenne | Code-splitting et chargement différé des modules rares |
 
-## 1. Problèmes critiques ou à traiter avant les vrais clients
+## Points corrigés et cohérents
 
-### P0 — Les droits sont consommés avant la réussite de la génération
+Les quotas et essais ne sont plus consommés définitivement lorsque la validation, l’appel IA ou la création du classeur échoue : le flux de réservation peut libérer le droit. L’idempotence bloque les doubles soumissions simultanées. Ces deux mécanismes sont couverts par les tests de sécurité et de routeur.
 
-Dans `server/routers.ts`, la génération consomme le quota mensuel client et le quota horaire/global avant la validation du fichier joint, la réservation de l’essai gratuit et l’appel IA. Si Claude renvoie une erreur, si le JSON est invalide, si ExcelJS échoue ou si le serveur tombe après l’appel, le client peut perdre une génération sans recevoir de livrable. Pour l’essai gratuit, `reserveFreeTrial` intervient avant l’appel Claude : un échec fournisseur peut donc consommer définitivement l’unique essai.
+Le contrôle géométrique ne remplace pas l’IA par une quantité inventée. Il calcule un résultat indépendant à partir des dimensions explicitement fournies, compare ce résultat à la quantité générée, applique une tolérance et affiche `OK`, `À VÉRIFIER` ou `BLOQUANT`. Les feuilles Excel et l’aperçu web rendent visibles les dimensions, l’écart et la recommandation.
 
-**Correction recommandée :** introduire une réservation de quota avec état `reserved`, puis confirmer la consommation uniquement après validation IA, validation métier et création du classeur. En cas d’échec, libérer la réservation. Pour éviter les doubles consommations, utiliser un identifiant de requête idempotent et une transaction SQL lorsque c’est possible.
+L’accueil public explique désormais le service sans promesse non confirmée. La section « Retours vérifiés » ne contient aucun nom, note ou avis inventé. Cette règle doit rester absolue tant que de vrais témoignages autorisés ne sont pas disponibles.
 
-### P0 — Le modèle de données du résultat est trop pauvre pour un vrai métré contrôlable
+## Risques prioritaires restants
 
-La réponse ne contient que `projectTitle`, `client`, `location`, `summary`, `currency` et une liste de mesures. Elle ne structure pas les données d’entrée, les dimensions sources, les ouvertures déduites, les hypothèses, les lots inclus/exclus, les niveaux de confiance, les unités sources, ni les contrôles effectués. Ces informations peuvent apparaître dans un texte libre, mais elles ne sont ni vérifiables ni exploitables de manière fiable par l’application.
+### P1 — Le mode clair/sombre n’est pas encore totalement uniforme
 
-**Impact :** le résultat peut ressembler à un DQE complet alors qu’il ne couvre que quelques postes décrits par l’utilisateur. Une omission de fondations, ferraillage, déblais, main-d’œuvre, transport ou pertes peut passer inaperçue.
+Le bouton du header public persiste le thème au niveau global, tandis que l’espace `/etude` et l’Admin utilisent encore beaucoup de couleurs techniques codées directement dans les classes et dans `index.css`. En pratique, le mode sombre est surtout conçu pour l’accueil ; le changement de thème peut donc produire une expérience partiellement différente sur les routes internes.
 
-**Correction recommandée :** enrichir le contrat de sortie avec des sections obligatoires `inputs`, `assumptions`, `deductions`, `includedLots`, `excludedLots`, `checks` et `limitations`. Afficher ces sections dans des feuilles Excel séparées et dans la couverture.
+**Action recommandée :** décider explicitement entre un thème global cohérent sur les trois routes ou un thème limité à la vitrine. La solution la plus sûre à court terme est de limiter le bouton à l’accueil et de conserver `/etude` et `/admin` en thème blueprint sombre fixe, ou bien de convertir progressivement les couleurs hardcodées en variables CSS partagées.
 
-### P0 — Les prix ou facteurs absents deviennent silencieusement zéro ou un
+### P1 — Le contrôle métier ne peut pas garantir un DQE complet
 
-`validateEstimate` rend `unitPrice`, `factor` et `notes` optionnels, alors que le schéma JSON strict les demande. Dans `excel.ts`, un prix absent est remplacé par `0` et un facteur absent par `1`. Le total peut donc être numériquement propre mais commercialement faux, sans blocage ni statut explicite « prix à confirmer ».
+Le moteur vérifie les postes et dimensions qui existent dans les données reçues. Il ne peut pas prouver qu’un lot absent du descriptif — fondations, ferraillage, déblais, transport, main-d’œuvre ou équipements — devait être inclus. Le classeur doit donc continuer à distinguer clairement lots traités, lots exclus, données manquantes et prix à confirmer.
 
-**Correction recommandée :** distinguer `prix fourni`, `prix estimé`, `prix manquant` et `prix à confirmer`. Interdire un DQE présenté comme final si un prix obligatoire manque, ou afficher le poste dans un total provisoire clairement séparé du total chiffré.
+**Action recommandée :** ajouter une checklist de périmètre à confirmer avant téléchargement et bloquer l’étiquette « complet » lorsqu’un lot critique n’a pas été déclaré.
 
-### P1 — Le contrôle des quantités reste principalement délégué à l’IA
+### P1 — Validation native Microsoft Excel Desktop non réalisée
 
-Le serveur vérifie que les quantités sont finies et non négatives, mais il ne vérifie pas la cohérence dimensionnelle. Il n’existe pas de moteur indépendant recalculant, par exemple, volume = longueur × largeur × épaisseur, surface de murs moins ouvertures, nombre de poteaux × section × hauteur, ou conversion de cm en m. La normalisation actuelle traite correctement un cas de peinture ambigu, mais elle ne constitue pas encore un contrôle indépendant généralisé.
+Les tests automatisés vérifient la structure XLSX, les formules, les feuilles, les images et la génération. Ils ne remplacent pas l’ouverture dans Excel Desktop sur Windows avec recalcul automatique, impression, images de signature et formules dans toutes les feuilles.
 
-**Correction recommandée :** créer un moteur de règles par type de poste, avec tolérances, unités canoniques et alertes. Le système doit comparer la quantité IA à la quantité recalculée et marquer toute divergence, sans corriger silencieusement la donnée.
+**Action recommandée :** ouvrir plusieurs classeurs de test dans Excel Desktop, recalculer, imprimer en PDF et comparer les totaux avec le moteur indépendant.
 
-### P1 — Les quotas SQL ne sont pas suffisamment robustes contre les courses concurrentes
+### P1 — Transport base64 et pression mémoire
 
-La fonction `increment` fait une insertion ou une mise à jour puis lit le compteur. Le contrôle `> HOURLY_LIMIT` intervient après l’incrément. Deux requêtes simultanées peuvent donc dépasser le seuil, et les requêtes refusées continuent d’augmenter les compteurs. Cela ne déclenche pas nécessairement une dépense IA supplémentaire, mais permet de perturber les compteurs et de provoquer un blocage plus long que prévu.
+Le plan, les images de signature et le classeur circulent principalement en base64. Ce choix simplifie le MVP mais augmente la taille des requêtes et la pression mémoire du navigateur et du serveur, surtout sur mobile ou sous plusieurs générations simultanées.
 
-**Correction recommandée :** réaliser une opération atomique « incrémenter seulement si compteur < limite », avec transaction ou requête conditionnelle, et ne compter que les générations effectivement autorisées.
+**Action recommandée :** passer ultérieurement par un upload temporaire vers le stockage objet, puis transmettre un identifiant de fichier au serveur au lieu de transporter systématiquement les octets dans le payload tRPC.
 
-### P1 — L’identification par adresse IP peut être falsifiée selon le proxy
+### P2 — Bundle frontend trop volumineux
 
-`requestIdentity` privilégie `x-forwarded-for`. Cet en-tête ne doit être accepté que si Express est configuré avec le nombre de proxies de confiance approprié. Sinon, un appelant peut envoyer une fausse adresse IP et contourner la limite par IP.
+Le build signale un chunk JavaScript principal d’environ 1,31 Mo avant gzip, au-dessus du seuil de 500 kB recommandé par Vite. L’application reste fonctionnelle, mais le premier chargement peut être lent sur des réseaux mobiles.
 
-**Correction recommandée :** configurer explicitement le proxy de confiance de l’environnement de déploiement, utiliser l’adresse normalisée fournie par la plateforme, et compléter la défense par une empreinte de session ou un identifiant de navigateur limité et non sensible.
+**Action recommandée :** charger `/admin`, `exceljs` côté serveur uniquement, les contrôles rarement utilisés et les dialogues lourds à la demande ; mesurer ensuite le temps de chargement sur un réseau 3G/4G simulé.
 
-## 2. Sécurité et données personnelles
+### P2 — Vulnérabilité moderate transitive
 
-Les points positifs sont importants : les codes clients sont stockés sous forme de hash, le code administrateur est distinct, les cookies d’accès sont HTTP-only, les images et fichiers sont validés par type déclaré et signature binaire, et les contenus fournis ne sont pas exécutés. La description est envoyée comme contenu utilisateur dans un message dédié, ce qui limite le risque d’injection directe dans les instructions système.
+L’audit de production signale `uuid@8.3.2` via `exceljs@4.4.0`, avec une correction annoncée à partir de `uuid@11.1.1`. Une mise à jour forcée doit être testée avec prudence, car ExcelJS peut dépendre d’une API ou d’une résolution de version particulière.
 
-Les améliorations à prévoir concernent surtout la gouvernance et la défense opérationnelle. Les contacts d’essai stockent téléphone et e-mail en clair en plus de leurs hash, ce qui est pratique pour la relance mais impose une politique de conservation, un consentement explicite et un mécanisme de suppression. Il manque également un bouton de déconnexion/révocation de la session administrateur, une rotation documentée du secret admin et une journalisation d’audit des actions sensibles : création, désactivation, conversion et ouverture WhatsApp.
+**Action recommandée :** vérifier la version ExcelJS disponible, tester une mise à jour compatible ou isoler ExcelJS côté serveur. Ne pas masquer l’avis par une exception sans documenter pourquoi le chemin est non exploitable.
 
-Le corps Express accepte jusqu’à 50 Mo alors qu’une génération peut déjà transporter un fichier de 8 Mo encodé en base64, deux images de validation et une description. Cette marge est raisonnable pour le fonctionnement mais peut devenir une surface de consommation mémoire sous forte concurrence. Il faut ajouter une limite de concurrence par IP/session, un délai maximal global par requête et une protection contre les demandes répétées.
+### P2 — Configuration pnpm vieillissante
 
-## 3. IA, parsing et fiabilité
+Le build affiche que les champs `pnpm.patchedDependencies` et `pnpm.overrides` présents dans `package.json` sont ignorés par les versions récentes de pnpm. Une règle de sécurité ou de résolution placée uniquement dans ces champs peut donc ne pas être appliquée.
 
-La couche LLM est bien instrumentée : modèle, `max_tokens`, structure des messages et présence d’un fichier sont journalisés avec redaction des URLs de fichiers et d’images. Les erreurs fournisseur conservent le statut, les en-têtes et le body. Le timeout par tentative est de 60 secondes et les retries ciblent les erreurs temporaires. Les tests couvrent désormais les erreurs 400 et les timeouts.
+**Action recommandée :** migrer ces réglages vers le fichier de configuration pnpm attendu par la version utilisée, puis vérifier le lockfile et l’audit dans une installation propre.
 
-Deux limites subsistent. Premièrement, quatre retries peuvent étendre fortement la durée d’une génération et multiplier la charge sur les erreurs réseau. Il faut afficher un délai estimé, distinguer « fournisseur indisponible » de « données invalides » et éviter toute nouvelle tentative sur les erreurs de schéma ou d’authentification. Deuxièmement, le parsing prend le premier objet JSON complet et tolère les virgules finales. C’est utile en secours, mais un texte parasite ou plusieurs objets dans une réponse peuvent masquer un comportement anormal. En production, il serait préférable de privilégier la sortie structurée du fournisseur, puis de conserver le nettoyage uniquement comme dernier recours avec une alerte de qualité.
+### P2 — Données de prospection et consentement
 
-Le prompt impose une convention fixe pour la peinture, ce qui améliore la reproductibilité. Cette règle doit être généralisée à toutes les ambiguïtés : pertes, unités, épaisseurs, prix posé/fourniture, main-d’œuvre, taxes et arrondis.
+Les contacts d’essai sont utiles pour la relance WhatsApp et les exports CSV, mais le système ne doit pas supposer que le simple renseignement d’un numéro autorise toute relance commerciale. Il faut enregistrer la source, le consentement, la date de conservation, le statut de désinscription et une procédure de suppression.
 
-## 4. Classeur Excel et livrable professionnel
+**Action recommandée :** ajouter un consentement explicite au formulaire d’essai et un statut « ne plus contacter » dans Admin.
 
-La couverture est nettement améliorée : identité du projet, client, coordonnées, prestataire, référence, date, version, devise, résumé financier, avertissement, vérification et zones signature/tampon sont présents. Les feuilles `Métré` et `DQE` utilisent des formules sans signe égal interne et demandent un recalcul automatique.
+## Audit des parcours
 
-La limite principale est le périmètre du classeur : il contient aujourd’hui seulement `Couverture`, `Métré` et `DQE`. Pour respecter pleinement la méthode annoncée, il faudrait ajouter au minimum `Données d’entrée`, `Hypothèses`, `Contrôles` et `Notes / exclusions`. La couverture doit aussi afficher le nombre de lots traités et non traités, plutôt que seulement le nombre de postes.
+| Parcours | Résultat | Observation |
+|---|---|---|
+| Découverte `/` → `/etude` | Cohérent | CTA, navigation fixe et bouton retour fonctionnels |
+| Essai gratuit | Cohérent | Téléphone/e-mail validé en temps réel, limite par contact |
+| Client payant | Cohérent | Code, quota mensuel, progression et message d’épuisement |
+| Génération avec fichier | Protégé | Taille, type déclaré et signature binaire contrôlés |
+| Double clic / retry | Protégé | Clé idempotente et verrou temporaire |
+| Échec IA / Excel | Protégé | Restitution de réservation prévue par le flux serveur |
+| Aperçu géométrique | Opérationnel | Édition, validation, filtrage, tri et export PDF |
+| Admin commercial | Opérationnel | Codes, essais, conversion, WhatsApp et CSV |
+| Mobile | Acceptable | Contrôle responsive réalisé ; génération longue à tester sur appareil réel |
 
-Le classeur utilise deux bibliothèques, `xlsx` puis `exceljs` lorsque des images sont présentes. Cette double réécriture mérite une stratégie de test dédiée, car elle peut modifier styles, résultats calculés, formules ou compatibilité selon le chemin d’exécution. Les formules ont un résultat mis en cache à zéro dans le premier chemin et dépendent du recalcul du logiciel tableur. La validation native Microsoft Excel Desktop n’a pas été possible dans l’environnement ; elle doit être effectuée sur un poste réel avant engagement commercial.
+## Vérifications exécutées
 
-Autre point à corriger : la date de référence et la date d’émission sont générées côté serveur, tandis que la date de validation est un texte libre. Il faut normaliser les dates en ISO au niveau API, puis les afficher localement, afin d’éviter les incohérences de format et de fuseau.
+Les résultats disponibles pour cette évolution sont les suivants : **69 tests Vitest réussis sur 19 fichiers**, TypeScript sans erreur et build de production réussi. Les captures responsive de `/` et `/etude` ont été réalisées en mobile. L’audit de production des dépendances ne signale plus de vulnérabilité high ou critical, mais conserve l’avis moderate `uuid` décrit ci-dessus.
 
-## 5. Parcours Home, Admin, mobile et performance
-
-Le parcours Home est lisible, les états d’accès, de chargement, d’erreur, de quota et d’aperçu sont présents, et les contrôles mobile ont été vérifiés. L’aperçu permet une recherche et indique explicitement « montant filtré », ce qui est honnête et préférable à l’affichage ambigu d’un total général.
-
-Le principal risque de performance est le transport entièrement en base64 : le fichier joint est lu en mémoire dans le navigateur, envoyé dans le corps tRPC, puis le classeur retourné est à nouveau matérialisé en base64 avant création d’une URL temporaire. Sur un téléphone peu puissant ou une connexion instable, cela peut provoquer lenteur, échec réseau ou pression mémoire. Une évolution future devrait utiliser un upload temporaire vers le stockage objet, un identifiant de tâche et un téléchargement séparé.
-
-Le bundle frontend dépasse 500 kB après minification. Ce n’est pas bloquant pour un MVP, mais le découpage de la page Admin, d’ExcelJS/XLSX et des composants rarement utilisés améliorerait le premier chargement mobile. Il faut également mesurer les temps réels sur réseau 3G/4G et ajouter une stratégie de reprise claire pour les téléchargements interrompus.
-
-Dans Admin, les exports CSV sont fonctionnels et adaptés aux besoins de relance. Il serait utile d’ajouter une mention de consentement et une protection contre l’export accidentel de toute la base, ainsi qu’un journal indiquant qui a exporté quoi et quand. Un export combiné ne doit pas être considéré comme un système CRM complet : il manque statut de consentement, source du contact, dernier résultat de relance, prochaine action et historique.
-
-## 6. Dépendances et exploitation
-
-La commande `pnpm audit --prod --audit-level=high` a signalé **86 vulnérabilités : 10 low, 50 moderate, 25 high et 1 critical**. Les sorties identifient notamment `axios@1.12.2`, `image-size@2.0.2`, `nanoid@5.1.6` et une dépendance `form-data` transitive. Le résultat doit être confirmé après mise à jour du lockfile, car les avis peuvent évoluer et certaines alertes peuvent concerner des chemins transitifs non exploités.
-
-Avant publication, il faut créer une branche de mise à jour, exécuter les tests complets, vérifier le build et examiner chaque vulnérabilité high/critical. Il faut également ajouter un contrôle CI qui échoue sur les vulnérabilités critiques et documenter les exceptions justifiées.
-
-Les journaux de développement contiennent des erreurs historiques liées aux essais précédents, notamment des réponses 400, 401, 403, 429 et 500. Les dernières validations automatisées sont réussies, mais une procédure d’exploitation doit définir la différence entre erreur attendue de saisie, refus de quota, erreur fournisseur et erreur interne. Les logs de réponse brute de Claude doivent rester tronqués et redacted en production, avec une durée de conservation limitée.
+Les erreurs historiques de transformation Express visibles dans certains journaux ne correspondent pas au dernier build validé ; elles doivent toutefois être nettoyées ou archivées pour éviter de confondre une ancienne erreur avec une anomalie actuelle.
 
 ## Plan d’action recommandé
 
-| Priorité | Travail | Résultat attendu |
+| Priorité | Action | Critère de sortie |
 |---|---|---|
-| 1 | Réservation/confirmation idempotente des quotas et de l’essai | Aucun droit perdu lors d’un échec technique |
-| 2 | Schéma métier enrichi avec entrées, hypothèses, lots, exclusions et contrôles | DQE traçable et limites visibles |
-| 3 | Moteur indépendant de recalcul des quantités | Détection des incohérences avant livraison |
-| 4 | Gestion explicite des prix manquants et des totaux provisoires | Aucun montant nul silencieux |
-| 5 | Mise à jour des dépendances high/critical | Surface de risque réduite avant exposition publique |
-| 6 | Test réel sur Microsoft Excel Desktop et LibreOffice | Compatibilité du livrable confirmée |
-| 7 | Politique données personnelles : consentement, rétention, suppression | Relance commerciale plus conforme et maîtrisée |
-| 8 | Upload objet et téléchargement séparé | Meilleure fiabilité sur mobile et gros fichiers |
-| 9 | Déconnexion admin, journal d’audit et rotation des secrets | Administration mieux contrôlée |
-| 10 | Découpage du bundle et tests réseau mobile réels | Chargement initial plus rapide |
+| 1 | Décider et harmoniser la portée du thème clair/sombre | Accueil et routes internes cohérents ou thème explicitement limité à `/` |
+| 2 | Tester les classeurs dans Excel Desktop | Formules, images, impression et totaux validés |
+| 3 | Ajouter consentement et rétention des contacts | Contact supprimable, désinscription et durée documentées |
+| 4 | Traiter `uuid` et migrer la configuration pnpm | Audit propre ou exception documentée et justifiée |
+| 5 | Ajouter checklist des lots et blocage du terme « complet » | Périmètre inclus/exclus confirmé avant téléchargement |
+| 6 | Réduire le bundle et le transport base64 | Chargement et génération mesurés sur réseau mobile |
 
-## Verdict de mise en service
+## Décision finale
 
-**Pour un pilote limité avec validation humaine systématique : oui, sous réserve de traiter immédiatement la consommation des droits en cas d’échec et les dépendances critiques.**
-
-**Pour une promesse commerciale de DQE complet utilisable directement dans un contrat : non, pas encore.** Il faut d’abord structurer les hypothèses et exclusions, ajouter un contrôle indépendant des quantités, rendre les prix manquants visibles et valider le fichier sur Excel Desktop.
-
-La formulation commerciale recommandée reste : « MÉTREXPERT IA PRO prépare une base de métré et de DQE structurée, contrôlable et modifiable, avec assistance IA et vérification humaine requise. » Il faut éviter « calcul garanti », « DQE complet automatique » ou toute promesse de précision sans périmètre défini.
-
-## Références techniques internes
-
-Les constats sont fondés sur l’état du dépôt audité : `server/routers.ts`, `server/security.ts`, `server/_core/llm.ts`, `server/excel.ts`, `server/json.ts`, `server/estimateNormalization.ts`, `client/src/pages/Home.tsx`, `client/src/pages/Admin.tsx`, `drizzle/schema.ts`, les tests Vitest du répertoire `server/` et les journaux `.manus-logs/`. La validation de qualité exécutée pendant l’audit a produit 61 tests réussis, un typage TypeScript réussi et un build de production réussi.
-
-Les résultats d’audit de dépendances proviennent de la commande locale `pnpm audit --prod --audit-level=high` exécutée le 26 août 2026. Ils doivent être réévalués après toute mise à jour des dépendances.
+L’application peut être utilisée pour des **tests encadrés et des prestations pilotes limitées**, à condition de préciser le périmètre, de vérifier humainement les résultats et de ne pas présenter un calcul partiel comme un DQE complet. Avant une commercialisation plus large, les priorités sont la validation Excel Desktop, la gouvernance des contacts, la cohérence du thème, le traitement de la vulnérabilité moderate et l’optimisation du chargement mobile.

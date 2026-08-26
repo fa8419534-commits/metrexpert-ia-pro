@@ -306,3 +306,15 @@
 - [x] Ajouter une FAQ sur le processus, les quotas et la vérification humaine
 - [x] Tester la navigation, les ancres, WhatsApp, la FAQ et la responsivité
 - [x] Sauvegarder un checkpoint de cette évolution
+
+- [x] Ajouter le smooth scroll aux ancres de navigation de l’accueil
+- [x] Ajouter un bouton accessible de bascule clair/sombre dans le header fixe
+- [x] Persister le thème choisi et respecter prefers-color-scheme sans casser /etude ni /admin
+- [x] Préparer une section de confiance sans inventer de témoignages clients
+- [x] Auditer la cohérence des routes /, /etude et /admin
+- [x] Auditer les accès, quotas, essai gratuit, idempotence et administration
+- [x] Auditer les flux IA, contrôles géométriques, Excel, PDF et exports
+- [x] Auditer responsive, accessibilité, performances, logs et dépendances
+- [x] Rédiger un rapport d’audit complet avec gravité, preuve, impact et plan d’action
+- [x] Ajouter les tests des nouveaux changements UI et exécuter la validation globale
+- [x] Sauvegarder un checkpoint après l’audit et les corrections autorisées
