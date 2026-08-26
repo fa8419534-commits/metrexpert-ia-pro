@@ -24,6 +24,10 @@ describe("technical visual system", () => {
     expect(home).toContain("Joindre un plan ou document");
     expect(home).toContain("Générer mon métré & DQE");
     expect(home).toContain("Tableau de métré");
+    expect(home).toContain("Rechercher");
+    expect(home).toContain("APERÇU INTERACTIF");
+    expect(home).toContain("MONTANT FILTRÉ");
+    expect(home).toContain("Aperçu interactif des postes générés dans le métré");
     expect(home).toContain("download");
     expect(home).toContain("animate-spin");
     expect(home).toContain("Génération du classeur en cours");
@@ -40,6 +44,11 @@ describe("technical visual system", () => {
     expect(home).toContain('role="status" aria-live="polite"');
     expect(home).toContain('caption className="sr-only"');
     expect(home).toContain('scope="col"');
+    expect(home).toContain('aria-live="polite"');
+    expect(home).toContain("visibleMeasures");
+    expect(home).toContain('data-preview-state="loading"');
+    expect(home).toContain('data-preview-state="error"');
+    expect(home).toContain('data-preview-state="empty"');
     expect(css).toContain(":focus-visible");
     expect(home).toContain("overflow-x-hidden");
   });

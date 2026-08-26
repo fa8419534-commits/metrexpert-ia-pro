@@ -160,6 +160,12 @@ export const appRouter = router({
           mimeType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
           data: workbook.toString("base64"),
           lineCount: estimate.measures.length,
+          preview: {
+            projectTitle: estimate.projectTitle,
+            currency: estimate.currency || "FCFA",
+            summary: estimate.summary || "Résumé non renseigné.",
+            measures: estimate.measures,
+          },
         };
       } catch (error) {
         if (error instanceof TRPCError) throw error;

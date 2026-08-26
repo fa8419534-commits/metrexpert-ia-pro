@@ -71,3 +71,13 @@
 - [x] Documenter la limite de validation interactionnelle mobile upload/téléchargement
 - [x] Maintenir explicitement ouverts le contrôle indépendant généralisé des quantités et le rate limiting/quota
 - [x] Créer le checkpoint final après ces validations et limites documentées
+- [x] Exposer dans la réponse de génération les données nécessaires à l’aperçu réel sans modifier le fichier Excel
+- [x] Remplacer l’aperçu statique par un tableau alimenté par les postes générés
+- [x] Ajouter recherche, résumé des postes et états vide/chargement/erreur
+- [x] Préserver la responsivité mobile et les contrôles d’accessibilité du tableau
+- [x] Ajouter les tests de contrat serveur et UI puis valider TypeScript, tests, build et rendu
+- [x] Sauvegarder un checkpoint de l’aperçu interactif
+- [x] Ajouter un état de chargement et un état d’erreur directement dans le panneau d’aperçu
+- [x] Vérifier par contrat la structure responsive du tableau interactif et ses garde-fous d’accessibilité
+- [x] Créer le checkpoint final de l’aperçu après ces corrections
+- [x] Exécuter une génération réelle de test et retirer le mode d’audit temporaire avant livraison
