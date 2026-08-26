@@ -23,6 +23,8 @@ const formulas = Object.values(workbook.Sheets).flatMap((sheet) =>
 console.log(JSON.stringify({
   output: "/tmp/metrexpert-audit-styled.xlsx",
   sheets: workbook.SheetNames,
+  coverRef: workbook.Sheets.Couverture?.["!ref"],
+  coverCells: ["A4", "B4", "C4", "D4", "A5", "D5", "A8", "B8", "C8", "D8", "A11", "B11", "C11", "D11", "A15", "B15", "C15", "D15", "A19", "B19", "C19", "D19", "A20", "B20", "C20", "D20", "A24"].map((address) => ({ address, value: workbook.Sheets.Couverture?.[address]?.v, formula: workbook.Sheets.Couverture?.[address]?.f })),
   formulas,
   startsWithEquals: formulas.map((formula) => String(formula).startsWith("=")),
   styledCells: ["Couverture!A1", "Métré!A1", "DQE!A1"].map((address) => {

@@ -110,3 +110,10 @@
 - [x] Vérifier le rendu responsive, exécuter tests, TypeScript et build, puis sauvegarder un checkpoint
 - [x] Vérifier en mobile les états déverrouillé faible et épuisé avec notification visible, ou documenter précisément la limite de session — structure mobile couverte par contrat UI/CSS ; capture directe low/exhausted non disponible avec la session automatisée verrouillée
 - [x] Ajouter un contrat UI mobile couvrant le retour à la ligne, l’absence de débordement et la notification quota
+
+- [x] Ajouter les champs client, projet, localisation, référence, date, version, prestataire et devise sur la couverture
+- [x] Utiliser « À compléter » pour les informations client absentes sans inventer de données
+- [x] Recomposer la couverture avec blocs premium, bandeau, résumé financier dominant et avertissement imprimable
+- [x] Ajouter les tests de contenu, formules, styles et structure de la couverture
+- [x] Vérifier le classeur généré et son rendu avant checkpoint
+- [x] Corriger l’assertion Excel du champ client pour refléter le comportement « À compléter » lorsque le client est absent

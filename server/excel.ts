@@ -113,25 +113,48 @@ const formulaStyle: CellStyle = {
 export function buildEstimateWorkbook(data: ProjectEstimate): Buffer {
   const workbook = XLSX.utils.book_new();
   const currency = data.currency || "FCFA";
+  const issuedAt = new Date();
+  const issueDate = issuedAt.toLocaleDateString("fr-FR");
+  const reference = `MXP-${issuedAt.getFullYear()}-${String(issuedAt.getTime()).slice(-6)}`;
+  const totalRow = data.measures.length + 2;
+  const clientName = data.client || "À compléter";
+  const clientPhone = "À compléter";
+  const clientEmail = "À compléter";
+  const projectTitle = data.projectTitle || "À compléter";
+  const location = data.location || "À compléter";
+  const summary = data.summary || "Généré à partir des éléments fournis. Vérifier les hypothèses, unités et prix avant usage contractuel.";
+  const provider = "MÉTREXPERT IA PRO — préparé par Daouda";
+  const projectTitleValueStyle: CellStyle = { ...valueStyle, font: { name: "Aptos", sz: 11, bold: true, color: { rgb: COLORS.anthracite } } };
+  const totalLabelStyle: CellStyle = { ...labelStyle, font: { name: "Aptos Display", sz: 13, bold: true, color: { rgb: COLORS.gold } } };
+  const totalFormulaStyle: CellStyle = { ...formulaStyle, fill: { fgColor: { rgb: COLORS.gold } }, font: { name: "Aptos Display", sz: 18, bold: true, color: { rgb: COLORS.anthracite } }, alignment: { horizontal: "right", vertical: "center" } };
+  const totalCurrencyStyle: CellStyle = { ...valueStyle, font: { name: "Aptos Display", sz: 13, bold: true, color: { rgb: COLORS.gold } }, fill: { fgColor: { rgb: COLORS.anthracite } } };
+  const totalLinkStyle: CellStyle = { ...valueStyle, fill: { fgColor: { rgb: COLORS.anthracite } }, font: { name: "Aptos", sz: 10, italic: true, color: { rgb: COLORS.paper } } };
 
   const cover = [
     [cell("MÉTREXPERT IA PRO", titleStyle), cell("", titleStyle), cell("", titleStyle), cell("", titleStyle)],
     [cell("MÉTRÉ • QUANTITATIF • DQE", subtitleStyle), cell("", subtitleStyle), cell("", subtitleStyle), cell("", subtitleStyle)],
+    [cell("DOCUMENT DE TRAVAIL — COUVERTURE", sectionStyle), cell("", sectionStyle), cell("", sectionStyle), cell("", sectionStyle)],
+    [cell("Référence", labelStyle), cell(reference, valueStyle), cell("Émission", labelStyle), cell(issueDate, valueStyle)],
+    [cell("Version", labelStyle), cell("V1", valueStyle), cell("Devise", labelStyle), cell(currency, valueStyle)],
+    [],
     [cell("IDENTITÉ DU PROJET", sectionStyle), cell("", sectionStyle), cell("", sectionStyle), cell("", sectionStyle)],
-    [cell("Projet", labelStyle), cell(data.projectTitle, valueStyle), cell("Client", labelStyle), cell(data.client || "Non renseigné", valueStyle)],
-    [cell("Localisation", labelStyle), cell(data.location || "Non renseignée", valueStyle), cell("Devise", labelStyle), cell(currency, valueStyle)],
+    [cell("Nom du projet", labelStyle), cell(projectTitle, projectTitleValueStyle), cell("Localisation", labelStyle), cell(location, valueStyle)],
     [],
-    [cell("RÉSUMÉ DES MONTANTS", sectionStyle), cell("", sectionStyle), cell("", sectionStyle), cell("", sectionStyle)],
-    [cell("Total estimatif", labelStyle), cell("Voir feuille DQE", valueStyle), cell("Statut", labelStyle), cell("À contrôler avant usage contractuel", valueStyle)],
+    [cell("INFORMATIONS CLIENT", sectionStyle), cell("", sectionStyle), cell("", sectionStyle), cell("", sectionStyle)],
+    [cell("Nom", labelStyle), cell(clientName, valueStyle), cell("Téléphone", labelStyle), cell(clientPhone, valueStyle)],
+    [cell("E-mail", labelStyle), cell(clientEmail, valueStyle), cell("Statut", labelStyle), cell("À confirmer", valueStyle)],
     [],
-    [cell("NOTES ET HYPOTHÈSES", sectionStyle), cell("", sectionStyle), cell("", sectionStyle), cell("", sectionStyle)],
-    [cell(data.summary || "Généré à partir des éléments fournis. Vérifier les hypothèses, unités et prix avant usage contractuel.", valueStyle), cell("", valueStyle), cell("", valueStyle), cell("", valueStyle)],
+    [cell("RÉSUMÉ FINANCIER", sectionStyle), cell("", sectionStyle), cell("", sectionStyle), cell("", sectionStyle)],
+    [cell("TOTAL GÉNÉRAL", totalLabelStyle), formula(`'DQE'!F${totalRow}`, totalFormulaStyle), cell(currency, totalCurrencyStyle), cell("Voir feuille DQE", totalLinkStyle)],
+    [cell("Contrôle", labelStyle), cell("Requis avant usage contractuel", valueStyle), cell("Postes", labelStyle), cell(String(data.measures.length), valueStyle)],
     [],
-    [cell("MÉTREXPERT IA PRO — document de travail assisté par IA, soumis à vérification humaine.", {
-      fill: { fgColor: { rgb: COLORS.anthracite } },
-      font: { name: "Aptos", sz: 9, italic: true, color: { rgb: COLORS.paper } },
-      alignment: { wrapText: true, vertical: "center" },
-    }), cell("", subtitleStyle), cell("", subtitleStyle), cell("", subtitleStyle)],
+    [cell("PRESTATAIRE", sectionStyle), cell("", sectionStyle), cell("", sectionStyle), cell("", sectionStyle)],
+    [cell("Structure", labelStyle), cell(provider, valueStyle), cell("Téléphone", labelStyle), cell("07 67 15 93 51", valueStyle)],
+    [cell("E-mail", labelStyle), cell("dawoud.digitallab@gmail.com", valueStyle), cell("WhatsApp", labelStyle), cell("01 51 61 05 12", valueStyle)],
+    [],
+    [cell("MENTIONS, HYPOTHÈSES ET AVERTISSEMENT", sectionStyle), cell("", sectionStyle), cell("", sectionStyle), cell("", sectionStyle)],
+    [cell(summary, { ...valueStyle, alignment: { wrapText: true, vertical: "top" } }), cell("", valueStyle), cell("", valueStyle), cell("", valueStyle)],
+    [cell("Les informations absentes sont indiquées « À compléter ». Ce document est une base de travail assistée par IA : vérifier données d’entrée, hypothèses, unités, prix, quantités et périmètre des lots avant toute utilisation contractuelle.", { fill: { fgColor: { rgb: COLORS.anthracite } }, font: { name: "Aptos", sz: 9, italic: true, color: { rgb: COLORS.paper } }, alignment: { wrapText: true, vertical: "center" }, border: border(COLORS.gold) }), cell("", { fill: { fgColor: { rgb: COLORS.anthracite } }, border: border(COLORS.gold) }), cell("", { fill: { fgColor: { rgb: COLORS.anthracite } }, border: border(COLORS.gold) }), cell("", { fill: { fgColor: { rgb: COLORS.anthracite } }, border: border(COLORS.gold) })],
   ];
   const coverSheet = XLSX.utils.aoa_to_sheet(cover);
   coverSheet["!merges"] = [
@@ -140,11 +163,16 @@ export function buildEstimateWorkbook(data: ProjectEstimate): Buffer {
     { s: { r: 2, c: 0 }, e: { r: 2, c: 3 } },
     { s: { r: 6, c: 0 }, e: { r: 6, c: 3 } },
     { s: { r: 9, c: 0 }, e: { r: 9, c: 3 } },
-    { s: { r: 10, c: 0 }, e: { r: 10, c: 3 } },
-    { s: { r: 12, c: 0 }, e: { r: 12, c: 3 } },
+    { s: { r: 13, c: 0 }, e: { r: 13, c: 3 } },
+    { s: { r: 17, c: 0 }, e: { r: 17, c: 3 } },
+    { s: { r: 21, c: 0 }, e: { r: 21, c: 3 } },
+    { s: { r: 22, c: 0 }, e: { r: 22, c: 3 } },
+    { s: { r: 23, c: 0 }, e: { r: 23, c: 3 } },
   ];
-  coverSheet["!cols"] = [{ wch: 22 }, { wch: 38 }, { wch: 18 }, { wch: 42 }];
-  coverSheet["!rows"] = [{ hpt: 30 }, { hpt: 20 }, { hpt: 22 }, { hpt: 24 }, { hpt: 24 }, { hpt: 8 }, { hpt: 22 }, { hpt: 24 }, { hpt: 8 }, { hpt: 22 }, { hpt: 54 }, { hpt: 8 }, { hpt: 30 }];
+  coverSheet["!cols"] = [{ wch: 18 }, { wch: 32 }, { wch: 18 }, { wch: 32 }];
+  coverSheet["!rows"] = [{ hpt: 34 }, { hpt: 20 }, { hpt: 22 }, { hpt: 24 }, { hpt: 24 }, { hpt: 8 }, { hpt: 22 }, { hpt: 30 }, { hpt: 8 }, { hpt: 22 }, { hpt: 26 }, { hpt: 26 }, { hpt: 8 }, { hpt: 22 }, { hpt: 44 }, { hpt: 28 }, { hpt: 8 }, { hpt: 22 }, { hpt: 28 }, { hpt: 28 }, { hpt: 8 }, { hpt: 22 }, { hpt: 38 }, { hpt: 54 }];
+  coverSheet["!pageSetup"] = { orientation: "portrait", fitToWidth: 1, fitToHeight: 1, scale: 80 };
+  coverSheet["!margins"] = { left: 0.25, right: 0.25, top: 0.35, bottom: 0.35, header: 0.1, footer: 0.1 };
   XLSX.utils.book_append_sheet(workbook, coverSheet, "Couverture");
 
   const measureRows: XLSX.CellObject[][] = [
@@ -182,7 +210,6 @@ export function buildEstimateWorkbook(data: ProjectEstimate): Buffer {
       formula(`=D${row}*E${row}`, formulaStyle),
     ]);
   });
-  const totalRow = data.measures.length + 2;
   dqeRows.push([
     cell("", sectionStyle), cell("TOTAL ESTIMATIF", sectionStyle), cell("", sectionStyle), cell("", sectionStyle), cell("", sectionStyle), formula(`=SUM(F2:F${totalRow - 1})`, { ...formulaStyle, fill: { fgColor: { rgb: COLORS.gold } }, font: { name: "Aptos", sz: 10, bold: true, color: { rgb: COLORS.anthracite } } }),
   ]);
