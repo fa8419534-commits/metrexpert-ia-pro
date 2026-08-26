@@ -190,3 +190,7 @@
 - [x] Ajouter une barre de progression visuelle du quota mensuel client dans Home
 - [x] Ajouter les tests de rendu, d’accessibilité et de responsivité de la barre de quota mensuel
 - [x] Vérifier la barre de quota, exécuter tests, TypeScript et build, puis sauvegarder un checkpoint
+- [x] Diagnostiquer l’absence de transition visuelle après validation du code administrateur sur /admin
+- [x] Corriger le montage du panneau d’administration après ouverture de session
+- [x] Tester le parcours code administrateur → panneau → création d’un code client
+- [x] Vérifier console, TypeScript, tests, build et sauvegarder un checkpoint du correctif

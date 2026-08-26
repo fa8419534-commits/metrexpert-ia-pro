@@ -2,6 +2,7 @@ import "dotenv/config";
 import express from "express";
 import { createServer } from "http";
 import net from "net";
+import { parse as parseCookie } from "cookie";
 import { createExpressMiddleware } from "@trpc/server/adapters/express";
 import { registerOAuthRoutes } from "./oauth";
 import { registerStorageProxy } from "./storageProxy";
@@ -34,6 +35,11 @@ async function startServer() {
   // Configure body parser with larger size limit for file uploads
   app.use(express.json({ limit: "50mb" }));
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
+  // Express does not parse cookies by default; security procedures read req.cookies.
+  app.use((req, _res, next) => {
+    Object.assign(req, { cookies: parseCookie(req.headers.cookie ?? "") });
+    next();
+  });
   registerStorageProxy(app);
   registerOAuthRoutes(app);
   // tRPC API
