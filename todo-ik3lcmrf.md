@@ -371,3 +371,9 @@
 - [x] Vérifier le renouvellement rapide et le bouton WhatsApp prérempli
 - [x] Ajouter les tests de l’option sans API et valider TypeScript, tests, build et responsive
 - [x] Sauvegarder le checkpoint de l’option sans service externe
+
+- [x] Ajouter une animation et un état de confirmation après soumission d’une référence de paiement
+- [x] Enrichir le message WhatsApp avec la date d’expiration exacte et le lien direct de renouvellement
+- [x] Ajouter les filtres Admin « expire aujourd’hui » et « expire demain »
+- [x] Ajouter les tests d’interaction, de dates et de responsive puis valider TypeScript et build
+- [x] Sauvegarder un checkpoint de ces améliorations

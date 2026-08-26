@@ -1,6 +1,6 @@
 import crypto from "node:crypto";
 import { and, desc, eq } from "drizzle-orm";
-import { paymentRequests } from "../drizzle/schema";
+import { clientAccessCodes, paymentRequests } from "../drizzle/schema";
 import { getDb } from "./db";
 import { createClientAccessCode, getClientAccessStatus } from "./security";
 import { getSubscriptionPlan, type SubscriptionQuota } from "@shared/plans";
@@ -22,6 +22,7 @@ type MemoryPaymentRequest = {
   adminNote: string | null;
   createdAt: Date;
   reviewedAt: Date | null;
+  accessExpiresAt: Date | null;
 };
 
 const memory = new Map<number, MemoryPaymentRequest>();
@@ -64,7 +65,7 @@ export async function createPaymentRequest(input: { clientName: string; phone: s
     const result = await db.insert(paymentRequests).values({ requestKey, clientName: input.clientName, phone: input.phone, email: input.email || null, planQuota: input.planQuota, amountXof: plan.priceXof, paymentMethod: input.paymentMethod, paymentReference: input.paymentReference, status: "pending", createdAt: now, updatedAt: now });
     return { requestKey, id: Number(result[0].insertId), clientName: input.clientName, planQuota: input.planQuota, amountXof: plan.priceXof, paymentMethod: input.paymentMethod, paymentReference: input.paymentReference, status: "pending" as const, alreadySubmitted: false };
   }
-  const record: MemoryPaymentRequest = { id: nextId++, requestKey, clientName: input.clientName, phone: input.phone, email: input.email || null, planQuota: input.planQuota, amountXof: plan.priceXof, paymentMethod: input.paymentMethod, paymentReference: input.paymentReference, status: "pending", accessCodeId: null, accessCode: null, adminNote: null, createdAt: now, reviewedAt: null };
+  const record: MemoryPaymentRequest = { id: nextId++, requestKey, clientName: input.clientName, phone: input.phone, email: input.email || null, planQuota: input.planQuota, amountXof: plan.priceXof, paymentMethod: input.paymentMethod, paymentReference: input.paymentReference, status: "pending", accessCodeId: null, accessCode: null, adminNote: null, createdAt: now, reviewedAt: null, accessExpiresAt: null };
   memory.set(record.id, record);
   return { ...toPublic(record), alreadySubmitted: false };
 }
@@ -101,29 +102,35 @@ export async function reviewPaymentRequest(id: number, status: Exclude<PaymentSt
   if (!db) {
     const record = memory.get(id);
     if (!record) throw new Error("Demande introuvable");
-    if (record.status === "confirmed" || record.status === "rejected") return { ...toPublic(record), accessCode: record.accessCode };
+    if (record.status === "confirmed" || record.status === "rejected") return { ...toPublic(record), accessCode: record.accessCode, expiresAt: record.accessExpiresAt };
     const reviewedAt = new Date();
     if (status === "confirmed") {
       const access = await createClientAccessCode(record.clientName, record.planQuota, record.paymentMethod, record.paymentReference);
       record.accessCodeId = access.id;
       record.accessCode = access.code;
+      record.accessExpiresAt = access.expiresAt;
     }
     record.status = status;
     record.adminNote = adminNote || null;
     record.reviewedAt = reviewedAt;
-    return { ...toPublic(record), accessCode: record.accessCode };
+    return { ...toPublic(record), accessCode: record.accessCode, expiresAt: record.accessExpiresAt };
   }
   const rows = await db.select().from(paymentRequests).where(eq(paymentRequests.id, id)).limit(1);
   const record = rows[0];
   if (!record) throw new Error("Demande introuvable");
-  if (record.status !== "pending") return toPublic(record);
+  if (record.status !== "pending") {
+    const access = record.accessCodeId ? (await db.select({ expiresAt: clientAccessCodes.expiresAt }).from(clientAccessCodes).where(eq(clientAccessCodes.id, record.accessCodeId)).limit(1))[0] : undefined;
+    return { ...toPublic(record), expiresAt: access?.expiresAt ?? null };
+  }
   let accessCodeId: number | null = null;
   let accessCode: string | null = null;
+  let expiresAt: Date | null = null;
   if (status === "confirmed") {
     const access = await createClientAccessCode(record.clientName, record.planQuota, record.paymentMethod, record.paymentReference);
     accessCodeId = access.id;
     accessCode = access.code;
+    expiresAt = access.expiresAt;
   }
   await db.update(paymentRequests).set({ status, accessCodeId, adminNote: adminNote || null, reviewedAt: new Date() }).where(and(eq(paymentRequests.id, id), eq(paymentRequests.status, "pending")));
-  return { ...toPublic({ ...record, status, accessCodeId, adminNote: adminNote || null }), accessCode };
+  return { ...toPublic({ ...record, status, accessCodeId, adminNote: adminNote || null }), accessCode, expiresAt };
 }

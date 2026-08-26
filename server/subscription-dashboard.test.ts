@@ -21,14 +21,27 @@ describe("suivi abonnement client", () => {
     const source = readFileSync(resolve(process.cwd(), "client/src/pages/Admin.tsx"), "utf8");
     expect(source).toContain("Filtrer les paiements par statut");
     expect(source).toContain("Expirent sous 7 jours");
+    expect(source).toContain("Expirent aujourd’hui");
+    expect(source).toContain("Expirent demain");
+    expect(source).toContain('codeFilter === "today"');
+    expect(source).toContain('codeFilter === "tomorrow"');
     expect(source).toContain("filteredPaymentRequests");
     expect(source).toContain("filteredCodes");
+  });
+
+  it("affiche une confirmation animée après soumission de la référence", () => {
+    const source = readFileSync(resolve(process.cwd(), "client/src/components/PaymentRequestPanel.tsx"), "utf8");
+    expect(source).toContain("submissionConfirmed");
+    expect(source).toContain("Référence reçue");
+    expect(source).toContain("motion-safe:animate-pulse");
   });
 
   it("prépare un message WhatsApp contenant le code activé", () => {
     const source = readFileSync(resolve(process.cwd(), "client/src/pages/Admin.tsx"), "utf8");
     expect(source).toContain("buildActivatedCodeWhatsAppUrl");
     expect(source).toContain("votre code d’accès : ${code}");
+    expect(source).toContain("Il est valable jusqu’au ${expiry}");
+    expect(source).toContain("${window.location.origin}/#paiement");
     expect(source).toContain("Ouvrir WhatsApp");
   });
 });

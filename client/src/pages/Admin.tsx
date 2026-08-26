@@ -40,10 +40,12 @@ function buildWhatsAppUrl(phone: string, clientName: string) {
   return `https://wa.me/${internationalPhone}?text=${encodeURIComponent(message)}`;
 }
 
-function buildActivatedCodeWhatsAppUrl(phone: string, clientName: string, code: string) {
+function buildActivatedCodeWhatsAppUrl(phone: string, clientName: string, code: string, expiresAt: Date | string) {
   const digits = phone.replace(/\D/g, "");
   const internationalPhone = digits.startsWith("0") ? `225${digits.slice(1)}` : digits;
-  const message = `Bonjour ${clientName}, votre paiement a été confirmé. Votre forfait MÉTREXPERT IA PRO est activé. Voici votre code d’accès : ${code}. Conservez-le précieusement.`;
+  const expiry = new Date(expiresAt).toLocaleDateString("fr-FR");
+  const renewalUrl = typeof window === "undefined" ? "/#paiement" : `${window.location.origin}/#paiement`;
+  const message = `Bonjour ${clientName}, votre paiement a été confirmé. Votre forfait MÉTREXPERT IA PRO est activé. Voici votre code d’accès : ${code}. Il est valable jusqu’au ${expiry}. Pour renouveler votre forfait : ${renewalUrl}. Conservez ce message précieusement.`;
   return `https://wa.me/${internationalPhone}?text=${encodeURIComponent(message)}`;
 }
 
@@ -96,9 +98,9 @@ export default function Admin() {
   const [paymentMethod, setPaymentMethod] = useState<"wave" | "moov" | "mtn" | "autre" | "">("");
   const [paymentReference, setPaymentReference] = useState("");
   const [paymentFilter, setPaymentFilter] = useState<"all" | "pending" | "confirmed" | "rejected">("all");
-  const [codeFilter, setCodeFilter] = useState<"all" | "expiring">("all");
+  const [codeFilter, setCodeFilter] = useState<"all" | "expiring" | "today" | "tomorrow">("all");
   const [revealedCode, setRevealedCode] = useState<string | null>(null);
-  const [revealedCodeRecipient, setRevealedCodeRecipient] = useState<{ clientName: string; phone: string } | null>(null);
+  const [revealedCodeRecipient, setRevealedCodeRecipient] = useState<{ clientName: string; phone: string; expiresAt: Date | string } | null>(null);
   const [copyState, setCopyState] = useState<"idle" | "copied">("idle");
   const [sessionUnlocked, setSessionUnlocked] = useState(false);
   const [codeToRevoke, setCodeToRevoke] = useState<CodeToRevoke>(null);
@@ -142,7 +144,7 @@ export default function Admin() {
       void codes.refetch();
       if (data.status === "confirmed" && "accessCode" in data && data.accessCode) {
         setRevealedCode(data.accessCode);
-        if ("clientName" in data && "phone" in data && typeof data.clientName === "string" && typeof data.phone === "string") setRevealedCodeRecipient({ clientName: data.clientName, phone: data.phone });
+        if ("clientName" in data && "phone" in data && "expiresAt" in data && typeof data.clientName === "string" && typeof data.phone === "string" && data.expiresAt) setRevealedCodeRecipient({ clientName: data.clientName, phone: data.phone, expiresAt: data.expiresAt as Date | string });
       }
       toast.success(data.status === "confirmed" ? "Paiement confirmé et forfait activé." : "Paiement refusé.");
     },
@@ -199,8 +201,15 @@ export default function Admin() {
   const filteredPaymentRequests = paymentRequests.data?.filter((request) => paymentFilter === "all" || request.status === paymentFilter) ?? [];
   const filteredCodes = codes.data?.filter((code) => {
     if (codeFilter === "all") return true;
-    const daysRemaining = (new Date(code.expiresAt).getTime() - Date.now()) / 86_400_000;
-    return !code.disabledAt && daysRemaining >= 0 && daysRemaining <= 7;
+    if (code.disabledAt) return false;
+    const expiry = new Date(code.expiresAt);
+    const daysRemaining = (expiry.getTime() - Date.now()) / 86_400_000;
+    if (codeFilter === "expiring") return daysRemaining >= 0 && daysRemaining <= 7;
+    const expiryKey = expiry.toLocaleDateString("fr-CA");
+    const today = new Date();
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    return expiryKey === (codeFilter === "today" ? today : tomorrow).toLocaleDateString("fr-CA");
   }) ?? [];
   const filteredTrials = trials.data?.filter((trial) => {
     const statusMatches = trialFilter === "all" || (trialFilter === "converted" ? Boolean(trial.convertedAt) : !trial.convertedAt);
@@ -424,7 +433,7 @@ export default function Admin() {
                           ? "Code copié"
                           : "Copier le code"}
                       </Button>
-                      {revealedCodeRecipient && <a href={buildActivatedCodeWhatsAppUrl(revealedCodeRecipient.phone, revealedCodeRecipient.clientName, revealedCode)} target="_blank" rel="noreferrer" className="inline-flex items-center justify-center gap-2 border border-[#7C9A76] px-4 py-2 font-mono text-[10px] uppercase tracking-wider text-[#7C9A76] hover:bg-[#7C9A76] hover:text-[#0F1613]"><MessageCircle className="h-4 w-4" aria-hidden="true" />Ouvrir WhatsApp</a>}
+                      {revealedCodeRecipient && <a href={buildActivatedCodeWhatsAppUrl(revealedCodeRecipient.phone, revealedCodeRecipient.clientName, revealedCode, revealedCodeRecipient.expiresAt)} target="_blank" rel="noreferrer" className="inline-flex items-center justify-center gap-2 border border-[#7C9A76] px-4 py-2 font-mono text-[10px] uppercase tracking-wider text-[#7C9A76] hover:bg-[#7C9A76] hover:text-[#0F1613]"><MessageCircle className="h-4 w-4" aria-hidden="true" />Ouvrir WhatsApp</a>}
                       <Button
                         type="button"
                         variant="outline"
@@ -449,7 +458,7 @@ export default function Admin() {
 
           <Card className="border-[#3A4A42] bg-[#16201C] text-[#EDEAE2]">
             <CardHeader>
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><CardTitle className="font-serif text-2xl">Codes actifs et historiques</CardTitle><div className="flex flex-wrap gap-2" aria-label="Filtrer les expirations"><Button type="button" size="sm" variant="outline" onClick={() => setCodeFilter("all")} className={codeFilter === "all" ? "border-[#C9A15A] bg-[#C9A15A] text-[#0F1613]" : "border-[#3A4A42] text-[#AEB7B0]"}>Tous</Button><Button type="button" size="sm" variant="outline" onClick={() => setCodeFilter("expiring")} className={codeFilter === "expiring" ? "border-[#C9A15A] bg-[#C9A15A] text-[#0F1613]" : "border-[#3A4A42] text-[#AEB7B0]"}>Expirent sous 7 jours</Button></div></div><p className="mt-2 font-mono text-[10px] uppercase tracking-wider text-[#AEB7B0]">{filteredCodes.length} code{filteredCodes.length > 1 ? "s" : ""} affiché{filteredCodes.length > 1 ? "s" : ""}</p>
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><CardTitle className="font-serif text-2xl">Codes actifs et historiques</CardTitle><div className="flex flex-wrap gap-2" aria-label="Filtrer les expirations"><Button type="button" size="sm" variant="outline" onClick={() => setCodeFilter("all")} className={codeFilter === "all" ? "border-[#C9A15A] bg-[#C9A15A] text-[#0F1613]" : "border-[#3A4A42] text-[#AEB7B0]"}>Tous</Button><Button type="button" size="sm" variant="outline" onClick={() => setCodeFilter("expiring")} className={codeFilter === "expiring" ? "border-[#C9A15A] bg-[#C9A15A] text-[#0F1613]" : "border-[#3A4A42] text-[#AEB7B0]"}>Expirent sous 7 jours</Button><Button type="button" size="sm" variant="outline" onClick={() => setCodeFilter("today")} className={codeFilter === "today" ? "border-[#C9A15A] bg-[#C9A15A] text-[#0F1613]" : "border-[#3A4A42] text-[#AEB7B0]"}>Expirent aujourd’hui</Button><Button type="button" size="sm" variant="outline" onClick={() => setCodeFilter("tomorrow")} className={codeFilter === "tomorrow" ? "border-[#C9A15A] bg-[#C9A15A] text-[#0F1613]" : "border-[#3A4A42] text-[#AEB7B0]"}>Expirent demain</Button></div></div><p className="mt-2 font-mono text-[10px] uppercase tracking-wider text-[#AEB7B0]">{filteredCodes.length} code{filteredCodes.length > 1 ? "s" : ""} affiché{filteredCodes.length > 1 ? "s" : ""}</p>
             </CardHeader>
             <CardContent>
               {codes.isLoading ? (
