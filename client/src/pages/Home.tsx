@@ -9,6 +9,8 @@ import { toast } from "sonner";
 
 const MAX_FILE_SIZE = 8 * 1024 * 1024;
 const ACCEPTED_TYPES = ["application/pdf", "image/png", "image/jpeg", "image/webp"];
+const BRAND_IMAGE_TYPES = ["image/png", "image/jpeg"];
+const MAX_BRAND_IMAGE_SIZE = 1.5 * 1024 * 1024;
 
 function readFileAsDataUrl(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -18,6 +20,8 @@ function readFileAsDataUrl(file: File): Promise<string> {
     reader.readAsDataURL(file);
   });
 }
+
+type BrandImage = { name: string; dataUrl: string };
 
 type PreviewMeasure = {
   code: string;
@@ -61,11 +65,16 @@ export default function Home() {
   const [clientEmail, setClientEmail] = useState("");
   const [verifiedBy, setVerifiedBy] = useState("");
   const [validationDate, setValidationDate] = useState("");
+  const [signatureImage, setSignatureImage] = useState<BrandImage | null>(null);
+  const [stampImage, setStampImage] = useState<BrandImage | null>(null);
+  const [brandImageError, setBrandImageError] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [fileError, setFileError] = useState("");
   const [download, setDownload] = useState<GeneratedDownload | null>(null);
   const [previewQuery, setPreviewQuery] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const signatureInputRef = useRef<HTMLInputElement>(null);
+  const stampInputRef = useRef<HTMLInputElement>(null);
   const accessStatus = trpc.security.status.useQuery();
   const verifyAccess = trpc.security.verifyAccessCode.useMutation({
     onSuccess: async () => {
@@ -104,6 +113,27 @@ export default function Home() {
     setFile(candidate);
   };
 
+  const onBrandImageChange = async (kind: "signature" | "stamp", candidate?: File) => {
+    setBrandImageError("");
+    if (!candidate) return;
+    if (!BRAND_IMAGE_TYPES.includes(candidate.type)) {
+      setBrandImageError("Les images de validation doivent être au format PNG ou JPEG.");
+      return;
+    }
+    if (candidate.size > MAX_BRAND_IMAGE_SIZE) {
+      setBrandImageError("Chaque image de validation doit peser moins de 1,5 Mo.");
+      return;
+    }
+    try {
+      const dataUrl = await readFileAsDataUrl(candidate);
+      const image = { name: candidate.name, dataUrl };
+      if (kind === "signature") setSignatureImage(image);
+      else setStampImage(image);
+    } catch (error) {
+      setBrandImageError(error instanceof Error ? error.message : "Impossible de lire cette image.");
+    }
+  };
+
   const handleVerifyAccess = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     verifyAccess.mutate({ accessCode });
@@ -126,6 +156,8 @@ export default function Home() {
         clientEmail: clientEmail.trim() || undefined,
         verifiedBy: verifiedBy.trim() || undefined,
         validationDate: validationDate.trim() || undefined,
+        signatureImageDataUrl: signatureImage?.dataUrl,
+        stampImageDataUrl: stampImage?.dataUrl,
         file: file && dataUrl ? { name: file.name, mimeType: file.type as "application/pdf" | "image/png" | "image/jpeg" | "image/webp", dataUrl } : undefined,
       });
       const bytes = Uint8Array.from(atob(result.data), (char) => char.charCodeAt(0));
@@ -201,6 +233,11 @@ export default function Home() {
                 <div className="min-w-0"><label htmlFor="verified-by" className="field-label">Vérifié par <span>OPTIONNEL</span></label><input id="verified-by" type="text" autoComplete="name" value={verifiedBy} onChange={(event) => setVerifiedBy(event.target.value)} placeholder="À compléter" className="technical-input h-11 w-full min-w-0 px-3 text-sm" /></div>
                 <div className="min-w-0"><label htmlFor="validation-date" className="field-label">Date de validation <span>OPTIONNEL</span></label><input id="validation-date" type="text" inputMode="numeric" value={validationDate} onChange={(event) => setValidationDate(event.target.value)} placeholder="JJ/MM/AAAA" className="technical-input h-11 w-full min-w-0 px-3 text-sm" /></div>
               </div>
+              <div className="mt-5 grid min-w-0 gap-4 sm:grid-cols-2">
+                <div className="min-w-0"><label htmlFor="signature-image" className="field-label">Image de signature <span>OPTIONNEL</span></label><input ref={signatureInputRef} id="signature-image" type="file" accept="image/png,image/jpeg" className="sr-only" onChange={(event) => void onBrandImageChange("signature", event.target.files?.[0])} /><button type="button" onClick={() => signatureInputRef.current?.click()} className="upload-zone w-full justify-between"><span className="min-w-0 truncate text-left text-sm text-[#AEB7B0]">{signatureImage?.name || "Importer une image"}</span><UploadCloud className="h-4 w-4 shrink-0 text-[#C9A15A]" /></button></div>
+                <div className="min-w-0"><label htmlFor="stamp-image" className="field-label">Image de tampon <span>OPTIONNEL</span></label><input ref={stampInputRef} id="stamp-image" type="file" accept="image/png,image/jpeg" className="sr-only" onChange={(event) => void onBrandImageChange("stamp", event.target.files?.[0])} /><button type="button" onClick={() => stampInputRef.current?.click()} className="upload-zone w-full justify-between"><span className="min-w-0 truncate text-left text-sm text-[#AEB7B0]">{stampImage?.name || "Importer une image"}</span><UploadCloud className="h-4 w-4 shrink-0 text-[#C9A15A]" /></button></div>
+              </div>
+              {brandImageError && <p className="mt-2 flex items-center gap-2 text-xs font-medium text-[#d98472]" role="alert"><ImageIcon className="h-3.5 w-3.5" />{brandImageError}</p>}
               <div className="mt-5">
                 <input ref={fileInputRef} type="file" accept=".pdf,image/png,image/jpeg,image/webp" className="sr-only" onChange={(event) => onFileChange(event.target.files?.[0])} />
                 <button type="button" onClick={() => fileInputRef.current?.click()} className="upload-zone group">

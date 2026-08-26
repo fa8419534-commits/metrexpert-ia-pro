@@ -137,3 +137,15 @@
 - [x] Mettre à jour le test de plage de couverture après l’ajout du bloc signature/tampon
 - [x] Corriger l’attente de plage A1:D27 dans le test après compactage de la couverture
 - [x] Sauvegarder un nouveau checkpoint après l’ajout du bloc « Signature numérique / Tampon d’entreprise » et sa validation d’impression
+
+- [x] Ajouter un import d’image de signature depuis l’interface web
+- [x] Ajouter un import d’image de tampon depuis l’interface web
+- [x] Valider les formats, signatures binaires, dimensions et taille des images
+- [x] Transmettre les images au serveur et les insérer dans la couverture Excel
+- [x] Ajouter les tests UI, routeur, sécurité, XLSX et impression
+- [x] Vérifier le rendu final puis sauvegarder un checkpoint
+- [x] Corriger l’import ESM de XLSX dans le script de contrôle d’impression avec images
+- [x] Préserver les résultats en cache des formules lors de l’insertion d’images afin que le total reste visible avant recalcul Excel
+- [x] Valider côté serveur les dimensions minimales et maximales des images de signature/tampon avec tests dédiés
+- [x] Sauvegarder un checkpoint postérieur à l’intégration complète des images et de toutes les validations
+- [x] Sauvegarder un nouveau checkpoint après l’intégration des imports d’images de signature/tampon et leurs validations finales

@@ -1,5 +1,6 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
+import imageSize from "image-size";
 import { COOKIE_NAME } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { invokeLLM } from "./_core/llm";
@@ -47,12 +48,34 @@ export const requestSchema = z.object({
   clientEmail: z.string().trim().max(160).optional(),
   verifiedBy: z.string().trim().max(160).optional(),
   validationDate: z.string().trim().max(40).optional(),
+  signatureImageDataUrl: z.string().max(2_500_000).optional(),
+  stampImageDataUrl: z.string().max(2_500_000).optional(),
   file: z.object({
     name: z.string().max(180),
     mimeType: z.enum(["application/pdf", "image/png", "image/jpeg", "image/webp"]),
     dataUrl: z.string().max(12_000_000),
   }).optional(),
 });
+
+export function validateBrandImageDataUrl(dataUrl: string) {
+  const match = dataUrl.match(/^data:(image\/(?:png|jpeg));base64,([A-Za-z0-9+/=\r\n]+)$/);
+  if (!match) throw new TRPCError({ code: "BAD_REQUEST", message: "Les images de signature et de tampon doivent être au format PNG ou JPEG." });
+  const buffer = Buffer.from(match[2].replace(/\s/g, ""), "base64");
+  if (buffer.length > 1_500_000) throw new TRPCError({ code: "BAD_REQUEST", message: "Chaque image de validation doit peser moins de 1,5 Mo." });
+  const isPng = buffer.subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]));
+  const isJpeg = buffer.subarray(0, 3).equals(Buffer.from([255, 216, 255]));
+  if ((match[1] === "image/png" && !isPng) || (match[1] === "image/jpeg" && !isJpeg)) throw new TRPCError({ code: "BAD_REQUEST", message: "Le contenu binaire de l’image ne correspond pas à son format déclaré." });
+  let dimensions: { width?: number; height?: number };
+  try {
+    dimensions = imageSize(buffer);
+  } catch {
+    throw new TRPCError({ code: "BAD_REQUEST", message: "Impossible de lire les dimensions de l’image de validation." });
+  }
+  if (!dimensions.width || !dimensions.height || dimensions.width < 1 || dimensions.height < 1 || dimensions.width > 2400 || dimensions.height > 1600) {
+    throw new TRPCError({ code: "BAD_REQUEST", message: "Les dimensions de l’image doivent être comprises entre 1×1 et 2400×1600 pixels." });
+  }
+  return buffer;
+}
 
 export function validateUploadedDataUrl(file: { mimeType: string; dataUrl: string }) {
   const match = file.dataUrl.match(/^data:([^;,]+);base64,([A-Za-z0-9+/=\r\n]+)$/);
@@ -84,9 +107,9 @@ function extractText(response: Awaited<ReturnType<typeof invokeLLM>>): string {
   return "";
 }
 
-export type EstimateRequestMetadata = Pick<ProjectEstimate, "clientPhone" | "clientEmail" | "verifiedBy" | "validationDate">;
+export type EstimateRequestMetadata = Pick<ProjectEstimate, "clientPhone" | "clientEmail" | "verifiedBy" | "validationDate" | "signatureImageDataUrl" | "stampImageDataUrl">;
 
-export function buildEstimateWorkbookFromRequest(estimate: ProjectEstimate, metadata: EstimateRequestMetadata) {
+export async function buildEstimateWorkbookFromRequest(estimate: ProjectEstimate, metadata: EstimateRequestMetadata) {
   return buildEstimateWorkbook({ ...estimate, ...metadata });
 }
 
@@ -147,6 +170,8 @@ export const appRouter = router({
         if (!hasValidAccessCookie(ctx)) {
           throw new TRPCError({ code: "UNAUTHORIZED", message: "Déverrouillez l’application avec le code d’accès avant de générer." });
         }
+        if (input.signatureImageDataUrl) validateBrandImageDataUrl(input.signatureImageDataUrl);
+        if (input.stampImageDataUrl) validateBrandImageDataUrl(input.stampImageDataUrl);
         const quota = await consumeGenerationQuota(ctx);
         if (!quota.allowed) {
           throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: quota.reason === "hourly" ? `Limite atteinte : ${HOURLY_LIMIT} générations par heure.` : `Quota global atteint : ${DAILY_LIMIT} générations pour aujourd’hui.` });
@@ -190,11 +215,13 @@ export const appRouter = router({
           throw new TRPCError({ code: "BAD_REQUEST", message: "La réponse de l’IA n’est pas un JSON valide." });
         }
         const estimate = normalizeEstimateAmbiguities(validateEstimate(json));
-        const workbook = buildEstimateWorkbookFromRequest(estimate, {
+        const workbook = await buildEstimateWorkbookFromRequest(estimate, {
           clientPhone: input.clientPhone || undefined,
           clientEmail: input.clientEmail || undefined,
           verifiedBy: input.verifiedBy || undefined,
           validationDate: input.validationDate || undefined,
+          signatureImageDataUrl: input.signatureImageDataUrl || undefined,
+          stampImageDataUrl: input.stampImageDataUrl || undefined,
         });
         return {
           filename: `metrexpert-${Date.now()}.xlsx`,

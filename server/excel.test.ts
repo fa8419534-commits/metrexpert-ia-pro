@@ -7,7 +7,7 @@ import { join } from "node:path";
 import { buildEstimateWorkbook, type ProjectEstimate } from "./excel";
 
 describe("buildEstimateWorkbook", () => {
-  it("creates the required sheets with live formulas", () => {
+  it("creates the required sheets with live formulas", async () => {
     const input: ProjectEstimate = {
       projectTitle: "Villa test",
       currency: "FCFA",
@@ -17,7 +17,7 @@ describe("buildEstimateWorkbook", () => {
       ],
     };
 
-    const workbook = XLSX.read(buildEstimateWorkbook(input), { type: "buffer", cellFormula: true, cellStyles: true });
+    const workbook = XLSX.read(await buildEstimateWorkbook(input), { type: "buffer", cellFormula: true, cellStyles: true });
     expect(workbook.SheetNames).toEqual(["Couverture", "Métré", "DQE"]);
     expect(workbook.Sheets.Métré?.F2.f).toBe("D2*E2");
     expect(workbook.Sheets.DQE?.D2.f).toBe("IFERROR('Métré'!F2,0)");
@@ -59,8 +59,8 @@ describe("buildEstimateWorkbook", () => {
     expect(workbook.Sheets.DQE?.A1.s).toBeDefined();
   });
 
-  it("renders supplied client and validation metadata", () => {
-    const workbook = XLSX.read(buildEstimateWorkbook({
+  it("renders supplied client and validation metadata", async () => {
+    const workbook = XLSX.read(await buildEstimateWorkbook({
       projectTitle: "Projet client",
       client: "Client Exemple",
       clientPhone: "+225 07 00 00 00 00",
@@ -78,11 +78,32 @@ describe("buildEstimateWorkbook", () => {
     expect(workbook.Sheets.Couverture?.D21.v).toBe("26/08/2026");
   });
 
-  it("writes formula XML without a leading equals sign", () => {
+  it("embeds supplied signature and stamp images in the XLSX package", async () => {
+    const image = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=";
+    const buffer = await buildEstimateWorkbook({
+      projectTitle: "Image test",
+      signatureImageDataUrl: image,
+      stampImageDataUrl: image,
+      measures: [{ code: "01", designation: "Béton", unit: "m³", quantity: 1, unitPrice: 85000 }],
+    });
+    const tempDir = mkdtempSync(join(tmpdir(), "metrexpert-image-xlsx-"));
+    const xlsxPath = join(tempDir, "image-check.xlsx");
+    try {
+      writeFileSync(xlsxPath, buffer);
+      const mediaList = execFileSync("unzip", ["-Z1", xlsxPath], { encoding: "utf8" });
+      expect(mediaList).toContain("xl/media/image1.png");
+      expect(mediaList).toContain("xl/media/image2.png");
+      expect(mediaList).toContain("xl/drawings/drawing1.xml");
+    } finally {
+      rmSync(tempDir, { recursive: true, force: true });
+    }
+  });
+
+  it("writes formula XML without a leading equals sign", async () => {
     const tempDir = mkdtempSync(join(tmpdir(), "metrexpert-xlsx-"));
     const xlsxPath = join(tempDir, "formula-check.xlsx");
     try {
-      writeFileSync(xlsxPath, buildEstimateWorkbook({
+      writeFileSync(xlsxPath, await buildEstimateWorkbook({
         projectTitle: "XML test",
         measures: [{ code: "01", designation: "Béton", unit: "m³", quantity: 2, unitPrice: 85000 }],
       }));

@@ -1,4 +1,5 @@
 import XLSX from "xlsx-js-style";
+import ExcelJS from "exceljs";
 
 export type MeasureItem = {
   code: string;
@@ -20,6 +21,8 @@ export type ProjectEstimate = {
   currency?: string;
   verifiedBy?: string;
   validationDate?: string;
+  signatureImageDataUrl?: string;
+  stampImageDataUrl?: string;
   measures: MeasureItem[];
 };
 
@@ -114,7 +117,57 @@ const formulaStyle: CellStyle = {
   font: { name: "Aptos", sz: 10, color: { rgb: COLORS.anthracite }, bold: true },
 };
 
-export function buildEstimateWorkbook(data: ProjectEstimate): Buffer {
+function decodeBrandImage(dataUrl: string): { buffer: Buffer; extension: "png" | "jpeg" } {
+  const match = dataUrl.match(/^data:(image\/(?:png|jpeg));base64,([A-Za-z0-9+/=\r\n]+)$/);
+  if (!match) throw new Error("Image de validation invalide : seuls PNG et JPEG sont acceptés.");
+  return { buffer: Buffer.from(match[2].replace(/\s/g, ""), "base64"), extension: match[1] === "image/png" ? "png" : "jpeg" };
+}
+
+async function embedCoverageImages(xlsxBuffer: Buffer, data: ProjectEstimate): Promise<Buffer> {
+  if (!data.signatureImageDataUrl && !data.stampImageDataUrl) return xlsxBuffer;
+  const sourceWorkbook = XLSX.read(xlsxBuffer, { type: "buffer", cellFormula: true });
+  const workbook = new ExcelJS.Workbook();
+  await workbook.xlsx.load(xlsxBuffer as any);
+  Object.entries(sourceWorkbook.Sheets).forEach(([sheetName, sourceSheet]) => {
+    const targetSheet = workbook.getWorksheet(sheetName);
+    if (!targetSheet) return;
+    Object.entries(sourceSheet).forEach(([address, sourceCell]) => {
+      if (!address.startsWith("!") && sourceCell && typeof sourceCell === "object" && "f" in sourceCell && sourceCell.f && "v" in sourceCell) {
+        targetSheet.getCell(address).value = { formula: String(sourceCell.f), result: sourceCell.v as string | number | boolean };
+      }
+    });
+  });
+  const calculatedQuantities = data.measures.map((measure) => measure.quantity * (measure.factor ?? 1));
+  const calculatedTotal = data.measures.reduce((sum, measure, index) => sum + calculatedQuantities[index] * (measure.unitPrice ?? 0), 0);
+  const measureTarget = workbook.getWorksheet("Métré");
+  const dqeTarget = workbook.getWorksheet("DQE");
+  data.measures.forEach((measure, index) => {
+    const row = index + 2;
+    if (measureTarget) measureTarget.getCell(`F${row}`).value = { formula: `D${row}*E${row}`, result: calculatedQuantities[index] };
+    if (dqeTarget) {
+      dqeTarget.getCell(`D${row}`).value = { formula: `IFERROR('Métré'!F${row},0)`, result: calculatedQuantities[index] };
+      dqeTarget.getCell(`F${row}`).value = { formula: `D${row}*E${row}`, result: calculatedQuantities[index] * (measure.unitPrice ?? 0) };
+    }
+  });
+  const totalRow = data.measures.length + 2;
+  if (dqeTarget) dqeTarget.getCell(`F${totalRow}`).value = { formula: `SUM(F2:F${totalRow - 1})`, result: calculatedTotal };
+  const sheet = workbook.getWorksheet("Couverture");
+  if (!sheet) return xlsxBuffer;
+  sheet.getCell("B15").value = { formula: `'DQE'!F${totalRow}`, result: calculatedTotal };
+  if (data.signatureImageDataUrl) {
+    const image = decodeBrandImage(data.signatureImageDataUrl);
+    const imageId = workbook.addImage({ buffer: image.buffer as any, extension: image.extension });
+    sheet.addImage(imageId, "B23:B24");
+  }
+  if (data.stampImageDataUrl) {
+    const image = decodeBrandImage(data.stampImageDataUrl);
+    const imageId = workbook.addImage({ buffer: image.buffer as any, extension: image.extension });
+    sheet.addImage(imageId, "D23:D24");
+  }
+  return Buffer.from(await workbook.xlsx.writeBuffer());
+}
+
+export async function buildEstimateWorkbook(data: ProjectEstimate): Promise<Buffer> {
   const workbook = XLSX.utils.book_new();
   const currency = data.currency || "FCFA";
   const issuedAt = new Date();
@@ -234,5 +287,6 @@ export function buildEstimateWorkbook(data: ProjectEstimate): Buffer {
     CalcPr: { calcMode: "auto", fullCalcOnLoad: true, forceFullCalc: true },
   } as typeof workbook.Workbook;
 
-  return XLSX.write(workbook, { type: "buffer", bookType: "xlsx", cellStyles: true });
+  const xlsxBuffer = XLSX.write(workbook, { type: "buffer", bookType: "xlsx", cellStyles: true });
+  return embedCoverageImages(xlsxBuffer, data);
 }

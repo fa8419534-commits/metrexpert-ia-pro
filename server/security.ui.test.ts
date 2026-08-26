@@ -64,6 +64,11 @@ describe("generation quota UI errors", () => {
     expect(source).toContain('id="validation-date"');
     expect(source).toContain("verifiedBy: verifiedBy.trim() || undefined");
     expect(source).toContain("validationDate: validationDate.trim() || undefined");
+    expect(source).toContain('id="signature-image"');
+    expect(source).toContain('id="stamp-image"');
+    expect(source).toContain('accept="image/png,image/jpeg"');
+    expect(source).toContain("signatureImageDataUrl: signatureImage?.dataUrl");
+    expect(source).toContain("stampImageDataUrl: stampImage?.dataUrl");
   });
 
   it("keeps the unlocked quota condition in Home", () => {
