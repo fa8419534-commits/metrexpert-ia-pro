@@ -428,7 +428,7 @@ export default function Home() {
     <main className="min-h-screen overflow-hidden bg-[#0F1613] text-[#EDEAE2]">
       <div className="technical-grid pointer-events-none fixed inset-0 opacity-60" />
       <div className="relative mx-auto min-h-screen w-full min-w-0 max-w-[1480px] overflow-x-hidden px-5 py-5 sm:px-8 lg:px-12">
-        <header className="plan-cartouche mb-14 grid w-full min-w-0 gap-5 lg:grid-cols-[1.35fr_0.9fr_0.55fr]">
+        <header className="plan-cartouche mb-14 grid w-full min-w-0 gap-5 lg:grid-cols-[1.35fr_0.9fr_0.55fr]"><div className="flex justify-end px-4 pt-3 lg:col-span-3 lg:order-first"><a href="/" className="inline-flex items-center border border-[#3A4A42] px-3 py-2 font-mono text-[9px] uppercase tracking-wider text-[#C9A15A] hover:border-[#C9A15A] hover:text-[#EDEAE2]">← Retour à l’accueil</a></div>
           <div className="flex items-center gap-4">
             <div className="brand-mark" aria-hidden="true"><Ruler className="h-6 w-6" /></div>
             <div>

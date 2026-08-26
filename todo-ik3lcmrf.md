@@ -299,3 +299,10 @@
 - [x] Préparer le contenu d’une présentation des maquettes Accueil et Génération
 - [x] Générer la présentation visuelle des deux maquettes
 - [x] Sauvegarder un checkpoint et remettre les livrables à Daouda
+
+- [x] Ajouter un bouton Retour à l’accueil dans l’espace /etude
+- [x] Rendre la barre de navigation de l’accueil fixe et accessible
+- [x] Définir des messages WhatsApp préremplis par section consultée
+- [x] Ajouter une FAQ sur le processus, les quotas et la vérification humaine
+- [x] Tester la navigation, les ancres, WhatsApp, la FAQ et la responsivité
+- [x] Sauvegarder un checkpoint de cette évolution

@@ -8,3 +8,6 @@ L’espace de génération conserve l’identité technique sombre et le cartouc
 
 ## Points à surveiller
 La page de génération est longue et doit être accompagnée d’un lien de retour vers l’accueil sur la prochaine itération. La maquette publique utilise une typographie serif pour les titres et une sans-serif pour le corps ; le monospace est réservé aux métadonnées et repères. Les captures ont été réalisées en desktop et servent de base à la présentation des maquettes.
+
+## Navigation et FAQ — contrôle mobile
+Le header de l’accueil reste visible en haut pendant le défilement et la FAQ s’affiche en accordéons lisibles sans débordement horizontal. Le bouton WhatsApp flottant est prévu pour rester accessible, tandis que le bouton de retour est visible en haut de l’espace /etude. La page publique est longue mais structurée en sections distinctes ; l’outil de génération conserve son formulaire dense et vertical, adapté au mobile.

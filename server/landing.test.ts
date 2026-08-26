@@ -14,6 +14,10 @@ describe("public landing page", () => {
     expect(landing).toContain("Tester l’espace de génération");
     expect(landing).toContain("Parler du projet");
     expect(landing).toContain("Yopougon, Abidjan");
+    expect(landing).toContain("sticky top-0");
+    expect(landing).toContain("Questions fréquentes");
+    expect(landing).toContain("whatsappUrlFor");
+    expect(landing).toContain("Que se passe-t-il lorsque mon quota est atteint ?");
   });
 
   it("keeps the public landing and generation workspace on separate routes", () => {
