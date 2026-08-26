@@ -51,6 +51,23 @@ export function buildFreeTrialCsv(trials: CsvTrial[]) {
   ].map((row) => row.map((value) => escape(String(value))).join(";")) .join("\r\n");
 }
 
+export function buildCombinedTrialCsv(trials: CsvTrial[]) {
+  const escape = (value: string) => `"${value.replace(/"/g, '""')}"`;
+  const normalizePhone = (phone: string) => {
+    const digits = phone.replace(/\D/g, "");
+    return digits.startsWith("0") ? `225${digits.slice(1)}` : digits;
+  };
+  return [
+    ["Full name", "Phone number", "Email", "Preferred contact channel"],
+    ...trials.filter((trial) => trial.phone !== "À compléter" || (trial.email && trial.email !== "À compléter")).map((trial) => [
+      trial.clientName,
+      trial.phone !== "À compléter" ? normalizePhone(trial.phone) : "",
+      trial.email !== "À compléter" ? trial.email ?? "" : "",
+      trial.phone !== "À compléter" ? "WhatsApp" : "Email",
+    ]),
+  ].map((row) => row.map((value) => escape(String(value))).join(";")) .join("\r\n");
+}
+
 export function buildEmailTrialCsv(trials: CsvTrial[]) {
   const escape = (value: string) => `"${value.replace(/"/g, '""')}"`;
   return [
@@ -73,7 +90,7 @@ export default function Admin() {
   const [trialFilter, setTrialFilter] = useState<"all" | "followup" | "converted">("all");
   const [trialStartDate, setTrialStartDate] = useState(() => typeof window === "undefined" ? "" : window.localStorage.getItem("metrexpert.trials.startDate") ?? "");
   const [trialEndDate, setTrialEndDate] = useState(() => typeof window === "undefined" ? "" : window.localStorage.getItem("metrexpert.trials.endDate") ?? "");
-  const [csvExportKind, setCsvExportKind] = useState<"whatsapp" | "email" | null>(null);
+  const [csvExportKind, setCsvExportKind] = useState<"whatsapp" | "email" | "combined" | null>(null);
 
   useEffect(() => {
     if (trialStartDate) window.localStorage.setItem("metrexpert.trials.startDate", trialStartDate);
@@ -180,16 +197,27 @@ export default function Admin() {
     setCodeToRevoke({ id, clientName: name });
   }
 
+  function resetTrialDates() {
+    setTrialStartDate("");
+    setTrialEndDate("");
+    window.localStorage.removeItem("metrexpert.trials.startDate");
+    window.localStorage.removeItem("metrexpert.trials.endDate");
+    toast.success("Filtres de date réinitialisés.");
+  }
+
   function downloadFilteredTrials() {
     const emailOnly = csvExportKind === "email";
+    const combined = csvExportKind === "combined";
     const exportableTrials = emailOnly
       ? filteredTrials.filter((trial) => trial.phone === "À compléter" && trial.email !== "À compléter")
-      : filteredTrials.filter((trial) => trial.phone !== "À compléter");
-    const csv = `\uFEFF${emailOnly ? buildEmailTrialCsv(exportableTrials) : buildFreeTrialCsv(exportableTrials)}`;
+      : combined
+        ? filteredTrials.filter((trial) => trial.phone !== "À compléter" || (trial.email && trial.email !== "À compléter"))
+        : filteredTrials.filter((trial) => trial.phone !== "À compléter");
+    const csv = `\uFEFF${emailOnly ? buildEmailTrialCsv(exportableTrials) : combined ? buildCombinedTrialCsv(exportableTrials) : buildFreeTrialCsv(exportableTrials)}`;
     const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
     const anchor = document.createElement("a");
     anchor.href = url;
-    anchor.download = `metrexpert-essais-${emailOnly ? "emails" : "whatsapp"}-${trialFilter}-${new Date().toISOString().slice(0, 10)}.csv`;
+    anchor.download = `metrexpert-essais-${emailOnly ? "emails" : combined ? "combine" : "whatsapp"}-${trialFilter}-${new Date().toISOString().slice(0, 10)}.csv`;
     anchor.click();
     URL.revokeObjectURL(url);
     setCsvExportKind(null);
@@ -457,7 +485,7 @@ export default function Admin() {
               <CardTitle className="font-serif text-2xl">Essais gratuits</CardTitle>
               <p className="mt-1 text-sm text-[#AEB7B0]">Contacts à relancer après leur génération offerte.</p>
             </div>
-            <div className="flex flex-wrap items-center justify-end gap-2"><span aria-label={`${filteredTrials.length} prospect${filteredTrials.length > 1 ? "s" : ""} affiché${filteredTrials.length > 1 ? "s" : ""} sur ${trials.data?.length ?? 0}`} className="border border-[#C9A15A]/60 bg-[#211d14] px-3 py-2 font-mono text-[10px] uppercase tracking-wider text-[#C9A15A]">{filteredTrials.length} / {trials.data?.length ?? 0} affiché{filteredTrials.length === 1 ? "" : "s"}</span><div className="flex flex-wrap gap-2" role="group" aria-label="Filtrer les essais gratuits"><button type="button" onClick={() => setTrialFilter("all")} aria-pressed={trialFilter === "all"} className={`border px-3 py-2 font-mono text-[10px] uppercase tracking-wider ${trialFilter === "all" ? "border-[#C9A15A] bg-[#C9A15A] text-[#0F1613]" : "border-[#3A4A42] text-[#AEB7B0]"}`}>Tous</button><button type="button" onClick={() => setTrialFilter("followup")} aria-pressed={trialFilter === "followup"} className={`border px-3 py-2 font-mono text-[10px] uppercase tracking-wider ${trialFilter === "followup" ? "border-[#C9A15A] bg-[#C9A15A] text-[#0F1613]" : "border-[#3A4A42] text-[#AEB7B0]"}`}>À relancer</button><button type="button" onClick={() => setTrialFilter("converted")} aria-pressed={trialFilter === "converted"} className={`border px-3 py-2 font-mono text-[10px] uppercase tracking-wider ${trialFilter === "converted" ? "border-[#7C9A76] bg-[#7C9A76] text-[#0F1613]" : "border-[#3A4A42] text-[#AEB7B0]"}`}>Convertis</button><Button type="button" variant="outline" size="sm" onClick={() => setCsvExportKind("whatsapp")} disabled={invalidDateRange || !filteredTrials.some((trial) => trial.phone !== "À compléter")} className="border-[#C9A15A] text-[#C9A15A]" aria-label="Exporter la liste filtrée en CSV"><Download className="mr-1 h-4 w-4" />Exporter CSV</Button><Button type="button" variant="outline" size="sm" onClick={() => setCsvExportKind("email")} disabled={invalidDateRange || !filteredTrials.some((trial) => trial.phone === "À compléter" && trial.email !== "À compléter")} className="border-[#7C9A76] text-[#7C9A76]" aria-label="Exporter les prospects avec e-mail uniquement en CSV"><Download className="mr-1 h-4 w-4" />Exporter e-mails</Button></div><div className="flex flex-wrap items-end gap-2" aria-label="Filtrer par période"><div><Label htmlFor="trial-start" className="font-mono text-[10px] uppercase tracking-wider text-[#AEB7B0]">Du</Label><Input id="trial-start" type="date" value={trialStartDate} onChange={(event) => setTrialStartDate(event.target.value)} aria-invalid={invalidDateRange} className="mt-1 h-9 border-[#3A4A42] bg-[#0F1613] text-xs text-[#EDEAE2]" /></div><div><Label htmlFor="trial-end" className="font-mono text-[10px] uppercase tracking-wider text-[#AEB7B0]">Au</Label><Input id="trial-end" type="date" value={trialEndDate} onChange={(event) => setTrialEndDate(event.target.value)} aria-invalid={invalidDateRange} className="mt-1 h-9 border-[#3A4A42] bg-[#0F1613] text-xs text-[#EDEAE2]" /></div></div></div>
+            <div className="flex flex-wrap items-center justify-end gap-2"><span aria-label={`${filteredTrials.length} prospect${filteredTrials.length > 1 ? "s" : ""} affiché${filteredTrials.length > 1 ? "s" : ""} sur ${trials.data?.length ?? 0}`} className="border border-[#C9A15A]/60 bg-[#211d14] px-3 py-2 font-mono text-[10px] uppercase tracking-wider text-[#C9A15A]">{filteredTrials.length} / {trials.data?.length ?? 0} affiché{filteredTrials.length === 1 ? "" : "s"}</span><div className="flex flex-wrap gap-2" role="group" aria-label="Filtrer les essais gratuits"><button type="button" onClick={() => setTrialFilter("all")} aria-pressed={trialFilter === "all"} className={`border px-3 py-2 font-mono text-[10px] uppercase tracking-wider ${trialFilter === "all" ? "border-[#C9A15A] bg-[#C9A15A] text-[#0F1613]" : "border-[#3A4A42] text-[#AEB7B0]"}`}>Tous</button><button type="button" onClick={() => setTrialFilter("followup")} aria-pressed={trialFilter === "followup"} className={`border px-3 py-2 font-mono text-[10px] uppercase tracking-wider ${trialFilter === "followup" ? "border-[#C9A15A] bg-[#C9A15A] text-[#0F1613]" : "border-[#3A4A42] text-[#AEB7B0]"}`}>À relancer</button><button type="button" onClick={() => setTrialFilter("converted")} aria-pressed={trialFilter === "converted"} className={`border px-3 py-2 font-mono text-[10px] uppercase tracking-wider ${trialFilter === "converted" ? "border-[#7C9A76] bg-[#7C9A76] text-[#0F1613]" : "border-[#3A4A42] text-[#AEB7B0]"}`}>Convertis</button><div className="flex flex-col items-start gap-1"><Button type="button" variant="outline" size="sm" onClick={() => setCsvExportKind("whatsapp")} disabled={invalidDateRange || !filteredTrials.some((trial) => trial.phone !== "À compléter")} className="border-[#C9A15A] text-[#C9A15A]" aria-label="Exporter la liste filtrée en CSV"><Download className="mr-1 h-4 w-4" />Exporter CSV</Button><span className="font-mono text-[10px] text-[#AEB7B0]">{invalidDateRange ? 0 : filteredTrials.filter((trial) => trial.phone !== "À compléter").length} contact{filteredTrials.filter((trial) => trial.phone !== "À compléter").length > 1 ? "s" : ""}</span></div><div className="flex flex-col items-start gap-1"><Button type="button" variant="outline" size="sm" onClick={() => setCsvExportKind("email")} disabled={invalidDateRange || !filteredTrials.some((trial) => trial.phone === "À compléter" && trial.email !== "À compléter")} className="border-[#7C9A76] text-[#7C9A76]" aria-label="Exporter les prospects avec e-mail uniquement en CSV"><Download className="mr-1 h-4 w-4" />Exporter e-mails</Button><span className="font-mono text-[10px] text-[#AEB7B0]">{invalidDateRange ? 0 : filteredTrials.filter((trial) => trial.phone === "À compléter" && trial.email !== "À compléter").length} contact{filteredTrials.filter((trial) => trial.phone === "À compléter" && trial.email !== "À compléter").length > 1 ? "s" : ""}</span></div><div className="flex flex-col items-start gap-1"><Button type="button" variant="outline" size="sm" onClick={() => setCsvExportKind("combined")} disabled={invalidDateRange || !filteredTrials.some((trial) => trial.phone !== "À compléter" || (trial.email && trial.email !== "À compléter"))} className="border-[#C9A15A] text-[#C9A15A]" aria-label="Exporter la liste combinée avec canal préféré en CSV"><Download className="mr-1 h-4 w-4" />Exporter combiné</Button><span className="font-mono text-[10px] text-[#AEB7B0]">{invalidDateRange ? 0 : filteredTrials.filter((trial) => trial.phone !== "À compléter" || (trial.email && trial.email !== "À compléter")).length} contact{filteredTrials.filter((trial) => trial.phone !== "À compléter" || (trial.email && trial.email !== "À compléter")).length > 1 ? "s" : ""}</span></div><Button type="button" variant="outline" size="sm" onClick={resetTrialDates} disabled={!trialStartDate && !trialEndDate} className="border-[#3A4A42] text-[#AEB7B0]" aria-label="Réinitialiser les filtres de date">Réinitialiser les dates</Button></div><div className="flex flex-wrap items-end gap-2" aria-label="Filtrer par période"><div><Label htmlFor="trial-start" className="font-mono text-[10px] uppercase tracking-wider text-[#AEB7B0]">Du</Label><Input id="trial-start" type="date" value={trialStartDate} onChange={(event) => setTrialStartDate(event.target.value)} aria-invalid={invalidDateRange} className="mt-1 h-9 border-[#3A4A42] bg-[#0F1613] text-xs text-[#EDEAE2]" /></div><div><Label htmlFor="trial-end" className="font-mono text-[10px] uppercase tracking-wider text-[#AEB7B0]">Au</Label><Input id="trial-end" type="date" value={trialEndDate} onChange={(event) => setTrialEndDate(event.target.value)} aria-invalid={invalidDateRange} className="mt-1 h-9 border-[#3A4A42] bg-[#0F1613] text-xs text-[#EDEAE2]" /></div></div></div>
             {invalidDateRange && <p role="alert" className="text-right text-xs text-[#d98472]">La date de début ne peut pas être postérieure à la date de fin.</p>}
             <p className="text-right text-[10px] text-[#7c8c83]">WhatsApp Business : nom complet + numéro international. Export e-mail : nom complet + adresse e-mail.</p>
           </CardHeader>
@@ -510,9 +538,9 @@ export default function Admin() {
       <AlertDialog open={csvExportKind !== null} onOpenChange={(open) => { if (!open) setCsvExportKind(null); }}>
         <AlertDialogContent className="border-[#3A4A42] bg-[#16201C] text-[#EDEAE2]">
           <AlertDialogHeader>
-            <AlertDialogTitle className="font-serif text-2xl">Confirmer l’export {csvExportKind === "email" ? "e-mail" : "WhatsApp Business"}</AlertDialogTitle>
+            <AlertDialogTitle className="font-serif text-2xl">Confirmer l’export {csvExportKind === "email" ? "e-mail" : csvExportKind === "combined" ? "combiné" : "WhatsApp Business"}</AlertDialogTitle>
             <AlertDialogDescription className="text-[#AEB7B0]">
-              Le fichier contiendra <strong className="text-[#EDEAE2]">{(csvExportKind === "email" ? filteredTrials.filter((trial) => trial.phone === "À compléter" && trial.email !== "À compléter") : filteredTrials.filter((trial) => trial.phone !== "À compléter")).length} prospect{(csvExportKind === "email" ? filteredTrials.filter((trial) => trial.phone === "À compléter" && trial.email !== "À compléter") : filteredTrials.filter((trial) => trial.phone !== "À compléter")).length > 1 ? "s" : ""}</strong> correspondant aux filtres actifs. Il sera composé de deux colonnes : nom complet et {csvExportKind === "email" ? "adresse e-mail" : "numéro de téléphone"}.
+              Le fichier contiendra <strong className="text-[#EDEAE2]">{(csvExportKind === "email" ? filteredTrials.filter((trial) => trial.phone === "À compléter" && trial.email !== "À compléter") : csvExportKind === "combined" ? filteredTrials.filter((trial) => trial.phone !== "À compléter" || (trial.email && trial.email !== "À compléter")) : filteredTrials.filter((trial) => trial.phone !== "À compléter")).length} prospect{(csvExportKind === "email" ? filteredTrials.filter((trial) => trial.phone === "À compléter" && trial.email !== "À compléter") : csvExportKind === "combined" ? filteredTrials.filter((trial) => trial.phone !== "À compléter" || (trial.email && trial.email !== "À compléter")) : filteredTrials.filter((trial) => trial.phone !== "À compléter")).length > 1 ? "s" : ""}</strong> correspondant aux filtres actifs. Il sera composé de {csvExportKind === "combined" ? "quatre colonnes : nom, téléphone, e-mail et canal préféré" : `deux colonnes : nom complet et ${csvExportKind === "email" ? "adresse e-mail" : "numéro de téléphone"}`}.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

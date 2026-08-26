@@ -222,3 +222,7 @@
 - [x] Mémoriser et restaurer le dernier filtre de date dans le navigateur
 - [x] Afficher une erreur visuelle lorsque la date de début est postérieure à la date de fin
 - [x] Tester ces trois comportements, vérifier la responsivité et sauvegarder un checkpoint
+- [x] Ajouter un bouton de réinitialisation des dates qui efface aussi leur sauvegarde locale
+- [x] Afficher le nombre exact de contacts exportables sous chaque bouton CSV
+- [x] Ajouter un export combiné avec le canal de contact préféré du prospect
+- [x] Tester ces interactions, le contenu CSV et la responsivité avant checkpoint

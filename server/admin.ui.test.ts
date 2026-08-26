@@ -51,7 +51,7 @@ vi.mock("@/lib/trpc", () => ({
   },
 }));
 
-import Admin, { buildEmailTrialCsv, buildFreeTrialCsv } from "../client/src/pages/Admin";
+import Admin, { buildCombinedTrialCsv, buildEmailTrialCsv, buildFreeTrialCsv } from "../client/src/pages/Admin";
 
 describe("Admin panel UI", () => {
   it("builds a CSV with escaped prospect fields and follow-up status", () => {
@@ -75,6 +75,16 @@ describe("Admin panel UI", () => {
     expect(csv).toContain('"Full name";"Email"');
     expect(csv).toContain('"Prospect e-mail";"contact@exemple.ci"');
     expect(csv).not.toContain("Prospect téléphone");
+  });
+
+  it("builds a combined CSV with the preferred contact channel", () => {
+    const csv = buildCombinedTrialCsv([
+      { clientName: "Prospect WhatsApp", phone: "2250100000000", email: "wa@exemple.ci" },
+      { clientName: "Prospect e-mail", phone: "À compléter", email: "email@exemple.ci" },
+    ]);
+    expect(csv).toContain('"Full name";"Phone number";"Email";"Preferred contact channel"');
+    expect(csv).toContain('"Prospect WhatsApp";"2250100000000";"wa@exemple.ci";"WhatsApp"');
+    expect(csv).toContain('"Prospect e-mail";"";"email@exemple.ci";"Email"');
   });
 
   it("renders a protected administrator unlock screen before exposing client management", () => {
@@ -145,6 +155,11 @@ describe("Admin panel UI", () => {
     expect(screen.getByLabelText("1 prospect affiché sur 2")).toBeTruthy();
     expect(window.localStorage.getItem("metrexpert.trials.startDate")).toBe("2026-08-10");
     expect(window.localStorage.getItem("metrexpert.trials.endDate")).toBe("2026-08-20");
+    fireEvent.click(screen.getByRole("button", { name: "Réinitialiser les filtres de date" }));
+    expect((screen.getByLabelText("Du") as HTMLInputElement).value).toBe("");
+    expect((screen.getByLabelText("Au") as HTMLInputElement).value).toBe("");
+    expect(window.localStorage.getItem("metrexpert.trials.startDate")).toBeNull();
+    expect(window.localStorage.getItem("metrexpert.trials.endDate")).toBeNull();
   });
 
   it("shows an error and clears the filtered list when the date range is invalid", () => {
