@@ -9,6 +9,10 @@ describe("suivi abonnement client", () => {
     expect(source).toContain("Historique des paiements et renouvellements");
     expect(source).toContain("Votre forfait expire dans");
     expect(source).toContain("refetchInterval: 30000");
+    expect(source).toContain("Rappel dans l’application actif");
+    expect(source).toContain("statut actualisé automatiquement");
+    expect(source).toContain("metrexpert.expiryReminders");
+    expect(source).toContain("Recevoir les rappels dans l’application");
     expect(source).toContain("Renouveler mon forfait");
     expect(source).toContain("metrexpert:renew");
   });

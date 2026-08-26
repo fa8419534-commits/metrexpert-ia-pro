@@ -353,15 +353,21 @@
 - [x] Ajouter les tests de sécurité, idempotence, historique et responsive
 - [x] Valider TypeScript, tests et build puis sauvegarder un checkpoint
 
-- [ ] Ajouter un bouton de renouvellement rapide dans l’espace client avec forfait prérempli
-- [ ] Ajouter une demande de renouvellement traçable sans créer automatiquement un accès avant validation du paiement
-- [ ] Ajouter des filtres Admin par statut de paiement et expirations proches
-- [ ] Concevoir les préférences de notification avec consentement et désinscription
-- [ ] Mettre en place une alerte d’expiration automatisée uniquement avec un canal configuré et autorisé
-- [ ] Ajouter les tests de renouvellement, filtres, consentement et notifications
-- [ ] Valider TypeScript, tests, build et responsive puis sauvegarder un checkpoint
+- [x] Ajouter un bouton de renouvellement rapide dans l’espace client avec forfait prérempli
+- [x] Ajouter une demande de renouvellement traçable sans créer automatiquement un accès avant validation du paiement
+- [x] Ajouter des filtres Admin par statut de paiement et expirations proches
+- [x] Concevoir les préférences de notification avec consentement et désinscription
+- [x] Mettre en place une alerte d’expiration automatisée uniquement avec un canal configuré et autorisé
+- [x] Ajouter les tests de renouvellement, filtres, consentement et notifications
+- [x] Valider TypeScript, tests, build et responsive puis sauvegarder un checkpoint
 
 - [x] Produire un exemple de structure React/TypeScript pour le renouvellement rapide
 - [x] Documenter la configuration concrète des filtres de statut et d’expiration Admin
 - [x] Rédiger les messages WhatsApp d’envoi de code d’activation
 - [x] Vérifier l’alignement du guide avec les quotas, tarifs et règles de validation existants
+
+- [x] Finaliser l’option 3 : alertes d’expiration dans l’application sans e-mail/WhatsApp automatique
+- [x] Vérifier le rappel automatique de l’alerte par actualisation du statut client
+- [x] Vérifier le renouvellement rapide et le bouton WhatsApp prérempli
+- [x] Ajouter les tests de l’option sans API et valider TypeScript, tests, build et responsive
+- [x] Sauvegarder le checkpoint de l’option sans service externe
