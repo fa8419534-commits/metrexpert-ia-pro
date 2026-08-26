@@ -65,8 +65,8 @@
 - [x] Vérifier les signatures binaires des fichiers PDF/PNG/JPEG/WEBP côté serveur
 - [x] Renforcer l’instruction contre les injections provenant de la description ou des documents
 - [x] Documenter les risques restant ouverts : contrôle indépendant des quantités et rate limiting applicatif
-- [ ] Exécuter des probes réels sur plusieurs scénarios texte, ambiguïté, contradiction et fichier joint
-- [ ] Ajouter un test démontrant l’abort sur timeout et l’absence de retry sur une erreur 400
+- [x] Exécuter des probes réels sur plusieurs scénarios texte, ambiguïté, contradiction et fichier joint
+- [x] Ajouter un test démontrant l’abort sur timeout et l’absence de retry sur une erreur 400
 - [x] Vérifier ou documenter la limite effective du recalcul natif Excel dans le fichier produit
 - [x] Documenter la limite de validation interactionnelle mobile upload/téléchargement
 - [x] Maintenir explicitement ouverts le contrôle indépendant généralisé des quantités et le rate limiting/quota

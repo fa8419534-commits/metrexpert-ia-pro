@@ -44,6 +44,20 @@ describe("LLM request diagnostics", () => {
     });
   });
 
+  it("aborts a request that exceeds the per-attempt timeout", async () => {
+    vi.useFakeTimers();
+    const fetchMock = vi.fn().mockImplementation((_url: string, init: RequestInit) => new Promise((_resolve, reject) => {
+      init.signal?.addEventListener("abort", () => reject(new Error("aborted")), { once: true });
+    }));
+    vi.stubGlobal("fetch", fetchMock);
+    const request = invokeLLM({ messages: [{ role: "user", content: "timeout test" }] }).catch(() => undefined);
+    await vi.advanceTimersByTimeAsync(60_000);
+    expect(fetchMock.mock.calls[0]?.[1]?.signal?.aborted).toBe(true);
+    for (let attempt = 0; attempt < 4; attempt += 1) await vi.advanceTimersByTimeAsync(90_000);
+    await request;
+    vi.useRealTimers();
+  });
+
   it("logs the full provider error body before throwing", async () => {
     vi.useFakeTimers();
     vi.stubGlobal("fetch", vi.fn().mockImplementation(() => Promise.resolve(new Response(

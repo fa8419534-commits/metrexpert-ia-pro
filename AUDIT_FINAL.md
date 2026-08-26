@@ -26,7 +26,7 @@ L’application est techniquement plus robuste après cet audit, mais elle ne do
 
 ### Calculs et projets variés
 
-Les contrats couvrent désormais des familles de lignes béton, agglos, peinture et DQE ainsi qu’un cas peinture ambigu. La convention serveur est déterministe : un prix de peinture ambigu est traité comme global pour toutes les couches, par exemple 180 m² plutôt que 360 m²-couche pour deux couches, avec un marqueur explicite dans `notes` et `summary`. Un prix explicitement « par couche » est conservé.
+Les contrats couvrent désormais des familles de lignes béton, agglos, peinture et DQE ainsi qu’un cas peinture ambigu. Un probe réel a exécuté cinq scénarios : volume texte, peinture ambiguë, données contradictoires, PDF joint et image jointe. Avec des fichiers PDF et PNG réellement valides, les cinq scénarios ont réussi : volume texte 2 postes, peinture ambiguë 1 poste, données contradictoires 1 poste, PDF joint 1 poste et image jointe 1 poste. Un premier essai avec des octets synthétiques invalides avait été rejeté par le fournisseur, ce qui confirme que le contrôle de contenu et le fournisseur refusent les faux fichiers. La convention serveur est déterministe : un prix de peinture ambigu est traité comme global pour toutes les couches, par exemple 180 m² plutôt que 360 m²-couche pour deux couches, avec un marqueur explicite dans `notes` et `summary`. Un prix explicitement « par couche » est conservé.
 
 Cela ne remplace pas encore un recalcul indépendant de chaque métré réel. Les réponses d’un modèle peuvent contenir une formule plausible mais incorrecte ; cette limite reste le principal risque métier.
 
@@ -46,7 +46,7 @@ Le rendu mobile a été recontrôlé visuellement à 375 × 812 px. Le formulair
 
 ### Réseau et temps d’attente
 
-Le helper LLM journalise le payload redacted et le body fournisseur, applique désormais un timeout par tentative et évite les retries inutiles sur les erreurs 4xx déterministes. Les erreurs réseau et les statuts temporaires continuent d’utiliser un backoff. La couverture de test explicite des timeouts reste à renforcer.
+Le helper LLM journalise le payload redacted et le body fournisseur, applique désormais un timeout par tentative et évite les retries inutiles sur les erreurs 4xx déterministes. Les erreurs réseau et les statuts temporaires continuent d’utiliser un backoff. La couverture de test explicite des timeouts est maintenant présente : un appel bloqué est interrompu par AbortController après 60 secondes, puis le comportement de retry réseau est exercé par horloge virtuelle. Les 22 tests Vitest passent.
 
 ### Sécurité
 
@@ -56,7 +56,7 @@ Les fichiers sont contrôlés côté client et côté serveur. Le serveur vérif
 
 | Contrôle | Résultat |
 |---|---:|
-| Vitest | 21 tests réussis |
+| Vitest | 22 tests réussis |
 | TypeScript | Réussi |
 | Build production | Réussi ; avertissement non bloquant sur la taille d’un chunk frontend |
 | Contrôle XLSX programmatique | 3 feuilles, 7 formules, aucun `=` initial, styles présents sur les trois en-têtes |
