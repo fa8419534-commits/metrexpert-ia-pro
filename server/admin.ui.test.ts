@@ -26,6 +26,7 @@ beforeEach(() => {
   testState.writeText.mockReset().mockResolvedValue(undefined);
   testState.disable.mockReset();
   testState.contacted.mockReset();
+  window.localStorage.clear();
   Object.defineProperty(navigator, "clipboard", {
     configurable: true,
     value: { writeText: testState.writeText },
@@ -50,7 +51,7 @@ vi.mock("@/lib/trpc", () => ({
   },
 }));
 
-import Admin, { buildFreeTrialCsv } from "../client/src/pages/Admin";
+import Admin, { buildEmailTrialCsv, buildFreeTrialCsv } from "../client/src/pages/Admin";
 
 describe("Admin panel UI", () => {
   it("builds a CSV with escaped prospect fields and follow-up status", () => {
@@ -66,6 +67,16 @@ describe("Admin panel UI", () => {
     expect(csv).toContain('"Entreprise; Test";"2250100000000"');
     expect(csv).not.toContain("prospect");
   });
+  it("builds a separate e-mail CSV for contacts without a phone number", () => {
+    const csv = buildEmailTrialCsv([
+      { clientName: "Prospect e-mail", phone: "À compléter", email: "contact@exemple.ci" },
+      { clientName: "Prospect téléphone", phone: "2250100000000", email: "phone@exemple.ci" },
+    ]);
+    expect(csv).toContain('"Full name";"Email"');
+    expect(csv).toContain('"Prospect e-mail";"contact@exemple.ci"');
+    expect(csv).not.toContain("Prospect téléphone");
+  });
+
   it("renders a protected administrator unlock screen before exposing client management", () => {
     render(React.createElement(Admin));
     expect(screen.getByRole("heading", { name: "Accès administration" })).toBeTruthy();
@@ -132,6 +143,18 @@ describe("Admin panel UI", () => {
     expect(screen.queryByText("Prospect ancien")).toBeNull();
     expect(screen.getByText("Prospect retenu")).toBeTruthy();
     expect(screen.getByLabelText("1 prospect affiché sur 2")).toBeTruthy();
+    expect(window.localStorage.getItem("metrexpert.trials.startDate")).toBe("2026-08-10");
+    expect(window.localStorage.getItem("metrexpert.trials.endDate")).toBe("2026-08-20");
+  });
+
+  it("shows an error and clears the filtered list when the date range is invalid", () => {
+    testState.adminUnlocked = true;
+    testState.trials = [{ id: 10, clientName: "Prospect invalide", phone: "2250100000000", email: "invalid@exemple.ci", trialAt: new Date("2026-08-15T12:00:00Z"), convertedAt: null }];
+    render(React.createElement(Admin));
+    fireEvent.change(screen.getByLabelText("Du"), { target: { value: "2026-08-20" } });
+    fireEvent.change(screen.getByLabelText("Au"), { target: { value: "2026-08-10" } });
+    expect(screen.getByRole("alert").textContent).toContain("ne peut pas être postérieure");
+    expect(screen.queryByText("Prospect invalide")).toBeNull();
   });
 
   it("asks for a prospect count before exporting the filtered list", () => {

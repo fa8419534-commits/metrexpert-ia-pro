@@ -218,3 +218,7 @@
 - [x] Ajouter une modale de confirmation récapitulant le nombre de prospects avant export CSV
 - [x] Adapter le CSV aux colonnes importables dans WhatsApp Business et documenter les limites éventuelles
 - [x] Tester le filtrage de période, la confirmation, le CSV et le rendu responsive avant checkpoint
+- [x] Ajouter un export CSV séparé pour les prospects sans téléphone mais avec e-mail
+- [x] Mémoriser et restaurer le dernier filtre de date dans le navigateur
+- [x] Afficher une erreur visuelle lorsque la date de début est postérieure à la date de fin
+- [x] Tester ces trois comportements, vérifier la responsivité et sauvegarder un checkpoint
