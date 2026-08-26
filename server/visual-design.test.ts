@@ -34,9 +34,17 @@ describe("technical visual system", () => {
     expect(home).toContain("aria-busy={generate.isPending}");
     expect(home).toContain('data-loading={generate.isPending ? "true" : undefined}');
     expect(home).toContain("Préparation du téléchargement…");
+    expect(home).toContain("Déverrouiller l’étude");
+    expect(home).toContain('id="access-code"');
+    expect(home).toContain("5 / H · 50 / J");
+    expect(home).toContain("Compteur global du jour");
+    expect(home).toContain("Déverrouiller l’étude");
+    expect(home).toContain('id="access-code"');
+    expect(home).toContain("Limites actives : 5 générations par heure et 50 pour toute l’application par jour.");
+    expect(home).toContain("security.status.useQuery");
     expect(home).toContain('aria-busy="true"');
     expect(home).toContain("En préparation");
-    expect(home).toContain("disabled={generate.isPending}");
+    expect(home).toContain("disabled={generate.isPending || !accessStatus.data?.unlocked}");
   });
 
   it("documents the minimum accessibility guards in the rendered contract", () => {

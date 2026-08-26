@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import React from "react";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -28,6 +29,10 @@ type PreviewMeasure = {
   notes?: string;
 };
 
+export function GenerationErrorAlert({ message }: { message: string }) {
+  return <Alert variant="destructive" className="mt-5 border-[#9d554b] bg-[#271b18] text-[#EDEAE2]" role="alert"><AlertTitle>Génération interrompue</AlertTitle><AlertDescription>{message}</AlertDescription></Alert>;
+}
+
 type GeneratedDownload = {
   url: string;
   filename: string;
@@ -47,7 +52,16 @@ export default function Home() {
   const [download, setDownload] = useState<GeneratedDownload | null>(null);
   const [previewQuery, setPreviewQuery] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const accessStatus = trpc.security.status.useQuery();
+  const verifyAccess = trpc.security.verifyAccessCode.useMutation({
+    onSuccess: async () => {
+      await accessStatus.refetch();
+      setAccessCode("");
+      toast.success("Accès autorisé pour 7 jours.");
+    },
+  });
   const generate = trpc.estimate.generate.useMutation();
+  const [accessCode, setAccessCode] = useState("");
   const [progressStage, setProgressStage] = useState(0);
   const documentDate = new Intl.DateTimeFormat("fr-FR").format(new Date());
 
@@ -76,7 +90,16 @@ export default function Home() {
     setFile(candidate);
   };
 
+  const handleVerifyAccess = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    verifyAccess.mutate({ accessCode });
+  };
+
   const handleGenerate = async () => {
+    if (!accessStatus.data?.unlocked) {
+      toast.error("Déverrouillez l’application avant de générer.");
+      return;
+    }
     if (description.trim().length < 20) {
       toast.error("Ajoutez une description plus détaillée du projet.");
       return;
@@ -94,6 +117,7 @@ export default function Home() {
         if (previous) URL.revokeObjectURL(previous.url);
         return { url, filename: result.filename, lineCount: result.lineCount, preview: result.preview };
       });
+      await accessStatus.refetch();
       toast.success(`Classeur généré avec ${result.lineCount} poste${result.lineCount > 1 ? "s" : ""}.`);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Une erreur est survenue.");
@@ -146,6 +170,8 @@ export default function Home() {
           <div className="min-w-0 space-y-7">
             <section className="technical-panel">
               <div className="panel-heading"><div><p className="repere">REP. 01 <span>—</span> SAISIE PROJET</p><h2 className="mt-2 font-serif text-3xl text-[#EDEAE2]">Définir l’opération</h2></div><span className="panel-index">A-01</span></div>
+              {!accessStatus.data?.unlocked && <div className="access-panel mb-6" role="region" aria-labelledby="access-title"><div className="mb-4 flex items-start justify-between gap-4"><div><p className="repere">PROTECTION <span>—</span> ACCÈS REQUIS</p><h3 id="access-title" className="mt-2 font-serif text-xl text-[#EDEAE2]">Déverrouiller l’étude</h3></div><span className="font-mono text-[10px] uppercase text-[#C9A15A]">5 / H · 50 / J</span></div><p className="mb-4 text-xs leading-5 text-[#AEB7B0]">Un code d’accès est nécessaire avant toute génération payante. Limites actives : 5 générations par heure et 50 pour toute l’application par jour.</p><form onSubmit={handleVerifyAccess} className="flex flex-col gap-3 sm:flex-row"><label htmlFor="access-code" className="sr-only">Code d’accès partagé</label><input id="access-code" type="password" autoComplete="off" value={accessCode} onChange={(event) => setAccessCode(event.target.value)} placeholder="Code d’accès" className="technical-input h-11 min-w-0 flex-1 px-3 text-sm" required /><Button type="submit" disabled={verifyAccess.isPending || !accessCode} className="technical-button h-11 rounded-none sm:w-40">{verifyAccess.isPending ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />Vérification…</> : "Déverrouiller"}</Button></form>{verifyAccess.error && <p className="mt-3 text-xs font-medium text-[#d98472]" role="alert">{verifyAccess.error.message}</p>}</div>}
+              {accessStatus.data?.dailyTotal !== undefined && <div className="mb-6 flex items-center justify-between gap-3 border border-[#3A4A42] bg-[#16201C] px-4 py-3 font-mono text-[10px] uppercase tracking-wider text-[#AEB7B0]"><span>Compteur global du jour</span><strong className="text-[#C9A15A]">{accessStatus.data.dailyTotal} / {accessStatus.data.dailyLimit}</strong></div>}
               <label htmlFor="description" className="field-label">Description du projet <span>REQUIS</span></label>
               <Textarea id="description" value={description} onChange={(event) => setDescription(event.target.value)} placeholder="Ex. Construction d’une villa R+1 de 180 m² à Abidjan, avec fondations en béton armé, murs en agglos..." className="technical-input min-h-40 resize-none" />
               <div className="mt-5">
@@ -156,9 +182,9 @@ export default function Home() {
                 {file && <div className="file-chip"><span className="flex min-w-0 items-center gap-2"><FileText className="h-3.5 w-3.5 shrink-0 text-[#C9A15A]" /><span className="truncate">{file.name}</span></span><button type="button" onClick={() => setFile(null)} className="font-mono text-[10px] uppercase text-[#C9A15A] hover:text-[#EDEAE2]">Retirer</button></div>}
                 {fileError && <p className="mt-2 flex items-center gap-2 text-xs font-medium text-[#d98472]"><ImageIcon className="h-3.5 w-3.5" />{fileError}</p>}
               </div>
-              {generate.error && <Alert variant="destructive" className="mt-5 border-[#9d554b] bg-[#271b18] text-[#EDEAE2]"><AlertTitle>Génération interrompue</AlertTitle><AlertDescription>{generate.error.message}</AlertDescription></Alert>}
+              {generate.error && <GenerationErrorAlert message={generate.error.message} />}
               {generate.isPending && <div className="progress-panel mt-5"><div className="mb-3 flex items-center justify-between font-mono text-[10px] uppercase tracking-wider text-[#C9A15A]"><span>Traitement en cours</span><span>Étape {progressStage + 1}/3</span></div><div className="grid grid-cols-3 gap-px bg-[#3A4A42]">{["Analyse", "Validation JSON", "Classeur"].map((label, index) => <span key={label} className={`px-2 py-2 text-center font-mono text-[10px] uppercase ${progressStage >= index ? "bg-[#7C9A76] text-[#0F1613]" : "bg-[#1C2822] text-[#87938B]"}`}>{label}</span>)}</div></div>}
-              <Button onClick={() => void handleGenerate()} disabled={generate.isPending} aria-busy={generate.isPending} data-loading={generate.isPending ? "true" : undefined} className="technical-button mt-6 h-12 w-full rounded-none">
+              <Button onClick={() => void handleGenerate()} disabled={generate.isPending || !accessStatus.data?.unlocked} aria-busy={generate.isPending} data-loading={generate.isPending ? "true" : undefined} className="technical-button mt-6 h-12 w-full rounded-none">
                 {generate.isPending ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" /> <span>Génération du classeur en cours…</span></> : <><FileSpreadsheet className="mr-2 h-4 w-4" aria-hidden="true" /> <span>Générer mon métré & DQE</span></>}
               </Button>
               {generate.isPending && <div className="result-download mt-4" role="status" aria-live="polite"><span className="flex min-w-0 items-center gap-2 text-xs font-semibold text-[#C9A15A]"><Loader2 className="h-4 w-4 shrink-0 animate-spin" aria-hidden="true" /><span className="truncate">Préparation du téléchargement…</span></span><button type="button" className="download-button" disabled aria-busy="true">En préparation</button></div>}

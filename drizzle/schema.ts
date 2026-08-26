@@ -25,4 +25,15 @@ export const users = mysqlTable("users", {
 export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
 
+export const generationWindows = mysqlTable("generation_windows", {
+  id: int("id").autoincrement().primaryKey(),
+  scopeKey: varchar("scopeKey", { length: 255 }).notNull().unique(),
+  windowKind: mysqlEnum("windowKind", ["hour", "day"]).notNull(),
+  windowStart: timestamp("windowStart").notNull(),
+  count: int("count").default(0).notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type GenerationWindow = typeof generationWindows.$inferSelect;
+
 // TODO: Add your tables here

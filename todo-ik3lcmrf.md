@@ -81,3 +81,17 @@
 - [x] Vérifier par contrat la structure responsive du tableau interactif et ses garde-fous d’accessibilité
 - [x] Créer le checkpoint final de l’aperçu après ces corrections
 - [x] Exécuter une génération réelle de test et retirer le mode d’audit temporaire avant livraison
+- [x] Inspecter le contexte serveur, les cookies et la persistance disponibles pour sécuriser la mutation de génération
+- [x] Configurer un code d’accès partagé côté serveur sans exposer sa valeur au frontend
+- [x] Limiter à 5 générations par heure et par IP/utilisateur
+- [x] Limiter à 50 générations par jour pour toute l’application
+- [x] Compter les générations autorisées et exposer un compteur administrateur minimal
+- [x] Afficher les états verrouillé, code invalide, rate limit et quota global atteint
+- [x] Ajouter tests unitaires des protections et des compteurs
+- [x] Valider tests, TypeScript, build et parcours protégé avant checkpoint
+- [x] Documenter les valeurs exactes et les limites de la protection
+- [x] Ajouter un test d’intégration prouvant qu’un code valide déverrouille puis autorise une génération
+- [x] Ajouter un test ciblé des messages UI pour la limite horaire et le quota quotidien
+- [x] Documenter la vérification du parcours protégé complet : verrouillage, déverrouillage, génération et blocage
+- [x] Ajouter un test UI ciblé du message `Limite atteinte : 5 générations par heure.` dans l’alerte Home
+- [x] Ajouter un test UI ciblé du message `Quota global atteint : 50 générations pour aujourd’hui.` dans l’alerte Home

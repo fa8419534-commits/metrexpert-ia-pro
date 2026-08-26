@@ -9,6 +9,7 @@ import { buildEstimateWorkbook, type ProjectEstimate } from "./excel";
 import { BTP_JSON_OUTPUT_ENFORCEMENT, BTP_SYSTEM_PROMPT } from "./btpPrompt";
 import { parseJsonObjectFromLLM } from "./json";
 import { normalizeEstimateAmbiguities } from "./estimateNormalization";
+import { consumeGenerationQuota, DAILY_LIMIT, getGenerationStats, hasValidAccessCookie, HOURLY_LIMIT, isAccessCodeValid, setAccessCookie } from "./security";
 
 const estimateSchema = {
   type: "object",
@@ -105,6 +106,19 @@ export function validateEstimate(value: unknown): ProjectEstimate {
 
 export const appRouter = router({
   system: systemRouter,
+  security: router({
+    status: publicProcedure.query(async ({ ctx }) => ({
+      unlocked: hasValidAccessCookie(ctx),
+      ...(ctx.user?.role === "admin" ? await getGenerationStats() : {}),
+    })),
+    verifyAccessCode: publicProcedure.input(z.object({ accessCode: z.string().min(1).max(200) })).mutation(({ ctx, input }) => {
+      if (!isAccessCodeValid(input.accessCode)) {
+        throw new TRPCError({ code: "UNAUTHORIZED", message: "Code d’accès invalide." });
+      }
+      setAccessCookie(ctx);
+      return { valid: true as const };
+    }),
+  }),
   auth: router({
     me: publicProcedure.query(opts => opts.ctx.user),
     logout: publicProcedure.mutation(({ ctx }) => {
@@ -114,8 +128,16 @@ export const appRouter = router({
     }),
   }),
   estimate: router({
-    generate: publicProcedure.input(requestSchema).mutation(async ({ input }) => {
+    generate: publicProcedure.input(requestSchema).mutation(async ({ ctx, input }) => {
       try {
+        if (!hasValidAccessCookie(ctx)) {
+          throw new TRPCError({ code: "UNAUTHORIZED", message: "Déverrouillez l’application avec le code d’accès avant de générer." });
+        }
+        const quota = await consumeGenerationQuota(ctx);
+        if (!quota.allowed) {
+          throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: quota.reason === "hourly" ? `Limite atteinte : ${HOURLY_LIMIT} générations par heure.` : `Quota global atteint : ${DAILY_LIMIT} générations pour aujourd’hui.` });
+        }
+        console.info("[Security] Generation accepted", { remaining: quota.remaining, identity: ctx.user?.openId ? "user" : "ip" });
         if (input.file) validateUploadedDataUrl(input.file);
         const userContent: Array<Record<string, unknown>> = [{
           type: "text",

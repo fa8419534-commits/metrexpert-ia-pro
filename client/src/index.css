@@ -79,3 +79,8 @@
 
 @media (prefers-reduced-motion: no-preference) { button, a { transition-duration: 180ms; transition-timing-function: cubic-bezier(0.23, 1, 0.32, 1); } }
 @media (max-width: 639px) { .cartouche-field { border-left: 0; border-top: 1px solid #3A4A42; } }
+
+.access-panel { border: 1px solid #C9A15A; background: rgba(15, 22, 19, 0.72); padding: 1rem; }
+.access-panel input { min-width: 0; }
+.access-panel input:focus-visible { border-color: #C9A15A; box-shadow: 0 0 0 1px #C9A15A; outline: none; }
+.access-panel button:focus-visible { outline: 2px solid #EDEAE2; outline-offset: 3px; }

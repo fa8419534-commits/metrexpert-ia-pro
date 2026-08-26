@@ -6,6 +6,7 @@ vi.mock("./_core/llm", () => ({ invokeLLM: invokeLLMMock }));
 import { appRouter } from "./routers";
 import { BTP_JSON_OUTPUT_ENFORCEMENT, BTP_SYSTEM_PROMPT } from "./btpPrompt";
 import type { TrpcContext } from "./_core/context";
+import { setAccessCookie } from "./security";
 
 describe("estimate.generate prompt transmission", () => {
   beforeEach(() => {
@@ -19,11 +20,13 @@ describe("estimate.generate prompt transmission", () => {
   });
 
   it("sends the exact adapted system prompt to Claude", async () => {
+    const req = { cookies: {} } as TrpcContext["req"];
     const ctx: TrpcContext = {
       user: undefined,
-      req: {} as TrpcContext["req"],
-      res: {} as TrpcContext["res"],
+      req,
+      res: { cookie: (_name: string, value: string) => { req.cookies = { metrexpert_access: value }; } } as unknown as TrpcContext["res"],
     };
+    setAccessCookie(ctx);
     const caller = appRouter.createCaller(ctx);
 
     await caller.estimate.generate({ description: "Construction d’une dalle en béton armé de 20 m²." });
