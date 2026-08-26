@@ -35,11 +35,17 @@ export default function PaymentRequestPanel() {
     if (!nextStatus) return;
     if (nextStatus === "confirmed") {
       setMessage("Paiement confirmé : votre forfait est activé. Daouda vous transmettra votre code d’accès.");
-      if (observedStatus.current && observedStatus.current !== "confirmed") toast.success("Paiement confirmé : votre forfait est activé.");
+      if (observedStatus.current && observedStatus.current !== "confirmed") toast.success("Paiement confirmé : votre forfait est activé.", { icon: <CheckCircle2 className="h-5 w-5 text-[#7C9A76]" aria-hidden="true" />, className: "border-[#7C9A76] bg-[#E4F0E1] text-[#244326]" });
     }
     if (nextStatus === "rejected") setMessage("La demande a été refusée. Vérifiez la référence ou contactez MÉTREXPERT IA PRO.");
     observedStatus.current = nextStatus;
   }, [status.data?.status]);
+
+  useEffect(() => {
+    const planParam = new URLSearchParams(window.location.search).get("plan");
+    const parsedPlan = Number(planParam);
+    if (parsedPlan === 5 || parsedPlan === 15 || parsedPlan === 40) setPlanQuota(parsedPlan);
+  }, []);
 
   useEffect(() => {
     const handleRenewal = (event: Event) => {

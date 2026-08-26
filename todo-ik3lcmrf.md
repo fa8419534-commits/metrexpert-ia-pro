@@ -382,3 +382,10 @@
 - [x] Déclencher un toast local uniquement lors du passage réel du paiement à confirmé
 - [x] Ajouter les tests de filtre, de transition de statut et de responsive
 - [x] Valider TypeScript, tests et build puis sauvegarder un checkpoint
+
+- [x] Ajouter un compteur de forfaits expirés dans le résumé Admin
+- [x] Ajouter un bouton de renouvellement rapide sur chaque ligne de forfait expiré
+- [x] Renforcer le toast de paiement confirmé avec une icône et une couleur verte accessible
+- [x] Ajouter une sélection groupée des forfaits expirés et une relance WhatsApp préremplie sans envoi automatique
+- [x] Ajouter les tests d’interaction et valider TypeScript, tests, build et responsive
+- [x] Sauvegarder un checkpoint de ces améliorations

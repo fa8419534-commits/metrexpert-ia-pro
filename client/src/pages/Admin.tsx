@@ -21,6 +21,7 @@ import {
   KeyRound,
   Loader2,
   MessageCircle,
+  RefreshCw,
   ShieldCheck,
   UserPlus,
   XCircle,
@@ -37,6 +38,15 @@ function buildWhatsAppUrl(phone: string, clientName: string) {
   const digits = phone.replace(/\D/g, "");
   const internationalPhone = digits.startsWith("0") ? `225${digits.slice(1)}` : digits;
   const message = `Bonjour ${clientName}, merci pour votre intérêt pour MÉTREXPERT IA PRO. Je reste disponible pour échanger sur votre étude de métré et votre abonnement.`;
+  return `https://wa.me/${internationalPhone}?text=${encodeURIComponent(message)}`;
+}
+
+function buildExpiredRelanceWhatsAppUrl(phone: string, clientName: string, expiresAt: Date | string, planQuota: number) {
+  const digits = phone.replace(/\D/g, "");
+  const internationalPhone = digits.startsWith("0") ? `225${digits.slice(1)}` : digits;
+  const expiry = new Date(expiresAt).toLocaleDateString("fr-FR");
+  const renewalUrl = typeof window === "undefined" ? `/#paiement?plan=${planQuota}` : `${window.location.origin}/#paiement?plan=${planQuota}`;
+  const message = `Bonjour ${clientName}, votre forfait MÉTREXPERT IA PRO a expiré le ${expiry}. Vous pouvez demander son renouvellement ici : ${renewalUrl}. Répondez à ce message si vous souhaitez être accompagné.`;
   return `https://wa.me/${internationalPhone}?text=${encodeURIComponent(message)}`;
 }
 
@@ -99,6 +109,8 @@ export default function Admin() {
   const [paymentReference, setPaymentReference] = useState("");
   const [paymentFilter, setPaymentFilter] = useState<"all" | "pending" | "confirmed" | "rejected">("all");
   const [codeFilter, setCodeFilter] = useState<"all" | "expiring" | "today" | "tomorrow" | "expired">("all");
+  const [selectedExpiredCodeIds, setSelectedExpiredCodeIds] = useState<number[]>([]);
+  const [bulkRelanceOpen, setBulkRelanceOpen] = useState(false);
   const [revealedCode, setRevealedCode] = useState<string | null>(null);
   const [revealedCodeRecipient, setRevealedCodeRecipient] = useState<{ clientName: string; phone: string; expiresAt: Date | string } | null>(null);
   const [copyState, setCopyState] = useState<"idle" | "copied">("idle");
@@ -213,6 +225,9 @@ export default function Admin() {
     tomorrow.setDate(tomorrow.getDate() + 1);
     return expiryKey === (codeFilter === "today" ? today : tomorrow).toLocaleDateString("fr-CA");
   }) ?? [];
+  const expiredCodes = codes.data?.filter((code) => Boolean(code.disabledAt) || new Date(code.expiresAt).getTime() <= Date.now()) ?? [];
+  const phoneForCode = (codeId: number) => paymentRequests.data?.find((request) => request.accessCodeId === codeId && request.status === "confirmed")?.phone;
+  const selectedExpiredCodes = expiredCodes.filter((code) => selectedExpiredCodeIds.includes(code.id) && phoneForCode(code.id));
   const filteredTrials = trials.data?.filter((trial) => {
     const statusMatches = trialFilter === "all" || (trialFilter === "converted" ? Boolean(trial.convertedAt) : !trial.convertedAt);
     const trialTime = new Date(trial.trialAt).getTime();
@@ -345,6 +360,7 @@ export default function Admin() {
                 {activeCodesCount} code{activeCodesCount > 1 ? "s" : ""} actif
                 {activeCodesCount > 1 ? "s" : ""}
               </span>
+              <span aria-label={`${expiredCodes.length} forfait${expiredCodes.length > 1 ? "s" : ""} expiré${expiredCodes.length > 1 ? "s" : ""}`} className="border border-[#D98472]/70 bg-[#2A1A18] px-3 py-2 font-mono text-[10px] uppercase tracking-wider text-[#F0B0A4]">{expiredCodes.length} expiré{expiredCodes.length > 1 ? "s" : ""}</span>
               <span className="border border-[#7C9A76] px-3 py-2 font-mono text-[10px] uppercase tracking-wider text-[#7C9A76]">
                 Session protégée
               </span>
@@ -460,7 +476,7 @@ export default function Admin() {
 
           <Card className="border-[#3A4A42] bg-[#16201C] text-[#EDEAE2]">
             <CardHeader>
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><CardTitle className="font-serif text-2xl">Codes actifs et historiques</CardTitle><div className="flex flex-wrap gap-2" aria-label="Filtrer les expirations"><Button type="button" size="sm" variant="outline" onClick={() => setCodeFilter("all")} className={codeFilter === "all" ? "border-[#C9A15A] bg-[#C9A15A] text-[#0F1613]" : "border-[#3A4A42] text-[#AEB7B0]"}>Tous</Button><Button type="button" size="sm" variant="outline" onClick={() => setCodeFilter("expiring")} className={codeFilter === "expiring" ? "border-[#C9A15A] bg-[#C9A15A] text-[#0F1613]" : "border-[#3A4A42] text-[#AEB7B0]"}>Expirent sous 7 jours</Button><Button type="button" size="sm" variant="outline" onClick={() => setCodeFilter("today")} className={codeFilter === "today" ? "border-[#C9A15A] bg-[#C9A15A] text-[#0F1613]" : "border-[#3A4A42] text-[#AEB7B0]"}>Expirent aujourd’hui</Button><Button type="button" size="sm" variant="outline" onClick={() => setCodeFilter("tomorrow")} className={codeFilter === "tomorrow" ? "border-[#C9A15A] bg-[#C9A15A] text-[#0F1613]" : "border-[#3A4A42] text-[#AEB7B0]"}>Expirent demain</Button><Button type="button" size="sm" variant="outline" onClick={() => setCodeFilter("expired")} className={codeFilter === "expired" ? "border-[#C9A15A] bg-[#C9A15A] text-[#0F1613]" : "border-[#3A4A42] text-[#AEB7B0]"}>Expirés</Button></div></div><p className="mt-2 font-mono text-[10px] uppercase tracking-wider text-[#AEB7B0]">{filteredCodes.length} code{filteredCodes.length > 1 ? "s" : ""} affiché{filteredCodes.length > 1 ? "s" : ""}</p>
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><CardTitle className="font-serif text-2xl">Codes actifs et historiques</CardTitle><div className="flex flex-wrap gap-2" aria-label="Filtrer les expirations"><Button type="button" size="sm" variant="outline" onClick={() => setCodeFilter("all")} className={codeFilter === "all" ? "border-[#C9A15A] bg-[#C9A15A] text-[#0F1613]" : "border-[#3A4A42] text-[#AEB7B0]"}>Tous</Button><Button type="button" size="sm" variant="outline" onClick={() => setCodeFilter("expiring")} className={codeFilter === "expiring" ? "border-[#C9A15A] bg-[#C9A15A] text-[#0F1613]" : "border-[#3A4A42] text-[#AEB7B0]"}>Expirent sous 7 jours</Button><Button type="button" size="sm" variant="outline" onClick={() => setCodeFilter("today")} className={codeFilter === "today" ? "border-[#C9A15A] bg-[#C9A15A] text-[#0F1613]" : "border-[#3A4A42] text-[#AEB7B0]"}>Expirent aujourd’hui</Button><Button type="button" size="sm" variant="outline" onClick={() => setCodeFilter("tomorrow")} className={codeFilter === "tomorrow" ? "border-[#C9A15A] bg-[#C9A15A] text-[#0F1613]" : "border-[#3A4A42] text-[#AEB7B0]"}>Expirent demain</Button><Button type="button" size="sm" variant="outline" onClick={() => setCodeFilter("expired")} className={codeFilter === "expired" ? "border-[#C9A15A] bg-[#C9A15A] text-[#0F1613]" : "border-[#3A4A42] text-[#AEB7B0]"}>Expirés</Button><Button type="button" size="sm" variant="outline" disabled={!selectedExpiredCodes.length} onClick={() => setBulkRelanceOpen(true)} className="border-[#7C9A76] text-[#7C9A76]">Relancer sélectionnés ({selectedExpiredCodes.length})</Button></div></div><p className="mt-2 font-mono text-[10px] uppercase tracking-wider text-[#AEB7B0]">{filteredCodes.length} code{filteredCodes.length > 1 ? "s" : ""} affiché{filteredCodes.length > 1 ? "s" : ""}</p>
             </CardHeader>
             <CardContent>
               {codes.isLoading ? (
@@ -473,6 +489,7 @@ export default function Admin() {
                   <table className="w-full min-w-[650px] text-left text-sm">
                     <thead className="border-b border-[#3A4A42] font-mono text-[10px] uppercase tracking-wider text-[#C9A15A]">
                       <tr>
+                        <th className="px-3 py-3">Relance</th>
                         <th className="px-3 py-3">Client</th>
                         <th className="px-3 py-3">Forfait / tarif</th>
                         <th className="px-3 py-3">Paiement</th>
@@ -487,11 +504,15 @@ export default function Admin() {
                         const disabled =
                           Boolean(code.disabledAt) ||
                           new Date(code.expiresAt).getTime() <= Date.now();
+                        const phone = phoneForCode(code.id);
                         return (
                           <tr
                             key={code.id}
                             className="border-b border-[#3A4A42]/70"
                           >
+                            <td className="px-3 py-4">
+                              {disabled && phone ? <input type="checkbox" aria-label={`Sélectionner ${code.clientName} pour relance`} checked={selectedExpiredCodeIds.includes(code.id)} onChange={(event) => setSelectedExpiredCodeIds((current) => event.target.checked ? (current.includes(code.id) ? current : [...current, code.id]) : current.filter((id) => id !== code.id))} className="h-4 w-4 accent-[#C9A15A]" /> : <span className="text-[#56635B]">—</span>}
+                            </td>
                             <td className="px-3 py-4 font-medium">
                               {code.clientName}
                             </td>
@@ -511,6 +532,7 @@ export default function Admin() {
                               {disabled ? "Désactivé / expiré" : "Actif"}
                             </td>
                             <td className="px-3 py-4 text-right">
+                              {disabled && <a href={`/?plan=${code.monthlyQuota}#paiement`} className="mb-2 inline-flex items-center gap-1 border border-[#C9A15A] px-3 py-2 font-mono text-[10px] uppercase tracking-wider text-[#C9A15A] hover:bg-[#C9A15A] hover:text-[#0F1613]"><RefreshCw className="h-3.5 w-3.5" aria-hidden="true" />Renouveler</a>}
                               {!disabled && (
                                 <Button
                                   type="button"
@@ -558,6 +580,21 @@ export default function Admin() {
         </Card>
       </div>
 
+      <AlertDialog open={bulkRelanceOpen} onOpenChange={setBulkRelanceOpen}>
+        <AlertDialogContent className="border-[#3A4A42] bg-[#16201C] text-[#EDEAE2]">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="font-serif text-2xl">Préparer les relances WhatsApp</AlertDialogTitle>
+            <AlertDialogDescription className="text-[#AEB7B0]">{selectedExpiredCodes.length} forfait{selectedExpiredCodes.length > 1 ? "s" : ""} expiré{selectedExpiredCodes.length > 1 ? "s" : ""} sélectionné{selectedExpiredCodes.length > 1 ? "s" : ""}. Ouvre chaque conversation et vérifie le destinataire avant l’envoi.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="max-h-72 space-y-2 overflow-y-auto">
+            {selectedExpiredCodes.map((code) => {
+              const phone = phoneForCode(code.id);
+              return phone ? <a key={code.id} href={buildExpiredRelanceWhatsAppUrl(phone, code.clientName, code.expiresAt, code.monthlyQuota)} target="_blank" rel="noreferrer" className="flex items-center justify-between gap-3 border border-[#3A4A42] px-3 py-3 text-sm text-[#EDEAE2] hover:border-[#7C9A76] hover:text-[#7C9A76]"><span>{code.clientName}<span className="ml-2 font-mono text-xs text-[#AEB7B0]">{phone}</span></span><span className="inline-flex items-center gap-1 font-mono text-[10px] uppercase tracking-wider"><MessageCircle className="h-4 w-4" aria-hidden="true" />Ouvrir</span></a> : null;
+            })}
+          </div>
+          <AlertDialogFooter><AlertDialogCancel className="border-[#3A4A42] text-[#EDEAE2]">Fermer</AlertDialogCancel></AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
       <AlertDialog
         open={Boolean(codeToRevoke)}
         onOpenChange={(open) => {

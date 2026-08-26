@@ -27,6 +27,16 @@ describe("suivi abonnement client", () => {
     expect(source).toContain('codeFilter === "tomorrow"');
     expect(source).toContain("filteredPaymentRequests");
     expect(source).toContain("filteredCodes");
+    expect(source).toContain("expiredCodes.length");
+    expect(source).toContain("Renouveler");
+    expect(source).toContain("Relancer sélectionnés");
+    expect(source).toContain("Préparer les relances WhatsApp");
+    expect(source).toContain("Sélectionner ${code.clientName} pour relance");
+    expect(source).toContain("expiredCodes.length");
+    expect(source).toContain('codeFilter === "expired"');
+    expect(source).toContain("Relancer sélectionnés");
+    expect(source).toContain("Sélectionner ${code.clientName} pour relance");
+    expect(source).toContain("Préparer les relances WhatsApp");
   });
 
   it("affiche une confirmation animée après soumission de la référence", () => {
@@ -34,6 +44,9 @@ describe("suivi abonnement client", () => {
     expect(source).toContain("submissionConfirmed");
     expect(source).toContain("Référence reçue");
     expect(source).toContain("motion-safe:animate-pulse");
+    expect(source).toContain("CheckCircle2");
+    expect(source).toContain("bg-[#E4F0E1]");
+    expect(source).toContain("text-[#7C9A76]");
   });
 
   it("prépare un message WhatsApp contenant le code activé", () => {
