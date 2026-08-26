@@ -34,10 +34,12 @@ describe("protected generation flow", () => {
 
     await expect(caller.estimate.generate({ description: "Description bloquée avant déverrouillage." })).rejects.toMatchObject({ code: "UNAUTHORIZED" });
     await expect(caller.security.verifyAccessCode({ accessCode: ENV.accessCode })).resolves.toEqual({ valid: true });
+    await expect(caller.security.status()).resolves.toMatchObject({ unlocked: true, hourlyUsed: 0, hourlyRemaining: 5, hourlyLimit: 5 });
     const result = await caller.estimate.generate({ description: "Construction d’une dalle béton de 10 m²." });
 
     expect(result.lineCount).toBe(1);
     expect(result.preview.measures[0]?.designation).toBe("Dalle béton");
+    await expect(caller.security.status()).resolves.toMatchObject({ unlocked: true, hourlyUsed: 1, hourlyRemaining: 4, hourlyLimit: 5 });
     expect(invokeLLMMock).toHaveBeenCalledOnce();
   });
 });

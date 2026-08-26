@@ -33,6 +33,12 @@ export function GenerationErrorAlert({ message }: { message: string }) {
   return <Alert variant="destructive" className="mt-5 border-[#9d554b] bg-[#271b18] text-[#EDEAE2]" role="alert"><AlertTitle>Génération interrompue</AlertTitle><AlertDescription>{message}</AlertDescription></Alert>;
 }
 
+export function HourlyQuotaIndicator({ remaining, limit }: { remaining: number; limit: number }) {
+  const state = remaining === 0 ? "exhausted" : remaining <= 1 ? "low" : "available";
+  const color = state === "exhausted" ? "text-[#d98472]" : state === "low" ? "text-[#C9A15A]" : "text-[#7C9A76]";
+  return <div className="quota-indicator mb-6 flex items-center justify-between gap-3 border border-[#3A4A42] bg-[#16201C] px-4 py-3 font-mono text-[10px] uppercase tracking-wider text-[#AEB7B0]" role="status" aria-live="polite" data-quota-state={state}><span>Quota horaire restant</span><strong className={color}>{remaining} / {limit} génération{remaining > 1 ? "s" : ""}</strong></div>;
+}
+
 type GeneratedDownload = {
   url: string;
   filename: string;
@@ -130,6 +136,8 @@ export default function Home() {
     return [measure.code, measure.designation, measure.unit, measure.notes || ""].some((value) => value.toLocaleLowerCase("fr-FR").includes(query));
   }) ?? [];
   const previewTotal = visibleMeasures.reduce((total, measure) => total + measure.quantity * (measure.factor ?? 1) * (measure.unitPrice ?? 0), 0);
+  const hourlyRemaining = accessStatus.data?.hourlyRemaining;
+  const hourlyLimit = accessStatus.data?.hourlyLimit ?? 5;
 
   return (
     <main className="min-h-screen overflow-hidden bg-[#0F1613] text-[#EDEAE2]">
@@ -171,6 +179,7 @@ export default function Home() {
             <section className="technical-panel">
               <div className="panel-heading"><div><p className="repere">REP. 01 <span>—</span> SAISIE PROJET</p><h2 className="mt-2 font-serif text-3xl text-[#EDEAE2]">Définir l’opération</h2></div><span className="panel-index">A-01</span></div>
               {!accessStatus.data?.unlocked && <div className="access-panel mb-6" role="region" aria-labelledby="access-title"><div className="mb-4 flex items-start justify-between gap-4"><div><p className="repere">PROTECTION <span>—</span> ACCÈS REQUIS</p><h3 id="access-title" className="mt-2 font-serif text-xl text-[#EDEAE2]">Déverrouiller l’étude</h3></div><span className="font-mono text-[10px] uppercase text-[#C9A15A]">5 / H · 50 / J</span></div><p className="mb-4 text-xs leading-5 text-[#AEB7B0]">Un code d’accès est nécessaire avant toute génération payante. Limites actives : 5 générations par heure et 50 pour toute l’application par jour.</p><form onSubmit={handleVerifyAccess} className="flex flex-col gap-3 sm:flex-row"><label htmlFor="access-code" className="sr-only">Code d’accès partagé</label><input id="access-code" type="password" autoComplete="off" value={accessCode} onChange={(event) => setAccessCode(event.target.value)} placeholder="Code d’accès" className="technical-input h-11 min-w-0 flex-1 px-3 text-sm" required /><Button type="submit" disabled={verifyAccess.isPending || !accessCode} className="technical-button h-11 rounded-none sm:w-40">{verifyAccess.isPending ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />Vérification…</> : "Déverrouiller"}</Button></form>{verifyAccess.error && <p className="mt-3 text-xs font-medium text-[#d98472]" role="alert">{verifyAccess.error.message}</p>}</div>}
+              {accessStatus.data?.unlocked && hourlyRemaining !== undefined && <HourlyQuotaIndicator remaining={hourlyRemaining} limit={hourlyLimit} />}
               {accessStatus.data?.dailyTotal !== undefined && <div className="mb-6 flex items-center justify-between gap-3 border border-[#3A4A42] bg-[#16201C] px-4 py-3 font-mono text-[10px] uppercase tracking-wider text-[#AEB7B0]"><span>Compteur global du jour</span><strong className="text-[#C9A15A]">{accessStatus.data.dailyTotal} / {accessStatus.data.dailyLimit}</strong></div>}
               <label htmlFor="description" className="field-label">Description du projet <span>REQUIS</span></label>
               <Textarea id="description" value={description} onChange={(event) => setDescription(event.target.value)} placeholder="Ex. Construction d’une villa R+1 de 180 m² à Abidjan, avec fondations en béton armé, murs en agglos..." className="technical-input min-h-40 resize-none" />

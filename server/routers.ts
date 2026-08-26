@@ -9,7 +9,7 @@ import { buildEstimateWorkbook, type ProjectEstimate } from "./excel";
 import { BTP_JSON_OUTPUT_ENFORCEMENT, BTP_SYSTEM_PROMPT } from "./btpPrompt";
 import { parseJsonObjectFromLLM } from "./json";
 import { normalizeEstimateAmbiguities } from "./estimateNormalization";
-import { consumeGenerationQuota, DAILY_LIMIT, getGenerationStats, hasValidAccessCookie, HOURLY_LIMIT, isAccessCodeValid, setAccessCookie } from "./security";
+import { consumeGenerationQuota, DAILY_LIMIT, getGenerationStats, getHourlyQuotaStatus, hasValidAccessCookie, HOURLY_LIMIT, isAccessCodeValid, setAccessCookie } from "./security";
 
 const estimateSchema = {
   type: "object",
@@ -107,10 +107,14 @@ export function validateEstimate(value: unknown): ProjectEstimate {
 export const appRouter = router({
   system: systemRouter,
   security: router({
-    status: publicProcedure.query(async ({ ctx }) => ({
-      unlocked: hasValidAccessCookie(ctx),
-      ...(ctx.user?.role === "admin" ? await getGenerationStats() : {}),
-    })),
+    status: publicProcedure.query(async ({ ctx }) => {
+      const unlocked = hasValidAccessCookie(ctx);
+      return {
+        unlocked,
+        ...(unlocked ? await getHourlyQuotaStatus(ctx) : {}),
+        ...(ctx.user?.role === "admin" ? await getGenerationStats() : {}),
+      };
+    }),
     verifyAccessCode: publicProcedure.input(z.object({ accessCode: z.string().min(1).max(200) })).mutation(({ ctx, input }) => {
       if (!isAccessCodeValid(input.accessCode)) {
         throw new TRPCError({ code: "UNAUTHORIZED", message: "Code d’accès invalide." });

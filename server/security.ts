@@ -73,6 +73,17 @@ export async function consumeGenerationQuota(ctx: TrpcContext) {
   return { allowed: true as const, remaining: Math.min(HOURLY_LIMIT - hourCount, DAILY_LIMIT - dayCount) };
 }
 
+export async function getHourlyQuotaStatus(ctx: TrpcContext) {
+  const now = new Date();
+  const identity = requestIdentity(ctx);
+  const scopeKey = `hour:${bucket("hour", now)}:${identity}`;
+  const db = process.env.NODE_ENV === "test" || process.env.VITEST === "true" ? null : await getDb();
+  const hourlyUsed = db
+    ? ((await db.select({ count: generationWindows.count }).from(generationWindows).where(eq(generationWindows.scopeKey, scopeKey)).limit(1))[0]?.count ?? 0)
+    : (memoryWindows.get(scopeKey)?.count ?? 0);
+  return { hourlyUsed, hourlyRemaining: Math.max(0, HOURLY_LIMIT - hourlyUsed), hourlyLimit: HOURLY_LIMIT };
+}
+
 export async function getGenerationStats() {
   const now = new Date();
   const db = process.env.NODE_ENV === "test" || process.env.VITEST === "true" ? null : await getDb();

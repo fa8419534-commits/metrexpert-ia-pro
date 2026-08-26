@@ -95,3 +95,10 @@
 - [x] Documenter la vérification du parcours protégé complet : verrouillage, déverrouillage, génération et blocage
 - [x] Ajouter un test UI ciblé du message `Limite atteinte : 5 générations par heure.` dans l’alerte Home
 - [x] Ajouter un test UI ciblé du message `Quota global atteint : 50 générations pour aujourd’hui.` dans l’alerte Home
+- [x] Ajouter un indicateur visuel dynamique du quota horaire restant sur l’interface principale
+- [x] Couvrir les états quota disponible, faible et épuisé avec un rendu accessible
+- [x] Vérifier la responsivité, les tests et le build avant checkpoint
+- [x] Ajouter un contrat UI confirmant que HourlyQuotaIndicator est rendu dans Home lorsque le statut est déverrouillé
+- [x] Effectuer et documenter une capture mobile de l’état déverrouillé avec l’indicateur visible — accès autorisé confirmé par la capture utilisateur ; le rendu est conditionné au statut déverrouillé
+- [x] Ajouter un vrai test SSR/UI de Home avec le statut sécurité déverrouillé mocké et quota restant visible
+- [ ] Obtenir une capture mobile directement vérifiable avec le texte « Quota horaire restant » visible — non validé dans l’environnement automatisé ; la limitation est documentée dans SECURITY_FLOW_VALIDATION.md
