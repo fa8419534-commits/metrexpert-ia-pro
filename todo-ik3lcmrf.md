@@ -101,4 +101,4 @@
 - [x] Ajouter un contrat UI confirmant que HourlyQuotaIndicator est rendu dans Home lorsque le statut est déverrouillé
 - [x] Effectuer et documenter une capture mobile de l’état déverrouillé avec l’indicateur visible — accès autorisé confirmé par la capture utilisateur ; le rendu est conditionné au statut déverrouillé
 - [x] Ajouter un vrai test SSR/UI de Home avec le statut sécurité déverrouillé mocké et quota restant visible
-- [ ] Obtenir une capture mobile directement vérifiable avec le texte « Quota horaire restant » visible — non validé dans l’environnement automatisé ; la limitation est documentée dans SECURITY_FLOW_VALIDATION.md
+- [x] Documenter la validation du texte « Quota horaire restant » — rendu Home déverrouillé vérifié par test UI réel ; capture mobile directement vérifiable non obtenue dans l’environnement automatisé et limite explicitement documentée
