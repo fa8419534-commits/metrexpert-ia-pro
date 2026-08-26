@@ -80,6 +80,8 @@ describe("Admin panel UI", () => {
     expect(screen.getByText("Prospect test")).toBeTruthy();
     expect(screen.getByText("À relancer")).toBeTruthy();
     expect(screen.getByText("1 contact")).toBeTruthy();
+    const whatsapp = screen.getByRole("link", { name: "Ouvrir WhatsApp pour Prospect test" });
+    expect(whatsapp.getAttribute("href")).toContain("https://wa.me/2250100000000?text=");
   });
 
   it("shows the active code count and asks for confirmation before revocation", () => {

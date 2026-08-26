@@ -9,3 +9,6 @@ La couverture UI vérifie l’état verrouillé, la transition vers le panneau, 
 Le rendu responsive doit être recontrôlé après le build ; aucune donnée client réelle n’est incluse dans cette validation.
 
 Les captures desktop et mobile de `/admin` ont été réalisées après le build. L’écran de déverrouillage reste lisible et sans débordement ; les contrôles du panneau sont organisés pour rester utilisables sur petit écran. La suite complète a validé 49 tests, le typage et le build de production.
+## Validation WhatsApp et essai gratuit
+
+Les captures mobile du 26 août 2026 montrent que le formulaire d’essai reste lisible sans débordement et que la page `/admin` conserve un écran de connexion compact et utilisable. Les tests automatisés couvrent la section « Essais gratuits », le lien WhatsApp pré-rempli et la validation des formats de contact. La capture Admin verrouillée ne montre pas les prospects, car cette vue nécessite une session administrateur authentifiée.

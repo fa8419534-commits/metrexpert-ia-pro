@@ -18,8 +18,16 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import Home, { GenerationErrorAlert, HourlyQuotaIndicator, MonthlyQuotaProgress, persistBrandImage, readStoredBrandImage } from "../client/src/pages/Home";
+import { isValidTrialEmail, isValidTrialPhone } from "../client/src/lib/trialValidation";
 
 describe("generation quota UI errors", () => {
+  it("validates trial contact formats without accepting partial values", () => {
+    expect(isValidTrialEmail("prospect@exemple.ci")).toBe(true);
+    expect(isValidTrialEmail("prospect@exemple")).toBe(false);
+    expect(isValidTrialPhone("+225 01 51 61 05 12")).toBe(true);
+    expect(isValidTrialPhone("01 51 61")).toBe(false);
+  });
+
   it("renders the hourly limit message in the visible generation alert", () => {
     const markup = renderToStaticMarkup(React.createElement(GenerationErrorAlert, { message: "Limite atteinte : 5 générations par heure." }));
     expect(markup).toContain("Limite atteinte : 5 générations par heure.");

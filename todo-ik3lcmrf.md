@@ -204,3 +204,6 @@
 - [x] Ajouter la mention VERSION D’ESSAI GRATUIT dans la couverture Excel sans brider le classeur
 - [x] Ajouter la section Essais gratuits et le statut de conversion dans /admin
 - [x] Ajouter les tests serveur, UI, Excel, unicité et parcours responsive, puis sauvegarder un checkpoint
+- [x] Ajouter un bouton WhatsApp pré-rempli à côté de chaque prospect dans /admin, sans envoi automatique
+- [x] Ajouter la validation visuelle en temps réel du format téléphone/e-mail d’essai gratuit dans Home
+- [x] Ajouter les tests UI, accessibilité et responsivité, vérifier TypeScript/build et sauvegarder un checkpoint
