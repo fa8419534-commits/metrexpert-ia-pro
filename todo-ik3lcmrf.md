@@ -117,3 +117,14 @@
 - [x] Ajouter les tests de contenu, formules, styles et structure de la couverture
 - [x] Vérifier le classeur généré et son rendu avant checkpoint
 - [x] Corriger l’assertion Excel du champ client pour refléter le comportement « À compléter » lorsque le client est absent
+
+- [x] Ajouter les champs client téléphone et e-mail dans le formulaire
+- [x] Transmettre les coordonnées client et les métadonnées de vérification au générateur Excel
+- [x] Ajouter « Vérifié par » et « Date de validation » dans la couverture
+- [x] Ajouter les tests de formulaire, contrat et couverture pour ces champs
+- [x] Régénérer le classeur et effectuer le contrôle d’impression avant checkpoint
+- [x] Corriger les assertions de couverture décalées après l’ajout de la ligne « Vérifié par »
+- [x] Corriger l’assertion de test de l’avertissement pour cibler les placeholders client réellement affichés
+- [x] Corriger la couverture imprimée sur deux pages en réduisant les largeurs de colonnes et revalider le PDF
+- [x] Ajouter dans le formulaire les champs « Vérifié par » et « Date de validation », puis les transmettre au backend
+- [x] Ajouter un test router/contrat vérifiant la propagation des quatre métadonnées vers le classeur

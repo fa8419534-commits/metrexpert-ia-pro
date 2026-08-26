@@ -54,6 +54,18 @@ describe("generation quota UI errors", () => {
     expect(markup).toContain("3 / 5 générations");
   });
 
+  it("renders client contact fields and forwards them during generation", () => {
+    const source = readFileSync(resolve(process.cwd(), "client/src/pages/Home.tsx"), "utf8");
+    expect(source).toContain('id="client-phone"');
+    expect(source).toContain('id="client-email"');
+    expect(source).toContain("clientPhone: clientPhone.trim() || undefined");
+    expect(source).toContain("clientEmail: clientEmail.trim() || undefined");
+    expect(source).toContain('id="verified-by"');
+    expect(source).toContain('id="validation-date"');
+    expect(source).toContain("verifiedBy: verifiedBy.trim() || undefined");
+    expect(source).toContain("validationDate: validationDate.trim() || undefined");
+  });
+
   it("keeps the unlocked quota condition in Home", () => {
     const source = readFileSync(resolve(process.cwd(), "client/src/pages/Home.tsx"), "utf8");
     expect(source).toContain("accessStatus.data?.unlocked && hourlyRemaining !== undefined && <HourlyQuotaIndicator remaining={hourlyRemaining} limit={hourlyLimit} />");

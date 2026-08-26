@@ -13,9 +13,13 @@ export type MeasureItem = {
 export type ProjectEstimate = {
   projectTitle: string;
   client?: string;
+  clientPhone?: string;
+  clientEmail?: string;
   location?: string;
   summary?: string;
   currency?: string;
+  verifiedBy?: string;
+  validationDate?: string;
   measures: MeasureItem[];
 };
 
@@ -118,12 +122,14 @@ export function buildEstimateWorkbook(data: ProjectEstimate): Buffer {
   const reference = `MXP-${issuedAt.getFullYear()}-${String(issuedAt.getTime()).slice(-6)}`;
   const totalRow = data.measures.length + 2;
   const clientName = data.client || "À compléter";
-  const clientPhone = "À compléter";
-  const clientEmail = "À compléter";
+  const clientPhone = data.clientPhone || "À compléter";
+  const clientEmail = data.clientEmail || "À compléter";
   const projectTitle = data.projectTitle || "À compléter";
   const location = data.location || "À compléter";
   const summary = data.summary || "Généré à partir des éléments fournis. Vérifier les hypothèses, unités et prix avant usage contractuel.";
   const provider = "MÉTREXPERT IA PRO — préparé par Daouda";
+  const verifiedBy = data.verifiedBy || "À compléter";
+  const validationDate = data.validationDate || "À compléter";
   const projectTitleValueStyle: CellStyle = { ...valueStyle, font: { name: "Aptos", sz: 11, bold: true, color: { rgb: COLORS.anthracite } } };
   const totalLabelStyle: CellStyle = { ...labelStyle, font: { name: "Aptos Display", sz: 13, bold: true, color: { rgb: COLORS.gold } } };
   const totalFormulaStyle: CellStyle = { ...formulaStyle, fill: { fgColor: { rgb: COLORS.gold } }, font: { name: "Aptos Display", sz: 18, bold: true, color: { rgb: COLORS.anthracite } }, alignment: { horizontal: "right", vertical: "center" } };
@@ -151,6 +157,7 @@ export function buildEstimateWorkbook(data: ProjectEstimate): Buffer {
     [cell("PRESTATAIRE", sectionStyle), cell("", sectionStyle), cell("", sectionStyle), cell("", sectionStyle)],
     [cell("Structure", labelStyle), cell(provider, valueStyle), cell("Téléphone", labelStyle), cell("07 67 15 93 51", valueStyle)],
     [cell("E-mail", labelStyle), cell("dawoud.digitallab@gmail.com", valueStyle), cell("WhatsApp", labelStyle), cell("01 51 61 05 12", valueStyle)],
+    [cell("Vérifié par", labelStyle), cell(verifiedBy, valueStyle), cell("Date de validation", labelStyle), cell(validationDate, valueStyle)],
     [],
     [cell("MENTIONS, HYPOTHÈSES ET AVERTISSEMENT", sectionStyle), cell("", sectionStyle), cell("", sectionStyle), cell("", sectionStyle)],
     [cell(summary, { ...valueStyle, alignment: { wrapText: true, vertical: "top" } }), cell("", valueStyle), cell("", valueStyle), cell("", valueStyle)],
@@ -165,12 +172,12 @@ export function buildEstimateWorkbook(data: ProjectEstimate): Buffer {
     { s: { r: 9, c: 0 }, e: { r: 9, c: 3 } },
     { s: { r: 13, c: 0 }, e: { r: 13, c: 3 } },
     { s: { r: 17, c: 0 }, e: { r: 17, c: 3 } },
-    { s: { r: 21, c: 0 }, e: { r: 21, c: 3 } },
     { s: { r: 22, c: 0 }, e: { r: 22, c: 3 } },
     { s: { r: 23, c: 0 }, e: { r: 23, c: 3 } },
+    { s: { r: 24, c: 0 }, e: { r: 24, c: 3 } },
   ];
-  coverSheet["!cols"] = [{ wch: 18 }, { wch: 32 }, { wch: 18 }, { wch: 32 }];
-  coverSheet["!rows"] = [{ hpt: 34 }, { hpt: 20 }, { hpt: 22 }, { hpt: 24 }, { hpt: 24 }, { hpt: 8 }, { hpt: 22 }, { hpt: 30 }, { hpt: 8 }, { hpt: 22 }, { hpt: 26 }, { hpt: 26 }, { hpt: 8 }, { hpt: 22 }, { hpt: 44 }, { hpt: 28 }, { hpt: 8 }, { hpt: 22 }, { hpt: 28 }, { hpt: 28 }, { hpt: 8 }, { hpt: 22 }, { hpt: 38 }, { hpt: 54 }];
+  coverSheet["!cols"] = [{ wch: 14 }, { wch: 21 }, { wch: 14 }, { wch: 21 }];
+  coverSheet["!rows"] = [{ hpt: 34 }, { hpt: 20 }, { hpt: 22 }, { hpt: 24 }, { hpt: 24 }, { hpt: 8 }, { hpt: 22 }, { hpt: 30 }, { hpt: 8 }, { hpt: 22 }, { hpt: 26 }, { hpt: 26 }, { hpt: 8 }, { hpt: 22 }, { hpt: 44 }, { hpt: 28 }, { hpt: 8 }, { hpt: 22 }, { hpt: 28 }, { hpt: 28 }, { hpt: 28 }, { hpt: 8 }, { hpt: 22 }, { hpt: 38 }, { hpt: 54 }];
   coverSheet["!pageSetup"] = { orientation: "portrait", fitToWidth: 1, fitToHeight: 1, scale: 80 };
   coverSheet["!margins"] = { left: 0.25, right: 0.25, top: 0.35, bottom: 0.35, header: 0.1, footer: 0.1 };
   XLSX.utils.book_append_sheet(workbook, coverSheet, "Couverture");

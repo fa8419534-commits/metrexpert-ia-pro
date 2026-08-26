@@ -5,9 +5,13 @@ import { writeFileSync } from "node:fs";
 const input: ProjectEstimate = {
   projectTitle: "Contrôle audit XLSX",
   client: "Projet témoin",
+  clientPhone: "+225 07 00 00 00 00",
+  clientEmail: "client@example.ci",
   location: "Abidjan",
   summary: "Vérification de la présentation et des formules.",
   currency: "FCFA",
+  verifiedBy: "Daouda Sidibé",
+  validationDate: "26/08/2026",
   measures: [
     { code: "01", designation: "Béton de fondation", unit: "m³", quantity: 2, unitPrice: 85000, notes: "Contrôle indépendant requis" },
     { code: "02", designation: "Peinture intérieure, deux couches", unit: "m²", quantity: 180, unitPrice: 2500, notes: "HYPOTHÈSE NON DÉFINITIVE" },

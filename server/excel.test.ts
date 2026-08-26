@@ -23,7 +23,7 @@ describe("buildEstimateWorkbook", () => {
     expect(workbook.Sheets.DQE?.D2.f).toBe("IFERROR('Métré'!F2,0)");
     expect(workbook.Sheets.DQE?.F2.f).toBe("D2*E2");
     expect(workbook.Sheets.DQE?.F4.f).toBe("SUM(F2:F3)");
-    expect(workbook.Sheets.Couverture?.["!ref"]).toBe("A1:D24");
+    expect(workbook.Sheets.Couverture?.["!ref"]).toBe("A1:D25");
     expect(workbook.Sheets.Métré?.F2.f).not.toMatch(/^=/);
     expect(workbook.Sheets.DQE?.D2.f).not.toMatch(/^=/);
     expect(workbook.Sheets.DQE?.F2.f).not.toMatch(/^=/);
@@ -45,9 +45,32 @@ describe("buildEstimateWorkbook", () => {
     expect(workbook.Sheets.Couverture?.B19.v).toContain("préparé par Daouda");
     expect(workbook.Sheets.Couverture?.D19.v).toBe("07 67 15 93 51");
     expect(workbook.Sheets.Couverture?.B20.v).toBe("dawoud.digitallab@gmail.com");
-    expect(workbook.Sheets.Couverture?.A24.v).toContain("À compléter");
+    expect(workbook.Sheets.Couverture?.B11.v).toBe("À compléter");
+    expect(workbook.Sheets.Couverture?.D11.v).toBe("À compléter");
+    expect(workbook.Sheets.Couverture?.B12.v).toBe("À compléter");
+    expect(workbook.Sheets.Couverture?.B21.v).toBe("À compléter");
+    expect(workbook.Sheets.Couverture?.D21.v).toBe("À compléter");
     expect(workbook.Sheets.Métré?.A1.s).toBeDefined();
     expect(workbook.Sheets.DQE?.A1.s).toBeDefined();
+  });
+
+  it("renders supplied client and validation metadata", () => {
+    const workbook = XLSX.read(buildEstimateWorkbook({
+      projectTitle: "Projet client",
+      client: "Client Exemple",
+      clientPhone: "+225 07 00 00 00 00",
+      clientEmail: "client@example.ci",
+      location: "Yopougon",
+      currency: "FCFA",
+      verifiedBy: "Daouda Sidibé",
+      validationDate: "26/08/2026",
+      measures: [{ code: "01", designation: "Béton", unit: "m³", quantity: 1, unitPrice: 85000 }],
+    }), { type: "buffer", cellFormula: true, cellStyles: true });
+    expect(workbook.Sheets.Couverture?.B11.v).toBe("Client Exemple");
+    expect(workbook.Sheets.Couverture?.D11.v).toBe("+225 07 00 00 00 00");
+    expect(workbook.Sheets.Couverture?.B12.v).toBe("client@example.ci");
+    expect(workbook.Sheets.Couverture?.B21.v).toBe("Daouda Sidibé");
+    expect(workbook.Sheets.Couverture?.D21.v).toBe("26/08/2026");
   });
 
   it("writes formula XML without a leading equals sign", () => {

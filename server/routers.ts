@@ -41,8 +41,12 @@ const estimateSchema = {
   additionalProperties: false,
 } as const;
 
-const requestSchema = z.object({
+export const requestSchema = z.object({
   description: z.string().trim().min(20, "Décrivez le projet avec au moins 20 caractères.").max(50_000),
+  clientPhone: z.string().trim().max(80).optional(),
+  clientEmail: z.string().trim().max(160).optional(),
+  verifiedBy: z.string().trim().max(160).optional(),
+  validationDate: z.string().trim().max(40).optional(),
   file: z.object({
     name: z.string().max(180),
     mimeType: z.enum(["application/pdf", "image/png", "image/jpeg", "image/webp"]),
@@ -78,6 +82,12 @@ function extractText(response: Awaited<ReturnType<typeof invokeLLM>>): string {
   if (typeof content === "string") return content;
   if (Array.isArray(content)) return content.filter((part) => part.type === "text").map((part) => part.text).join("\n");
   return "";
+}
+
+export type EstimateRequestMetadata = Pick<ProjectEstimate, "clientPhone" | "clientEmail" | "verifiedBy" | "validationDate">;
+
+export function buildEstimateWorkbookFromRequest(estimate: ProjectEstimate, metadata: EstimateRequestMetadata) {
+  return buildEstimateWorkbook({ ...estimate, ...metadata });
 }
 
 export function validateEstimate(value: unknown): ProjectEstimate {
@@ -180,7 +190,12 @@ export const appRouter = router({
           throw new TRPCError({ code: "BAD_REQUEST", message: "La réponse de l’IA n’est pas un JSON valide." });
         }
         const estimate = normalizeEstimateAmbiguities(validateEstimate(json));
-        const workbook = buildEstimateWorkbook(estimate);
+        const workbook = buildEstimateWorkbookFromRequest(estimate, {
+          clientPhone: input.clientPhone || undefined,
+          clientEmail: input.clientEmail || undefined,
+          verifiedBy: input.verifiedBy || undefined,
+          validationDate: input.validationDate || undefined,
+        });
         return {
           filename: `metrexpert-${Date.now()}.xlsx`,
           mimeType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",

@@ -57,6 +57,10 @@ type GeneratedDownload = {
 
 export default function Home() {
   const [description, setDescription] = useState("");
+  const [clientPhone, setClientPhone] = useState("");
+  const [clientEmail, setClientEmail] = useState("");
+  const [verifiedBy, setVerifiedBy] = useState("");
+  const [validationDate, setValidationDate] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [fileError, setFileError] = useState("");
   const [download, setDownload] = useState<GeneratedDownload | null>(null);
@@ -118,6 +122,10 @@ export default function Home() {
       const dataUrl = file ? await readFileAsDataUrl(file) : undefined;
       const result = await generate.mutateAsync({
         description: description.trim(),
+        clientPhone: clientPhone.trim() || undefined,
+        clientEmail: clientEmail.trim() || undefined,
+        verifiedBy: verifiedBy.trim() || undefined,
+        validationDate: validationDate.trim() || undefined,
         file: file && dataUrl ? { name: file.name, mimeType: file.type as "application/pdf" | "image/png" | "image/jpeg" | "image/webp", dataUrl } : undefined,
       });
       const bytes = Uint8Array.from(atob(result.data), (char) => char.charCodeAt(0));
@@ -187,6 +195,12 @@ export default function Home() {
               {accessStatus.data?.dailyTotal !== undefined && <div className="mb-6 flex items-center justify-between gap-3 border border-[#3A4A42] bg-[#16201C] px-4 py-3 font-mono text-[10px] uppercase tracking-wider text-[#AEB7B0]"><span>Compteur global du jour</span><strong className="text-[#C9A15A]">{accessStatus.data.dailyTotal} / {accessStatus.data.dailyLimit}</strong></div>}
               <label htmlFor="description" className="field-label">Description du projet <span>REQUIS</span></label>
               <Textarea id="description" value={description} onChange={(event) => setDescription(event.target.value)} placeholder="Ex. Construction d’une villa R+1 de 180 m² à Abidjan, avec fondations en béton armé, murs en agglos..." className="technical-input min-h-40 resize-none" />
+              <div className="mt-5 grid min-w-0 gap-4 sm:grid-cols-2">
+                <div className="min-w-0"><label htmlFor="client-phone" className="field-label">Téléphone client <span>OPTIONNEL</span></label><input id="client-phone" type="tel" autoComplete="tel" value={clientPhone} onChange={(event) => setClientPhone(event.target.value)} placeholder="À compléter" className="technical-input h-11 w-full min-w-0 px-3 text-sm" /></div>
+                <div className="min-w-0"><label htmlFor="client-email" className="field-label">E-mail client <span>OPTIONNEL</span></label><input id="client-email" type="email" autoComplete="email" value={clientEmail} onChange={(event) => setClientEmail(event.target.value)} placeholder="À compléter" className="technical-input h-11 w-full min-w-0 px-3 text-sm" /></div>
+                <div className="min-w-0"><label htmlFor="verified-by" className="field-label">Vérifié par <span>OPTIONNEL</span></label><input id="verified-by" type="text" autoComplete="name" value={verifiedBy} onChange={(event) => setVerifiedBy(event.target.value)} placeholder="À compléter" className="technical-input h-11 w-full min-w-0 px-3 text-sm" /></div>
+                <div className="min-w-0"><label htmlFor="validation-date" className="field-label">Date de validation <span>OPTIONNEL</span></label><input id="validation-date" type="text" inputMode="numeric" value={validationDate} onChange={(event) => setValidationDate(event.target.value)} placeholder="JJ/MM/AAAA" className="technical-input h-11 w-full min-w-0 px-3 text-sm" /></div>
+              </div>
               <div className="mt-5">
                 <input ref={fileInputRef} type="file" accept=".pdf,image/png,image/jpeg,image/webp" className="sr-only" onChange={(event) => onFileChange(event.target.files?.[0])} />
                 <button type="button" onClick={() => fileInputRef.current?.click()} className="upload-zone group">
