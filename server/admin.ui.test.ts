@@ -17,6 +17,7 @@ const testState = vi.hoisted(() => ({
   writeText: vi.fn(),
   disable: vi.fn(),
   contacted: vi.fn(),
+  paymentRequests: [] as Array<{ id: number; clientName: string; phone: string; email: string | null; planQuota: number; amountXof: number; paymentMethod: string; paymentReference: string; status: "pending" | "confirmed" | "rejected"; accessCodeId: number | null; adminNote: string | null; createdAt: Date; reviewedAt: Date | null }>,
 }));
 
 beforeEach(() => {
@@ -26,6 +27,7 @@ beforeEach(() => {
   testState.writeText.mockReset().mockResolvedValue(undefined);
   testState.disable.mockReset();
   testState.contacted.mockReset();
+  testState.paymentRequests = [];
   window.localStorage.clear();
   Object.defineProperty(navigator, "clipboard", {
     configurable: true,
@@ -42,9 +44,11 @@ vi.mock("@/lib/trpc", () => ({
       verifyAdminCode: { useMutation: (options?: { onSuccess?: () => void }) => ({ isPending: false, mutate: () => options?.onSuccess?.(), error: undefined }) },
       adminListCodes: { useQuery: () => ({ data: testState.codes, isLoading: false, refetch: vi.fn() }) },
       adminListFreeTrials: { useQuery: () => ({ data: testState.trials, isLoading: false, refetch: vi.fn() }) },
+      adminListPaymentRequests: { useQuery: () => ({ data: testState.paymentRequests, isLoading: false, refetch: vi.fn() }) },
       adminMarkFreeTrialWhatsAppContacted: { useMutation: () => ({ isPending: false, mutate: testState.contacted }) },
       adminMarkFreeTrialConverted: { useMutation: () => ({ isPending: false, mutate: vi.fn() }) },
       adminCreateCode: { useMutation: (options?: { onSuccess?: (data: { code: string }) => void }) => ({ isPending: false, mutate: () => options?.onSuccess?.({ code: "MXP-ABC1234567" }) }) },
+      adminReviewPaymentRequest: { useMutation: (options?: { onSuccess?: (data: { status: "confirmed" | "rejected"; accessCode?: string }) => void }) => ({ isPending: false, mutate: (input: { status: "confirmed" | "rejected" }) => options?.onSuccess?.({ status: input.status, accessCode: input.status === "confirmed" ? "MXP-PAYMENT123" : undefined }) }) },
       adminDisableCode: { useMutation: () => ({ isPending: false, mutate: testState.disable }) },
     },
     useUtils: () => ({ security: { adminListCodes: { invalidate: vi.fn() }, adminListFreeTrials: { invalidate: vi.fn() } } }),

@@ -124,6 +124,17 @@ export default function Admin() {
   const trials = trpc.security.adminListFreeTrials.useQuery(undefined, {
     enabled: isAdminUnlocked,
   });
+  const paymentRequests = trpc.security.adminListPaymentRequests.useQuery(undefined, { enabled: isAdminUnlocked });
+
+  const reviewPayment = trpc.security.adminReviewPaymentRequest.useMutation({
+    onSuccess: (data) => {
+      void paymentRequests.refetch();
+      void codes.refetch();
+      if (data.status === "confirmed" && "accessCode" in data && data.accessCode) setRevealedCode(data.accessCode);
+      toast.success(data.status === "confirmed" ? "Paiement confirmé et forfait activé." : "Paiement refusé.");
+    },
+    onError: (error) => toast.error(error.message),
+  });
 
   const create = trpc.security.adminCreateCode.useMutation({
     onSuccess: (data) => {
@@ -406,6 +417,13 @@ export default function Admin() {
                   </AlertDescription>
                 </Alert>
               )}
+            </CardContent>
+          </Card>
+
+          <Card className="border-[#3A4A42] bg-[#16201C] text-[#EDEAE2]">
+            <CardHeader><CardTitle className="font-serif text-2xl">Demandes de paiement</CardTitle></CardHeader>
+            <CardContent>
+              {paymentRequests.isLoading ? <div className="flex items-center gap-2 text-sm text-[#AEB7B0]"><Loader2 className="h-4 w-4 animate-spin" />Chargement des paiements…</div> : paymentRequests.data?.length ? <div className="overflow-x-auto"><table className="w-full min-w-[900px] text-left text-sm"><thead className="border-b border-[#3A4A42] font-mono text-[10px] uppercase tracking-wider text-[#C9A15A]"><tr><th className="px-3 py-3">Client</th><th className="px-3 py-3">Forfait / montant</th><th className="px-3 py-3">Moyen / référence</th><th className="px-3 py-3">Statut</th><th className="px-3 py-3 text-right">Décision</th></tr></thead><tbody>{paymentRequests.data.map((request) => <tr key={request.id} className="border-b border-[#3A4A42]/70"><td className="px-3 py-4"><span className="font-medium">{request.clientName}</span><br /><span className="text-xs text-[#AEB7B0]">{request.phone}</span></td><td className="px-3 py-4 font-mono text-xs">{getSubscriptionPlan(request.planQuota)?.name}<br /><span className="text-[#C9A15A]">{formatXof(request.amountXof)}</span></td><td className="px-3 py-4 font-mono text-xs">{request.paymentMethod.toUpperCase()}<br /><span className="text-[#AEB7B0]">{request.paymentReference}</span></td><td className={`px-3 py-4 font-mono text-xs uppercase ${request.status === "confirmed" ? "text-[#7C9A76]" : request.status === "rejected" ? "text-[#D98472]" : "text-[#C9A15A]"}`}>{request.status === "confirmed" ? "Confirmé" : request.status === "rejected" ? "Refusé" : "En attente"}</td><td className="px-3 py-4 text-right">{request.status === "pending" && <div className="flex justify-end gap-2"><Button type="button" size="sm" className="bg-[#7C9A76] text-[#0F1613]" disabled={reviewPayment.isPending} onClick={() => reviewPayment.mutate({ id: request.id, status: "confirmed" })}>Confirmer</Button><Button type="button" size="sm" variant="outline" className="border-[#D98472] text-[#D98472]" disabled={reviewPayment.isPending} onClick={() => reviewPayment.mutate({ id: request.id, status: "rejected" })}>Refuser</Button></div>}</td></tr>)}</tbody></table></div> : <p className="py-8 text-sm text-[#AEB7B0]">Aucune demande de paiement enregistrée.</p>}
             </CardContent>
           </Card>
 

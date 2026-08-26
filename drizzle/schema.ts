@@ -54,6 +54,27 @@ export const clientAccessCodes = mysqlTable("client_access_codes", {
 export type ClientAccessCode = typeof clientAccessCodes.$inferSelect;
 export type InsertClientAccessCode = typeof clientAccessCodes.$inferInsert;
 
+export const paymentRequests = mysqlTable("payment_requests", {
+  id: int("id").autoincrement().primaryKey(),
+  requestKey: varchar("requestKey", { length: 64 }).notNull().unique(),
+  clientName: varchar("clientName", { length: 160 }).notNull(),
+  phone: varchar("phone", { length: 32 }).notNull(),
+  email: varchar("email", { length: 320 }),
+  planQuota: int("planQuota").notNull(),
+  amountXof: int("amountXof").notNull(),
+  paymentMethod: mysqlEnum("paymentMethod", ["wave", "moov", "mtn", "autre"]).notNull(),
+  paymentReference: varchar("paymentReference", { length: 120 }).notNull(),
+  status: mysqlEnum("status", ["pending", "confirmed", "rejected"]).default("pending").notNull(),
+  accessCodeId: int("accessCodeId"),
+  adminNote: varchar("adminNote", { length: 500 }),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  reviewedAt: timestamp("reviewedAt"),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type PaymentRequest = typeof paymentRequests.$inferSelect;
+export type InsertPaymentRequest = typeof paymentRequests.$inferInsert;
+
 export const freeTrialContacts = mysqlTable("free_trial_contacts", {
   id: int("id").autoincrement().primaryKey(),
   clientName: varchar("clientName", { length: 160 }),

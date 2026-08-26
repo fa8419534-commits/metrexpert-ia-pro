@@ -11,6 +11,7 @@ import { parseJsonObjectFromLLM } from "./json";
 import { normalizeEstimateAmbiguities } from "./estimateNormalization";
 import { createClientAccessCode, DAILY_LIMIT, disableClientAccessCode, getClientAccessStatus, getGenerationStats, getHourlyQuotaStatus, hasValidAccessCookie, hasValidAdminCookie, HOURLY_LIMIT, isAccessCodeValid, isAdminAccessCodeValid, listClientAccessCodes, listFreeTrialContacts, markFreeTrialConverted, markFreeTrialWhatsAppContacted, markFreeTrialUnsubscribed, unsubscribeFreeTrialContact, releaseClientMonthlyQuota, releaseFreeTrialReservation, releaseGenerationQuota, reserveClientMonthlyQuota, reserveGenerationQuota, reserveFreeTrial, setAccessCookie, setAdminCookie, verifyClientAccessCode } from "./security";
 import type { GenerationQuotaReservation } from "./security";
+import { createPaymentRequest, getPaymentRequest, listPaymentRequests, reviewPaymentRequest } from "./paymentRequests";
 import { runQuantityChecks } from "./quantityChecks";
 
 const inFlightGenerationRequests = new Map<string, number>();
@@ -247,6 +248,10 @@ export const appRouter = router({
     }),
     adminStatus: publicProcedure.query(({ ctx }) => ({ unlocked: hasValidAdminCookie(ctx) })),
     adminListCodes: adminProcedure.query(() => listClientAccessCodes()),
+    adminListPaymentRequests: adminProcedure.query(() => listPaymentRequests()),
+    adminReviewPaymentRequest: adminProcedure.input(z.object({ id: z.number().int().positive(), status: z.enum(["confirmed", "rejected"]), adminNote: z.string().trim().max(500).optional() })).mutation(({ input }) => reviewPaymentRequest(input.id, input.status, input.adminNote)),
+    submitPaymentRequest: publicProcedure.input(z.object({ clientName: z.string().trim().min(1).max(160), phone: z.string().trim().min(8).max(32), email: z.string().trim().email().max(320).optional(), planQuota: z.union([z.literal(5), z.literal(15), z.literal(40)]), paymentMethod: z.enum(["wave", "moov", "mtn", "autre"]), paymentReference: z.string().trim().min(3).max(120) })).mutation(({ input }) => createPaymentRequest(input)),
+    getPaymentRequest: publicProcedure.input(z.object({ requestKey: z.string().trim().min(16).max(64) })).query(({ input }) => getPaymentRequest(input.requestKey)),
     adminListFreeTrials: adminProcedure.query(() => listFreeTrialContacts()),
     adminMarkFreeTrialWhatsAppContacted: adminProcedure.input(z.object({ id: z.number().int().positive() })).mutation(({ input }) => markFreeTrialWhatsAppContacted(input.id).then((lastWhatsAppContactAt) => ({ success: true as const, lastWhatsAppContactAt }))),
     adminMarkFreeTrialConverted: adminProcedure.input(z.object({ id: z.number().int().positive() })).mutation(({ input }) => markFreeTrialConverted(input.id).then(() => ({ success: true as const }))),

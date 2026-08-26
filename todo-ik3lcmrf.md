@@ -336,3 +336,11 @@
 - [x] Concevoir l’automatisation des confirmations de paiement, activation de code et alertes d’expiration
 - [x] Ajouter les tests tarifaires et Admin puis valider TypeScript, tests, build et responsive
 - [x] Sauvegarder un checkpoint après validation
+
+- [x] Créer une demande de paiement manuel avec référence unique, forfait, contact et statut en attente
+- [x] Ajouter le formulaire client de soumission et de consultation d’une demande de paiement
+- [x] Ajouter le tableau Admin des demandes avec statuts en attente, confirmé et refusé
+- [x] Rendre la confirmation idempotente et activer le forfait uniquement après validation Admin
+- [x] Afficher une notification utilisateur après activation sans envoyer de message externe automatiquement
+- [x] Ajouter les tests de workflow paiement, sécurité, quotas et responsive
+- [x] Valider TypeScript, tests et build puis sauvegarder un checkpoint

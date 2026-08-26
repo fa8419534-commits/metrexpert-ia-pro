@@ -50,6 +50,13 @@
       "when": 1787773341208,
       "tag": "0006_warm_morlocks",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "5",
+      "when": 1787773738485,
+      "tag": "0007_fixed_photon",
+      "breakpoints": true
     }
   ]
 }
