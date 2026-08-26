@@ -278,3 +278,13 @@
 - [x] Ajouter les tests d’édition, de validation, de PDF et de progression
 - [x] Exécuter tests, TypeScript, build et contrôles responsive avant checkpoint
 - [x] Sauvegarder un checkpoint de cette évolution
+
+- [x] Ajouter une modale accessible confirmant la consommation d’un droit avant régénération
+- [x] Générer un aperçu PDF intégré avant le téléchargement du rapport
+- [x] Permettre de fermer et rouvrir l’aperçu PDF sans perdre le rapport
+- [x] Ajouter un filtre texte et un filtre de statut dans le tableau géométrique
+- [x] Ajouter un tri par code, désignation, formule, statut et résultat
+- [x] Afficher le nombre de dimensions visibles et un état vide explicite
+- [x] Ajouter les tests de confirmation, aperçu PDF, filtres et tri
+- [x] Exécuter tests, TypeScript, build et contrôles responsive
+- [x] Sauvegarder un checkpoint de cette évolution

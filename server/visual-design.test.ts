@@ -39,6 +39,12 @@ describe("technical visual system", () => {
     expect(home).toContain("Modifier avant validation");
     expect(home).toContain("Valider et régénérer");
     expect(home).toContain("Exporter le contrôle PDF");
+    expect(home).toContain("Confirmer la régénération");
+    expect(home).toContain("Confirmer et régénérer");
+    expect(home).toContain("Aperçu du rapport PDF");
+    expect(home).toContain("Télécharger le PDF");
+    expect(home).toContain("geometryStatusFilter");
+    expect(home).toContain("dimensions affichées");
     expect(home).toContain("Progression indicative");
     expect(home).toContain("aria-valuetext");
     expect(home).toContain("Déverrouiller l’étude");
