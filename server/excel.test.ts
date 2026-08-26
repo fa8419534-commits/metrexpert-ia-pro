@@ -23,7 +23,7 @@ describe("buildEstimateWorkbook", () => {
     expect(workbook.Sheets.DQE?.D2.f).toBe("IFERROR('Métré'!F2,0)");
     expect(workbook.Sheets.DQE?.F2.f).toBe("D2*E2");
     expect(workbook.Sheets.DQE?.F4.f).toBe("SUM(F2:F3)");
-    expect(workbook.Sheets.Couverture?.["!ref"]).toBe("A1:D25");
+    expect(workbook.Sheets.Couverture?.["!ref"]).toBe("A1:D27");
     expect(workbook.Sheets.Métré?.F2.f).not.toMatch(/^=/);
     expect(workbook.Sheets.DQE?.D2.f).not.toMatch(/^=/);
     expect(workbook.Sheets.DQE?.F2.f).not.toMatch(/^=/);
@@ -50,6 +50,11 @@ describe("buildEstimateWorkbook", () => {
     expect(workbook.Sheets.Couverture?.B12.v).toBe("À compléter");
     expect(workbook.Sheets.Couverture?.B21.v).toBe("À compléter");
     expect(workbook.Sheets.Couverture?.D21.v).toBe("À compléter");
+    expect(workbook.Sheets.Couverture?.A22.v).toBe("SIGNATURE NUMÉRIQUE / TAMPON D’ENTREPRISE");
+    expect(workbook.Sheets.Couverture?.A23.v).toBe("Signature numérique");
+    expect(workbook.Sheets.Couverture?.B23.v).toBe("À compléter");
+    expect(workbook.Sheets.Couverture?.C23.v).toBe("Tampon d’entreprise");
+    expect(workbook.Sheets.Couverture?.D23.v).toBe("À compléter");
     expect(workbook.Sheets.Métré?.A1.s).toBeDefined();
     expect(workbook.Sheets.DQE?.A1.s).toBeDefined();
   });

@@ -128,3 +128,12 @@
 - [x] Corriger la couverture imprimée sur deux pages en réduisant les largeurs de colonnes et revalider le PDF
 - [x] Ajouter dans le formulaire les champs « Vérifié par » et « Date de validation », puis les transmettre au backend
 - [x] Ajouter un test router/contrat vérifiant la propagation des quatre métadonnées vers le classeur
+
+- [x] Ajouter un bloc dédié « Signature numérique / Tampon d’entreprise » sur la couverture
+- [x] Conserver une zone vide clairement identifiable sans inventer de signature ou de tampon
+- [x] Garantir la lisibilité et l’impression sur une seule page
+- [x] Ajouter les tests de structure, contenu et rendu du bloc de validation
+- [x] Régénérer le classeur, vérifier l’impression et sauvegarder un checkpoint
+- [x] Mettre à jour le test de plage de couverture après l’ajout du bloc signature/tampon
+- [x] Corriger l’attente de plage A1:D27 dans le test après compactage de la couverture
+- [x] Sauvegarder un nouveau checkpoint après l’ajout du bloc « Signature numérique / Tampon d’entreprise » et sa validation d’impression

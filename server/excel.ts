@@ -158,7 +158,9 @@ export function buildEstimateWorkbook(data: ProjectEstimate): Buffer {
     [cell("Structure", labelStyle), cell(provider, valueStyle), cell("Téléphone", labelStyle), cell("07 67 15 93 51", valueStyle)],
     [cell("E-mail", labelStyle), cell("dawoud.digitallab@gmail.com", valueStyle), cell("WhatsApp", labelStyle), cell("01 51 61 05 12", valueStyle)],
     [cell("Vérifié par", labelStyle), cell(verifiedBy, valueStyle), cell("Date de validation", labelStyle), cell(validationDate, valueStyle)],
-    [],
+    [cell("SIGNATURE NUMÉRIQUE / TAMPON D’ENTREPRISE", sectionStyle), cell("", sectionStyle), cell("", sectionStyle), cell("", sectionStyle)],
+    [cell("Signature numérique", labelStyle), cell("À compléter", valueStyle), cell("Tampon d’entreprise", labelStyle), cell("À compléter", valueStyle)],
+    [cell("Nom du signataire", labelStyle), cell("À compléter", valueStyle), cell("Référence du tampon", labelStyle), cell("À compléter", valueStyle)],
     [cell("MENTIONS, HYPOTHÈSES ET AVERTISSEMENT", sectionStyle), cell("", sectionStyle), cell("", sectionStyle), cell("", sectionStyle)],
     [cell(summary, { ...valueStyle, alignment: { wrapText: true, vertical: "top" } }), cell("", valueStyle), cell("", valueStyle), cell("", valueStyle)],
     [cell("Les informations absentes sont indiquées « À compléter ». Ce document est une base de travail assistée par IA : vérifier données d’entrée, hypothèses, unités, prix, quantités et périmètre des lots avant toute utilisation contractuelle.", { fill: { fgColor: { rgb: COLORS.anthracite } }, font: { name: "Aptos", sz: 9, italic: true, color: { rgb: COLORS.paper } }, alignment: { wrapText: true, vertical: "center" }, border: border(COLORS.gold) }), cell("", { fill: { fgColor: { rgb: COLORS.anthracite } }, border: border(COLORS.gold) }), cell("", { fill: { fgColor: { rgb: COLORS.anthracite } }, border: border(COLORS.gold) }), cell("", { fill: { fgColor: { rgb: COLORS.anthracite } }, border: border(COLORS.gold) })],
@@ -172,12 +174,13 @@ export function buildEstimateWorkbook(data: ProjectEstimate): Buffer {
     { s: { r: 9, c: 0 }, e: { r: 9, c: 3 } },
     { s: { r: 13, c: 0 }, e: { r: 13, c: 3 } },
     { s: { r: 17, c: 0 }, e: { r: 17, c: 3 } },
-    { s: { r: 22, c: 0 }, e: { r: 22, c: 3 } },
-    { s: { r: 23, c: 0 }, e: { r: 23, c: 3 } },
+    { s: { r: 21, c: 0 }, e: { r: 21, c: 3 } },
     { s: { r: 24, c: 0 }, e: { r: 24, c: 3 } },
+    { s: { r: 25, c: 0 }, e: { r: 25, c: 3 } },
+    { s: { r: 26, c: 0 }, e: { r: 26, c: 3 } },
   ];
-  coverSheet["!cols"] = [{ wch: 14 }, { wch: 21 }, { wch: 14 }, { wch: 21 }];
-  coverSheet["!rows"] = [{ hpt: 34 }, { hpt: 20 }, { hpt: 22 }, { hpt: 24 }, { hpt: 24 }, { hpt: 8 }, { hpt: 22 }, { hpt: 30 }, { hpt: 8 }, { hpt: 22 }, { hpt: 26 }, { hpt: 26 }, { hpt: 8 }, { hpt: 22 }, { hpt: 44 }, { hpt: 28 }, { hpt: 8 }, { hpt: 22 }, { hpt: 28 }, { hpt: 28 }, { hpt: 28 }, { hpt: 8 }, { hpt: 22 }, { hpt: 38 }, { hpt: 54 }];
+  coverSheet["!cols"] = [{ wch: 18 }, { wch: 17 }, { wch: 18 }, { wch: 17 }];
+  coverSheet["!rows"] = [{ hpt: 32 }, { hpt: 18 }, { hpt: 20 }, { hpt: 22 }, { hpt: 22 }, { hpt: 6 }, { hpt: 20 }, { hpt: 26 }, { hpt: 6 }, { hpt: 20 }, { hpt: 24 }, { hpt: 24 }, { hpt: 6 }, { hpt: 20 }, { hpt: 38 }, { hpt: 24 }, { hpt: 6 }, { hpt: 20 }, { hpt: 24 }, { hpt: 24 }, { hpt: 22 }, { hpt: 24 }, { hpt: 22 }, { hpt: 20 }, { hpt: 28 }, { hpt: 44 }];
   coverSheet["!pageSetup"] = { orientation: "portrait", fitToWidth: 1, fitToHeight: 1, scale: 80 };
   coverSheet["!margins"] = { left: 0.25, right: 0.25, top: 0.35, bottom: 0.35, header: 0.1, footer: 0.1 };
   XLSX.utils.book_append_sheet(workbook, coverSheet, "Couverture");
