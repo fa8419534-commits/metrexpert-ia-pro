@@ -53,6 +53,19 @@ export function persistBrandImage(key: string, image: BrandImage | null): boolea
   }
 }
 
+type GeometryDraft = {
+  code: string;
+  designation: string;
+  formula: "linear" | "surface" | "volume" | "count";
+  unit: string;
+  length: string;
+  width: string;
+  height: string;
+  openingArea: string;
+  quantity: string;
+  notes: string;
+};
+
 type PreviewMeasure = {
   code: string;
   designation: string;
@@ -112,6 +125,7 @@ type GeneratedDownload = {
 
 export default function Home() {
   const [description, setDescription] = useState("");
+  const [geometry, setGeometry] = useState<GeometryDraft[]>([]);
   const [clientPhone, setClientPhone] = useState("");
   const [clientEmail, setClientEmail] = useState("");
   const [trialPhone, setTrialPhone] = useState("");
@@ -127,6 +141,7 @@ export default function Home() {
   const [download, setDownload] = useState<GeneratedDownload | null>(null);
   const [previewQuery, setPreviewQuery] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const generationRequestKeyRef = useRef<string | null>(null);
   const signatureInputRef = useRef<HTMLInputElement>(null);
   const stampInputRef = useRef<HTMLInputElement>(null);
   const accessStatus = trpc.security.status.useQuery();
@@ -149,6 +164,9 @@ export default function Home() {
   const [clientAccessCode, setClientAccessCode] = useState("");
   const [progressStage, setProgressStage] = useState(0);
   const documentDate = new Intl.DateTimeFormat("fr-FR").format(new Date());
+  const addGeometry = () => setGeometry((rows) => [...rows, { code: `G-${rows.length + 1}`, designation: "", formula: "surface", unit: "m²", length: "", width: "", height: "", openingArea: "", quantity: "1", notes: "" }]);
+  const updateGeometry = (index: number, patch: Partial<GeometryDraft>) => setGeometry((rows) => rows.map((row, rowIndex) => rowIndex === index ? { ...row, ...patch } : row));
+  const removeGeometry = (index: number) => setGeometry((rows) => rows.filter((_, rowIndex) => rowIndex !== index));
 
   useEffect(() => {
     setSignatureImage(readStoredBrandImage(SIGNATURE_STORAGE_KEY));
@@ -241,22 +259,37 @@ export default function Home() {
   };
 
   const handleGenerate = async () => {
+    if (generationRequestKeyRef.current) return;
+    const requestKey = typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
+      ? crypto.randomUUID()
+      : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    generationRequestKeyRef.current = requestKey;
     if (!accessStatus.data?.unlocked && hasTrialContact && !hasValidTrialContact) {
       toast.error("Vérifiez le format du téléphone ou de l’e-mail d’essai.");
+      generationRequestKeyRef.current = null;
       return;
     }
     if (!accessStatus.data?.unlocked && !hasValidTrialContact) {
       toast.error("Déverrouillez l’application ou renseignez un téléphone/e-mail d’essai valide.");
+      generationRequestKeyRef.current = null;
       return;
     }
     if (description.trim().length < 20) {
       toast.error("Ajoutez une description plus détaillée du projet.");
+      generationRequestKeyRef.current = null;
       return;
     }
     try {
       const dataUrl = file ? await readFileAsDataUrl(file) : undefined;
+      const geometryPayload = geometry.filter((row) => row.designation.trim()).map((row) => ({
+        code: row.code.trim(), designation: row.designation.trim(), formula: row.formula, unit: row.unit.trim() || "u",
+        ...(row.length.trim() ? { length: Number(row.length) } : {}), ...(row.width.trim() ? { width: Number(row.width) } : {}), ...(row.height.trim() ? { height: Number(row.height) } : {}),
+        ...(row.openingArea.trim() ? { openingArea: Number(row.openingArea) } : {}), ...(row.quantity.trim() ? { quantity: Number(row.quantity) } : {}), ...(row.notes.trim() ? { notes: row.notes.trim() } : {}),
+      }));
       const result = await generate.mutateAsync({
+        idempotencyKey: requestKey,
         description: description.trim(),
+        geometry: geometryPayload.length ? geometryPayload : undefined,
         clientPhone: clientPhone.trim() || undefined,
         clientEmail: clientEmail.trim() || undefined,
         trialPhone: trialPhone.trim() || undefined,
@@ -278,6 +311,8 @@ export default function Home() {
       toast.success(`Classeur généré avec ${result.lineCount} poste${result.lineCount > 1 ? "s" : ""}.`);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Une erreur est survenue.");
+    } finally {
+      if (generationRequestKeyRef.current === requestKey) generationRequestKeyRef.current = null;
     }
   };
 
@@ -338,6 +373,10 @@ export default function Home() {
               {accessStatus.data?.dailyTotal !== undefined && <div className="mb-6 flex items-center justify-between gap-3 border border-[#3A4A42] bg-[#16201C] px-4 py-3 font-mono text-[10px] uppercase tracking-wider text-[#AEB7B0]"><span>Compteur global du jour</span><strong className="text-[#C9A15A]">{accessStatus.data.dailyTotal} / {accessStatus.data.dailyLimit}</strong></div>}
               <label htmlFor="description" className="field-label">Description du projet <span>REQUIS</span></label>
               <Textarea id="description" value={description} onChange={(event) => setDescription(event.target.value)} placeholder="Ex. Construction d’une villa R+1 de 180 m² à Abidjan, avec fondations en béton armé, murs en agglos..." className="technical-input min-h-40 resize-none" />
+              <section className="mt-5 border border-[#3A4A42] bg-[#16201C] p-4" aria-labelledby="geometry-title">
+                <div className="flex flex-wrap items-start justify-between gap-3"><div><p className="repere">REP. 01A <span>—</span> DIMENSIONS EXPLICITES</p><h3 id="geometry-title" className="mt-2 font-serif text-xl text-[#EDEAE2]">Contrôle géométrique</h3><p className="mt-1 max-w-xl text-xs leading-5 text-[#AEB7B0]">Saisissez les dimensions connues. Elles seront comparées indépendamment aux quantités générées, sans correction silencieuse.</p></div><button type="button" onClick={addGeometry} className="border border-[#C9A15A] px-3 py-2 font-mono text-[10px] uppercase tracking-wide text-[#C9A15A]">+ Ajouter une ligne</button></div>
+                {geometry.length === 0 ? <p className="mt-4 border-l-2 border-[#3A4A42] pl-3 text-xs text-[#87938B]">Aucune dimension structurée saisie. La description et le plan restent utilisés.</p> : <div className="mt-4 space-y-4">{geometry.map((row, index) => <div key={`${row.code}-${index}`} className="border border-[#3A4A42] p-3"><div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4"><div><label className="field-label" htmlFor={`geometry-code-${index}`}>Code</label><input id={`geometry-code-${index}`} value={row.code} onChange={(event) => updateGeometry(index, { code: event.target.value })} className="technical-input h-9 w-full px-2 text-xs" /></div><div className="sm:col-span-1 lg:col-span-2"><label className="field-label" htmlFor={`geometry-designation-${index}`}>Poste correspondant</label><input id={`geometry-designation-${index}`} value={row.designation} onChange={(event) => updateGeometry(index, { designation: event.target.value })} placeholder="Ex. Surface de dalle" className="technical-input h-9 w-full px-2 text-xs" /></div><div><label className="field-label" htmlFor={`geometry-formula-${index}`}>Formule</label><select id={`geometry-formula-${index}`} value={row.formula} onChange={(event) => updateGeometry(index, { formula: event.target.value as GeometryDraft["formula"] })} className="technical-input h-9 w-full px-2 text-xs"><option value="linear">Linéaire</option><option value="surface">Surface</option><option value="volume">Volume</option><option value="count">Comptage</option></select></div><div><label className="field-label" htmlFor={`geometry-unit-${index}`}>Unité</label><input id={`geometry-unit-${index}`} value={row.unit} onChange={(event) => updateGeometry(index, { unit: event.target.value })} className="technical-input h-9 w-full px-2 text-xs" /></div><div><label className="field-label" htmlFor={`geometry-length-${index}`}>Longueur</label><input id={`geometry-length-${index}`} type="number" min="0" step="any" value={row.length} onChange={(event) => updateGeometry(index, { length: event.target.value })} className="technical-input h-9 w-full px-2 text-xs" /></div><div><label className="field-label" htmlFor={`geometry-width-${index}`}>Largeur</label><input id={`geometry-width-${index}`} type="number" min="0" step="any" value={row.width} onChange={(event) => updateGeometry(index, { width: event.target.value })} className="technical-input h-9 w-full px-2 text-xs" /></div><div><label className="field-label" htmlFor={`geometry-height-${index}`}>Hauteur</label><input id={`geometry-height-${index}`} type="number" min="0" step="any" value={row.height} onChange={(event) => updateGeometry(index, { height: event.target.value })} className="technical-input h-9 w-full px-2 text-xs" /></div><div><label className="field-label" htmlFor={`geometry-opening-${index}`}>Ouvertures</label><input id={`geometry-opening-${index}`} type="number" min="0" step="any" value={row.openingArea} onChange={(event) => updateGeometry(index, { openingArea: event.target.value })} className="technical-input h-9 w-full px-2 text-xs" /></div><div><label className="field-label" htmlFor={`geometry-quantity-${index}`}>Répétitions</label><input id={`geometry-quantity-${index}`} type="number" min="0" step="any" value={row.quantity} onChange={(event) => updateGeometry(index, { quantity: event.target.value })} className="technical-input h-9 w-full px-2 text-xs" /></div><div className="sm:col-span-2 lg:col-span-2"><label className="field-label" htmlFor={`geometry-notes-${index}`}>Note / source</label><input id={`geometry-notes-${index}`} value={row.notes} onChange={(event) => updateGeometry(index, { notes: event.target.value })} placeholder="Plan, façade, niveau…" className="technical-input h-9 w-full px-2 text-xs" /></div><div className="flex items-end"><button type="button" onClick={() => removeGeometry(index)} className="h-9 border border-[#9d554b] px-3 font-mono text-[10px] uppercase tracking-wide text-[#d98472]">Retirer</button></div></div></div>)}</div>}
+              </section>
               <div className="mt-5 grid min-w-0 gap-4 sm:grid-cols-2">
                 <div className="min-w-0"><label htmlFor="client-phone" className="field-label">Téléphone client <span>OPTIONNEL</span></label><input id="client-phone" type="tel" autoComplete="tel" value={clientPhone} onChange={(event) => setClientPhone(event.target.value)} placeholder="À compléter" className="technical-input h-11 w-full min-w-0 px-3 text-sm" /></div>
                 <div className="min-w-0"><label htmlFor="client-email" className="field-label">E-mail client <span>OPTIONNEL</span></label><input id="client-email" type="email" autoComplete="email" value={clientEmail} onChange={(event) => setClientEmail(event.target.value)} placeholder="À compléter" className="technical-input h-11 w-full min-w-0 px-3 text-sm" /></div>

@@ -12,6 +12,23 @@ import { normalizeEstimateAmbiguities } from "./estimateNormalization";
 import { createClientAccessCode, DAILY_LIMIT, disableClientAccessCode, getClientAccessStatus, getGenerationStats, getHourlyQuotaStatus, hasValidAccessCookie, hasValidAdminCookie, HOURLY_LIMIT, isAccessCodeValid, isAdminAccessCodeValid, listClientAccessCodes, listFreeTrialContacts, markFreeTrialConverted, markFreeTrialWhatsAppContacted, releaseClientMonthlyQuota, releaseFreeTrialReservation, releaseGenerationQuota, reserveClientMonthlyQuota, reserveGenerationQuota, reserveFreeTrial, setAccessCookie, setAdminCookie, verifyClientAccessCode } from "./security";
 import type { GenerationQuotaReservation } from "./security";
 
+const inFlightGenerationRequests = new Map<string, number>();
+const IDEMPOTENCY_KEY_TTL_MS = 10 * 60 * 1000;
+
+export function claimGenerationRequest(idempotencyKey: string) {
+  const now = Date.now();
+  inFlightGenerationRequests.forEach((createdAt, key) => {
+    if (now - createdAt > IDEMPOTENCY_KEY_TTL_MS) inFlightGenerationRequests.delete(key);
+  });
+  if (inFlightGenerationRequests.has(idempotencyKey)) return false;
+  inFlightGenerationRequests.set(idempotencyKey, now);
+  return true;
+}
+
+export function releaseGenerationRequest(idempotencyKey: string) {
+  inFlightGenerationRequests.delete(idempotencyKey);
+}
+
 const estimateSchema = {
   type: "object",
   properties: {
@@ -20,6 +37,17 @@ const estimateSchema = {
     location: { type: "string" },
     summary: { type: "string" },
     currency: { type: "string" },
+    geometry: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          code: { type: "string" }, designation: { type: "string" }, formula: { type: "string", enum: ["linear", "surface", "volume", "count"] }, unit: { type: "string" },
+          length: { type: "number" }, width: { type: "number" }, height: { type: "number" }, openingArea: { type: "number" }, quantity: { type: "number" }, notes: { type: "string" },
+        },
+        required: ["code", "designation", "formula", "unit"], additionalProperties: false,
+      },
+    },
     measures: {
       type: "array",
       items: {
@@ -43,7 +71,24 @@ const estimateSchema = {
 } as const;
 
 export const requestSchema = z.object({
+  idempotencyKey: z.string().uuid("Identifiant de génération invalide."),
   description: z.string().trim().min(20, "Décrivez le projet avec au moins 20 caractères.").max(50_000),
+  geometry: z.array(z.object({
+    code: z.string().trim().min(1).max(40),
+    designation: z.string().trim().min(1).max(240),
+    formula: z.enum(["linear", "surface", "volume", "count"]),
+    unit: z.string().trim().min(1).max(20),
+    length: z.number().finite().nonnegative().optional(),
+    width: z.number().finite().nonnegative().optional(),
+    height: z.number().finite().nonnegative().optional(),
+    openingArea: z.number().finite().nonnegative().optional(),
+    quantity: z.number().finite().nonnegative().optional(),
+    notes: z.string().max(500).optional(),
+  }).superRefine((value, ctx) => {
+    if (value.formula !== "count" && value.length === undefined) ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["length"], message: "La longueur est requise pour cette formule." });
+    if (["surface", "volume"].includes(value.formula) && value.width === undefined) ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["width"], message: "La largeur est requise pour cette formule." });
+    if (value.formula === "volume" && value.height === undefined) ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["height"], message: "La hauteur est requise pour un volume." });
+  })).max(100).optional(),
   clientPhone: z.string().trim().max(80).optional(),
   clientEmail: z.string().trim().max(160).optional(),
   trialPhone: z.string().trim().max(32).optional(),
@@ -142,6 +187,10 @@ export function validateEstimate(value: unknown): ProjectEstimate {
     location: z.string().max(240).optional(),
     summary: z.string().max(4_000).optional(),
     currency: z.string().max(12).optional(),
+    geometry: z.array(z.object({
+      code: z.string().min(1).max(40), designation: z.string().min(1).max(240), formula: z.enum(["linear", "surface", "volume", "count"]), unit: z.string().min(1).max(20),
+      length: z.number().finite().nonnegative().optional(), width: z.number().finite().nonnegative().optional(), height: z.number().finite().nonnegative().optional(), openingArea: z.number().finite().nonnegative().optional(), quantity: z.number().finite().nonnegative().optional(), notes: z.string().max(500).optional(),
+    })).max(100).optional(),
     measures: z.array(z.object({
       code: z.string().min(1).max(40),
       designation: z.string().min(1).max(500),
@@ -212,6 +261,9 @@ export const appRouter = router({
   }),
   estimate: router({
     generate: publicProcedure.input(requestSchema).mutation(async ({ ctx, input }) => {
+      if (!claimGenerationRequest(input.idempotencyKey)) {
+        throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Cette génération est déjà en cours. Patientez avant de réessayer." });
+      }
       let quotaReservation: GenerationQuotaReservation | undefined;
       let monthlyClientId: number | undefined;
       let trialReservation: Extract<Awaited<ReturnType<typeof reserveFreeTrial>>, { allowed: true }> | undefined;
@@ -243,7 +295,7 @@ export const appRouter = router({
         }
         const userContent: Array<Record<string, unknown>> = [{
           type: "text",
-          text: `Description du projet :\n${input.description}\n\nDocument joint : ${input.file?.name || "aucun"}`,
+          text: `Description du projet :\n${input.description}\n\nDimensions géométriques explicites fournies par l’utilisateur (source prioritaire pour le contrôle, ne pas inventer de dimensions) :\n${JSON.stringify(input.geometry ?? [], null, 2)}\n\nDocument joint : ${input.file?.name || "aucun"}`,
         }];
         if (input.file) {
           if (input.file.mimeType === "application/pdf") {
@@ -277,7 +329,8 @@ export const appRouter = router({
           });
           throw new TRPCError({ code: "BAD_REQUEST", message: "La réponse de l’IA n’est pas un JSON valide." });
         }
-        const estimate = normalizeEstimateAmbiguities(validateEstimate(json));
+        const validatedEstimate = validateEstimate(json);
+        const estimate = normalizeEstimateAmbiguities({ ...validatedEstimate, geometry: input.geometry ?? validatedEstimate.geometry });
         const workbook = await buildEstimateWorkbookFromRequest(estimate, {
           clientPhone: input.clientPhone || undefined,
           clientEmail: input.clientEmail || undefined,
@@ -306,6 +359,8 @@ export const appRouter = router({
         if (error instanceof TRPCError) throw error;
         console.error("[Estimate] Generation failed", error);
         throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "La génération a échoué. Votre droit a été restauré ; vous pouvez réessayer." });
+      } finally {
+        releaseGenerationRequest(input.idempotencyKey);
       }
     }),
   }),

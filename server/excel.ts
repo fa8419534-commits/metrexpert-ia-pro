@@ -1,5 +1,20 @@
 import ExcelJS from "exceljs";
-import { buildHypotheses, runQuantityChecks, type QuantityCheck } from "./quantityChecks";
+import { buildHypotheses, calculateGeometry, runQuantityChecks, type QuantityCheck } from "./quantityChecks";
+
+export type GeometryFormula = "linear" | "surface" | "volume" | "count";
+
+export type GeometryDimension = {
+  code: string;
+  designation: string;
+  formula: GeometryFormula;
+  unit: string;
+  length?: number;
+  width?: number;
+  height?: number;
+  openingArea?: number;
+  quantity?: number;
+  notes?: string;
+};
 
 export type MeasureItem = {
   code: string;
@@ -26,6 +41,7 @@ export type ProjectEstimate = {
   trialVersion?: boolean;
   hypotheses?: string[];
   quantityChecks?: QuantityCheck[];
+  geometry?: GeometryDimension[];
   measures: MeasureItem[];
 };
 
@@ -107,6 +123,17 @@ export async function buildEstimateWorkbook(data: ProjectEstimate): Promise<Buff
   [["N°", "HYPOTHÈSE / DONNÉE À CONFIRMER", "STATUT"], ...hypotheses.map((value, index) => [index + 1, value, "À CONFIRMER"])].forEach((row) => hypothesisSheet.addRow(row));
   styleRange(hypothesisSheet, `A1:C${hypothesisSheet.rowCount}`, { fill: "F7F6F1", color: COLORS.anthracite, border: COLORS.line }); styleRange(hypothesisSheet, "A1:C1", { fill: COLORS.anthracite, color: COLORS.gold, bold: true, align: "center", border: COLORS.gold });
   hypothesisSheet.views = [{ state: "frozen", ySplit: 1 }];
+
+  if (data.geometry?.length) {
+    const geometrySheet = workbook.addWorksheet("Géométrie");
+    geometrySheet.columns = [{ width: 14 }, { width: 36 }, { width: 14 }, { width: 12 }, { width: 14 }, { width: 14 }, { width: 14 }, { width: 16 }, { width: 16 }, { width: 22 }];
+    geometrySheet.addRow(["Code", "Désignation", "Formule", "Unité", "Longueur", "Largeur", "Hauteur", "Ouvertures", "Répétitions", "Résultat indépendant"]);
+    data.geometry.forEach((dimension) => geometrySheet.addRow([dimension.code, dimension.designation, dimension.formula, dimension.unit, dimension.length ?? "", dimension.width ?? "", dimension.height ?? "", dimension.openingArea ?? 0, dimension.quantity ?? 1, calculateGeometry(dimension) ?? "À confirmer"]));
+    styleRange(geometrySheet, `A1:J${geometrySheet.rowCount}`, { fill: "F7F6F1", color: COLORS.anthracite, border: COLORS.line });
+    styleRange(geometrySheet, "A1:J1", { fill: COLORS.anthracite, color: COLORS.gold, bold: true, align: "center", border: COLORS.gold });
+    geometrySheet.autoFilter = { from: "A1", to: `J${geometrySheet.rowCount}` };
+    geometrySheet.views = [{ state: "frozen", ySplit: 1 }];
+  }
 
   const checks = data.quantityChecks?.length ? data.quantityChecks : runQuantityChecks(data);
   const checkSheet = workbook.addWorksheet("Contrôles");

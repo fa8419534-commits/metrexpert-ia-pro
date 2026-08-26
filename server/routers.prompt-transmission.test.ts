@@ -29,7 +29,7 @@ describe("estimate.generate prompt transmission", () => {
     setAccessCookie(ctx);
     const caller = appRouter.createCaller(ctx);
 
-    await caller.estimate.generate({ description: "Construction d’une dalle en béton armé de 20 m²." });
+    await caller.estimate.generate({ idempotencyKey: "33333333-3333-4333-8333-333333333333", description: "Construction d’une dalle en béton armé de 20 m²." });
 
     expect(invokeLLMMock).toHaveBeenCalledOnce();
     const request = invokeLLMMock.mock.calls[0]?.[0];

@@ -247,3 +247,15 @@
 - [x] Vérifier tests, TypeScript, build, génération XLSX, logs et stabilité globale avant livraison
 - [x] Présenter clairement à Daouda le modèle de coût, les limites de l’audit et l’absence d’API de secours
 
+
+- [x] Cartographier le contrat de génération et définir l’idempotence sans exposer les clés API
+- [x] Ajouter une clé de requête idempotente côté client et serveur contre les doubles soumissions simultanées
+- [x] Définir un modèle de dimensions géométriques explicites et ses unités
+- [x] Ajouter les validations et contrôles indépendants des calculs géométriques
+- [x] Intégrer les dimensions, hypothèses et résultats géométriques dans le classeur Excel
+- [x] Décider de ne pas concevoir ni activer de secours multi-clés faute de clés alternatives et pour éviter une dépense imprévue
+- [x] Ne configurer aucune clé alternative et ne rien exposer au navigateur
+- [x] Ajouter les tests d’idempotence, de géométrie et de non-régression ; aucun test de basculement n’est activé
+- [x] Exécuter tests, TypeScript, build et vérification de stabilité
+- [x] Présenter à Daouda les coûts potentiels et confirmer que le secours multi-clés reste désactivé
+- [x] Confirmer avec Daouda l’absence de clés alternatives et laisser le secours multi-clés désactivé pour éviter toute dépense imprévue

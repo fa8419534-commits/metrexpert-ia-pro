@@ -32,11 +32,11 @@ describe("protected generation flow", () => {
     };
     const caller = appRouter.createCaller(ctx);
 
-    await expect(caller.estimate.generate({ description: "Description bloquée avant déverrouillage." })).rejects.toMatchObject({ code: "BAD_REQUEST", message: "Renseignez votre téléphone ou votre e-mail pour utiliser l’essai gratuit." });
+    await expect(caller.estimate.generate({ idempotencyKey: "44444444-4444-4444-8444-444444444444", description: "Description bloquée avant déverrouillage." })).rejects.toMatchObject({ code: "BAD_REQUEST", message: "Renseignez votre téléphone ou votre e-mail pour utiliser l’essai gratuit." });
     await expect(caller.security.verifyAccessCode({ accessCode: ENV.accessCode })).resolves.toEqual({ valid: true });
     const beforeGeneration = await caller.security.status();
     expect(beforeGeneration).toMatchObject({ unlocked: true, hourlyLimit: 5 });
-    const result = await caller.estimate.generate({ description: "Construction d’une dalle béton de 10 m²." });
+    const result = await caller.estimate.generate({ idempotencyKey: "55555555-5555-4555-8555-555555555555", description: "Construction d’une dalle béton de 10 m²." });
 
     expect(result.lineCount).toBe(1);
     expect(result.preview.measures[0]?.designation).toBe("Dalle béton");
