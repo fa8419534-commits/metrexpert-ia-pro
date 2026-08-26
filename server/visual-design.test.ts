@@ -25,6 +25,14 @@ describe("technical visual system", () => {
     expect(home).toContain("Générer mon métré & DQE");
     expect(home).toContain("Tableau de métré");
     expect(home).toContain("download");
+    expect(home).toContain("animate-spin");
+    expect(home).toContain("Génération du classeur en cours");
+    expect(home).toContain("aria-busy={generate.isPending}");
+    expect(home).toContain('data-loading={generate.isPending ? "true" : undefined}');
+    expect(home).toContain("Préparation du téléchargement…");
+    expect(home).toContain('aria-busy="true"');
+    expect(home).toContain("En préparation");
+    expect(home).toContain("disabled={generate.isPending}");
   });
 
   it("documents the minimum accessibility guards in the rendered contract", () => {

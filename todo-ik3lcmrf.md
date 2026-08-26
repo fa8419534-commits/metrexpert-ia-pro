@@ -35,3 +35,9 @@
 - [x] Générer un classeur de contrôle et vérifier sa structure et ses formules calculables
 - [x] Vérifier la disponibilité de Microsoft Excel dans l’environnement et documenter la limite éventuelle
 - [x] Exécuter les tests et le build puis sauvegarder un checkpoint du correctif
+- [x] Ajouter une animation de chargement au bouton de génération/téléchargement pendant la création du fichier Excel
+- [x] Désactiver le bouton pendant la génération et exposer un état accessible sans changer l’action backend
+- [x] Ajouter ou mettre à jour le test de contrat UI correspondant
+- [x] Vérifier le rendu et exécuter tests, TypeScript et build avant checkpoint
+- [x] Afficher un état de chargement directement dans la zone du bouton de téléchargement pendant la génération Excel
+- [x] Ajouter le contrat UI couvrant ce bouton de téléchargement en attente
