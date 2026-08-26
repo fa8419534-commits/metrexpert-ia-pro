@@ -1,7 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { CheckCircle2, Clock3, Send, XCircle } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { SUBSCRIPTION_PLANS, type SubscriptionQuota, formatXof } from "@shared/plans";
+import { toast } from "sonner";
 
 const STORAGE_KEY = "metrexpert_payment_request_key";
 
@@ -17,6 +18,7 @@ export default function PaymentRequestPanel() {
   const [requestKey, setRequestKey] = useState(() => sessionStorage.getItem(STORAGE_KEY) || "");
   const [message, setMessage] = useState("");
   const [submissionConfirmed, setSubmissionConfirmed] = useState(false);
+  const observedStatus = useRef<string | undefined>(undefined);
   const submit = trpc.security.submitPaymentRequest.useMutation({
     onSuccess: (result) => {
       sessionStorage.setItem(STORAGE_KEY, result.requestKey);
@@ -29,8 +31,14 @@ export default function PaymentRequestPanel() {
   const status = trpc.security.getPaymentRequest.useQuery({ requestKey }, { enabled: requestKey.length >= 16, refetchInterval: requestKey.length >= 16 ? 10000 : false });
 
   useEffect(() => {
-    if (status.data?.status === "confirmed") setMessage("Paiement confirmé : votre forfait est activé. Daouda vous transmettra votre code d’accès.");
-    if (status.data?.status === "rejected") setMessage("La demande a été refusée. Vérifiez la référence ou contactez MÉTREXPERT IA PRO.");
+    const nextStatus = status.data?.status;
+    if (!nextStatus) return;
+    if (nextStatus === "confirmed") {
+      setMessage("Paiement confirmé : votre forfait est activé. Daouda vous transmettra votre code d’accès.");
+      if (observedStatus.current && observedStatus.current !== "confirmed") toast.success("Paiement confirmé : votre forfait est activé.");
+    }
+    if (nextStatus === "rejected") setMessage("La demande a été refusée. Vérifiez la référence ou contactez MÉTREXPERT IA PRO.");
+    observedStatus.current = nextStatus;
   }, [status.data?.status]);
 
   useEffect(() => {

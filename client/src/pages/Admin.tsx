@@ -98,7 +98,7 @@ export default function Admin() {
   const [paymentMethod, setPaymentMethod] = useState<"wave" | "moov" | "mtn" | "autre" | "">("");
   const [paymentReference, setPaymentReference] = useState("");
   const [paymentFilter, setPaymentFilter] = useState<"all" | "pending" | "confirmed" | "rejected">("all");
-  const [codeFilter, setCodeFilter] = useState<"all" | "expiring" | "today" | "tomorrow">("all");
+  const [codeFilter, setCodeFilter] = useState<"all" | "expiring" | "today" | "tomorrow" | "expired">("all");
   const [revealedCode, setRevealedCode] = useState<string | null>(null);
   const [revealedCodeRecipient, setRevealedCodeRecipient] = useState<{ clientName: string; phone: string; expiresAt: Date | string } | null>(null);
   const [copyState, setCopyState] = useState<"idle" | "copied">("idle");
@@ -201,6 +201,8 @@ export default function Admin() {
   const filteredPaymentRequests = paymentRequests.data?.filter((request) => paymentFilter === "all" || request.status === paymentFilter) ?? [];
   const filteredCodes = codes.data?.filter((code) => {
     if (codeFilter === "all") return true;
+    const isExpired = Boolean(code.disabledAt) || new Date(code.expiresAt).getTime() <= Date.now();
+    if (codeFilter === "expired") return isExpired;
     if (code.disabledAt) return false;
     const expiry = new Date(code.expiresAt);
     const daysRemaining = (expiry.getTime() - Date.now()) / 86_400_000;
@@ -458,7 +460,7 @@ export default function Admin() {
 
           <Card className="border-[#3A4A42] bg-[#16201C] text-[#EDEAE2]">
             <CardHeader>
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><CardTitle className="font-serif text-2xl">Codes actifs et historiques</CardTitle><div className="flex flex-wrap gap-2" aria-label="Filtrer les expirations"><Button type="button" size="sm" variant="outline" onClick={() => setCodeFilter("all")} className={codeFilter === "all" ? "border-[#C9A15A] bg-[#C9A15A] text-[#0F1613]" : "border-[#3A4A42] text-[#AEB7B0]"}>Tous</Button><Button type="button" size="sm" variant="outline" onClick={() => setCodeFilter("expiring")} className={codeFilter === "expiring" ? "border-[#C9A15A] bg-[#C9A15A] text-[#0F1613]" : "border-[#3A4A42] text-[#AEB7B0]"}>Expirent sous 7 jours</Button><Button type="button" size="sm" variant="outline" onClick={() => setCodeFilter("today")} className={codeFilter === "today" ? "border-[#C9A15A] bg-[#C9A15A] text-[#0F1613]" : "border-[#3A4A42] text-[#AEB7B0]"}>Expirent aujourd’hui</Button><Button type="button" size="sm" variant="outline" onClick={() => setCodeFilter("tomorrow")} className={codeFilter === "tomorrow" ? "border-[#C9A15A] bg-[#C9A15A] text-[#0F1613]" : "border-[#3A4A42] text-[#AEB7B0]"}>Expirent demain</Button></div></div><p className="mt-2 font-mono text-[10px] uppercase tracking-wider text-[#AEB7B0]">{filteredCodes.length} code{filteredCodes.length > 1 ? "s" : ""} affiché{filteredCodes.length > 1 ? "s" : ""}</p>
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><CardTitle className="font-serif text-2xl">Codes actifs et historiques</CardTitle><div className="flex flex-wrap gap-2" aria-label="Filtrer les expirations"><Button type="button" size="sm" variant="outline" onClick={() => setCodeFilter("all")} className={codeFilter === "all" ? "border-[#C9A15A] bg-[#C9A15A] text-[#0F1613]" : "border-[#3A4A42] text-[#AEB7B0]"}>Tous</Button><Button type="button" size="sm" variant="outline" onClick={() => setCodeFilter("expiring")} className={codeFilter === "expiring" ? "border-[#C9A15A] bg-[#C9A15A] text-[#0F1613]" : "border-[#3A4A42] text-[#AEB7B0]"}>Expirent sous 7 jours</Button><Button type="button" size="sm" variant="outline" onClick={() => setCodeFilter("today")} className={codeFilter === "today" ? "border-[#C9A15A] bg-[#C9A15A] text-[#0F1613]" : "border-[#3A4A42] text-[#AEB7B0]"}>Expirent aujourd’hui</Button><Button type="button" size="sm" variant="outline" onClick={() => setCodeFilter("tomorrow")} className={codeFilter === "tomorrow" ? "border-[#C9A15A] bg-[#C9A15A] text-[#0F1613]" : "border-[#3A4A42] text-[#AEB7B0]"}>Expirent demain</Button><Button type="button" size="sm" variant="outline" onClick={() => setCodeFilter("expired")} className={codeFilter === "expired" ? "border-[#C9A15A] bg-[#C9A15A] text-[#0F1613]" : "border-[#3A4A42] text-[#AEB7B0]"}>Expirés</Button></div></div><p className="mt-2 font-mono text-[10px] uppercase tracking-wider text-[#AEB7B0]">{filteredCodes.length} code{filteredCodes.length > 1 ? "s" : ""} affiché{filteredCodes.length > 1 ? "s" : ""}</p>
             </CardHeader>
             <CardContent>
               {codes.isLoading ? (

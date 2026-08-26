@@ -377,3 +377,8 @@
 - [x] Ajouter les filtres Admin « expire aujourd’hui » et « expire demain »
 - [x] Ajouter les tests d’interaction, de dates et de responsive puis valider TypeScript et build
 - [x] Sauvegarder un checkpoint de ces améliorations
+
+- [x] Ajouter le filtre Admin « Expirés » pour les codes désactivés ou arrivés à échéance
+- [x] Déclencher un toast local uniquement lors du passage réel du paiement à confirmé
+- [x] Ajouter les tests de filtre, de transition de statut et de responsive
+- [x] Valider TypeScript, tests et build puis sauvegarder un checkpoint
