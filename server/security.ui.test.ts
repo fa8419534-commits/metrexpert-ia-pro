@@ -17,7 +17,7 @@ import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import Home, { GenerationErrorAlert, HourlyQuotaIndicator, persistBrandImage, readStoredBrandImage } from "../client/src/pages/Home";
+import Home, { GenerationErrorAlert, HourlyQuotaIndicator, MonthlyQuotaProgress, persistBrandImage, readStoredBrandImage } from "../client/src/pages/Home";
 
 describe("generation quota UI errors", () => {
   it("renders the hourly limit message in the visible generation alert", () => {
@@ -30,6 +30,21 @@ describe("generation quota UI errors", () => {
     const markup = renderToStaticMarkup(React.createElement(GenerationErrorAlert, { message: "Quota global atteint : 50 générations pour aujourd’hui." }));
     expect(markup).toContain("Quota global atteint : 50 générations pour aujourd’hui.");
     expect(markup).toContain("Génération interrompue");
+  });
+
+  it("renders the monthly quota progress bar with accessible values and responsive layout", () => {
+    const available = renderToStaticMarkup(React.createElement(MonthlyQuotaProgress, { remaining: 12, limit: 15 }));
+    const low = renderToStaticMarkup(React.createElement(MonthlyQuotaProgress, { remaining: 2, limit: 15 }));
+    const exhausted = renderToStaticMarkup(React.createElement(MonthlyQuotaProgress, { remaining: 0, limit: 15 }));
+    expect(available).toContain('role="progressbar"');
+    expect(available).toContain('aria-valuenow="12"');
+    expect(available).toContain('aria-valuemax="15"');
+    expect(available).toContain('style="width:80%"');
+    expect(available).toContain("Quota mensuel client");
+    expect(low).toContain('data-quota-state="low"');
+    expect(low).toContain("Votre quota mensuel est bientôt épuisé.");
+    expect(exhausted).toContain('data-quota-state="exhausted"');
+    expect(exhausted).toContain("Quota mensuel atteint, contactez-moi pour renouveler votre accès.");
   });
 
   it("renders available, low and exhausted hourly quota states", () => {
@@ -94,6 +109,9 @@ describe("generation quota UI errors", () => {
   it("keeps the unlocked quota condition in Home", () => {
     const source = readFileSync(resolve(process.cwd(), "client/src/pages/Home.tsx"), "utf8");
     expect(source).toContain("accessStatus.data?.unlocked && hourlyRemaining !== undefined && <HourlyQuotaIndicator remaining={hourlyRemaining} limit={hourlyLimit} />");
+    expect(source).toContain("<MonthlyQuotaProgress remaining={accessStatus.data.monthlyRemaining} limit={accessStatus.data.monthlyQuota} />");
+    expect(source).toContain("role=\"progressbar\"");
+    expect(source).toContain("aria-valuetext");
   });
 
   it("defines a reduced-motion-safe entrance animation for quota notices", () => {

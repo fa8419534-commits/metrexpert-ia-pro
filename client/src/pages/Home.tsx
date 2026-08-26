@@ -75,6 +75,27 @@ export function HourlyQuotaIndicator({ remaining, limit }: { remaining: number; 
   </div>;
 }
 
+export function MonthlyQuotaProgress({ remaining, limit }: { remaining: number; limit: number }) {
+  const safeLimit = Math.max(1, limit);
+  const safeRemaining = Math.min(safeLimit, Math.max(0, remaining));
+  const percent = Math.round((safeRemaining / safeLimit) * 100);
+  const state = safeRemaining === 0 ? "exhausted" : percent <= 20 ? "low" : "available";
+  const fillColor = state === "exhausted" ? "bg-[#9d554b]" : state === "low" ? "bg-[#C9A15A]" : "bg-[#7C9A76]";
+  const textColor = state === "exhausted" ? "text-[#d98472]" : state === "low" ? "text-[#C9A15A]" : "text-[#7C9A76]";
+  return <div className="monthly-quota-progress mb-6 border border-[#C9A15A]/60 bg-[#16201C] px-4 py-4" data-quota-state={state}>
+    <div className="mb-3 flex flex-wrap items-end justify-between gap-2 font-mono text-[10px] uppercase tracking-wider">
+      <div><p className="text-[#C9A15A]">Quota mensuel client</p><p className="mt-1 text-[#AEB7B0]">Générations restantes</p></div>
+      <strong className={textColor}>{safeRemaining} / {safeLimit}</strong>
+    </div>
+    <div className="h-3 w-full overflow-hidden border border-[#3A4A42] bg-[#0F1613]" role="progressbar" aria-label="Quota mensuel de générations restant" aria-valuemin={0} aria-valuemax={safeLimit} aria-valuenow={safeRemaining} aria-valuetext={`${safeRemaining} génération${safeRemaining > 1 ? "s" : ""} restante${safeRemaining > 1 ? "s" : ""} sur ${safeLimit}`}>
+      <div className={`h-full transition-[width] duration-300 ease-out ${fillColor}`} style={{ width: `${percent}%` }} />
+    </div>
+    <div className="mt-2 flex items-center justify-between gap-3 font-mono text-[10px] uppercase tracking-wider text-[#718078]"><span>0</span><span>{percent}% disponible</span><span>{safeLimit}</span></div>
+    {state === "low" && <p className="mt-3 border-l-2 border-[#C9A15A] pl-2 text-xs text-[#C9A15A]" role="status">Votre quota mensuel est bientôt épuisé.</p>}
+    {state === "exhausted" && <p className="mt-3 border-l-2 border-[#9d554b] pl-2 text-xs text-[#d98472]" role="alert">Quota mensuel atteint, contactez-moi pour renouveler votre accès.</p>}
+  </div>;
+}
+
 type GeneratedDownload = {
   url: string;
   filename: string;
@@ -299,7 +320,7 @@ export default function Home() {
             <section className="technical-panel">
               <div className="panel-heading"><div><p className="repere">REP. 01 <span>—</span> SAISIE PROJET</p><h2 className="mt-2 font-serif text-3xl text-[#EDEAE2]">Définir l’opération</h2></div><span className="panel-index">A-01</span></div>
               {!accessStatus.data?.unlocked && <div className="access-panel mb-6" role="region" aria-labelledby="access-title"><div className="mb-4 flex items-start justify-between gap-4"><div><p className="repere">PROTECTION <span>—</span> ACCÈS REQUIS</p><h3 id="access-title" className="mt-2 font-serif text-xl text-[#EDEAE2]">Déverrouiller l’étude</h3></div><span className="font-mono text-[10px] uppercase text-[#C9A15A]">5 / H · 50 / J</span></div><p className="mb-4 text-xs leading-5 text-[#AEB7B0]">Un code d’accès est nécessaire avant toute génération payante. Limites actives : 5 générations par heure et 50 pour toute l’application par jour.</p><form onSubmit={handleVerifyAccess} className="flex flex-col gap-3 sm:flex-row"><label htmlFor="access-code" className="sr-only">Code d’accès partagé</label><input id="access-code" type="password" autoComplete="off" value={accessCode} onChange={(event) => setAccessCode(event.target.value)} placeholder="Code d’accès partagé" className="technical-input h-11 min-w-0 flex-1 px-3 text-sm" required /><Button type="submit" disabled={verifyAccess.isPending || !accessCode} className="technical-button h-11 rounded-none sm:w-40">{verifyAccess.isPending ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />Vérification…</> : "Déverrouiller"}</Button></form>{verifyAccess.error && <p className="mt-3 text-xs font-medium text-[#d98472]" role="alert">{verifyAccess.error.message}</p>}<div className="my-4 flex items-center gap-3 font-mono text-[10px] uppercase tracking-wider text-[#607068]"><span className="h-px flex-1 bg-[#3A4A42]" />ou accès client<span className="h-px flex-1 bg-[#3A4A42]" /></div><form onSubmit={handleVerifyClientAccess} className="flex flex-col gap-3 sm:flex-row"><label htmlFor="client-access-code" className="sr-only">Code client</label><input id="client-access-code" type="password" autoComplete="off" value={clientAccessCode} onChange={(event) => setClientAccessCode(event.target.value)} placeholder="Code client transmis" className="technical-input h-11 min-w-0 flex-1 px-3 text-sm" required /><Button type="submit" disabled={verifyClientAccess.isPending || !clientAccessCode} className="technical-button h-11 rounded-none sm:w-40">{verifyClientAccess.isPending ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />Vérification…</> : "Activer mon accès"}</Button></form>{verifyClientAccess.error && <p className="mt-3 text-xs font-medium text-[#d98472]" role="alert">{verifyClientAccess.error.message}</p>}</div>}
-              {accessStatus.data?.unlocked && accessStatus.data.accessType === "client" && <div className="mb-6 border border-[#C9A15A]/60 bg-[#211d14] px-4 py-3 font-mono text-[10px] uppercase tracking-wider text-[#C9A15A]" role="status">Quota mensuel client : <strong>{accessStatus.data.monthlyRemaining} / {accessStatus.data.monthlyQuota}</strong> · expiration {accessStatus.data.expiresAt ? new Date(accessStatus.data.expiresAt).toLocaleDateString("fr-FR") : "—"}</div>}{accessStatus.data?.unlocked && hourlyRemaining !== undefined && <HourlyQuotaIndicator remaining={hourlyRemaining} limit={hourlyLimit} />}
+              {accessStatus.data?.unlocked && accessStatus.data.accessType === "client" && accessStatus.data.monthlyRemaining !== undefined && accessStatus.data.monthlyQuota !== undefined && <MonthlyQuotaProgress remaining={accessStatus.data.monthlyRemaining} limit={accessStatus.data.monthlyQuota} />}{accessStatus.data?.unlocked && hourlyRemaining !== undefined && <HourlyQuotaIndicator remaining={hourlyRemaining} limit={hourlyLimit} />}
               {accessStatus.data?.dailyTotal !== undefined && <div className="mb-6 flex items-center justify-between gap-3 border border-[#3A4A42] bg-[#16201C] px-4 py-3 font-mono text-[10px] uppercase tracking-wider text-[#AEB7B0]"><span>Compteur global du jour</span><strong className="text-[#C9A15A]">{accessStatus.data.dailyTotal} / {accessStatus.data.dailyLimit}</strong></div>}
               <label htmlFor="description" className="field-label">Description du projet <span>REQUIS</span></label>
               <Textarea id="description" value={description} onChange={(event) => setDescription(event.target.value)} placeholder="Ex. Construction d’une villa R+1 de 180 m² à Abidjan, avec fondations en béton armé, murs en agglos..." className="technical-input min-h-40 resize-none" />

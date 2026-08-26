@@ -187,3 +187,6 @@
 - [x] Ajouter les tests Vitest des codes clients, quotas et procédures admin
 - [x] Ajouter un test Vitest couvrant un code client expiré
 - [x] Ajouter un test UI dédié à l’état verrouillé du panneau Admin
+- [x] Ajouter une barre de progression visuelle du quota mensuel client dans Home
+- [x] Ajouter les tests de rendu, d’accessibilité et de responsivité de la barre de quota mensuel
+- [x] Vérifier la barre de quota, exécuter tests, TypeScript et build, puis sauvegarder un checkpoint
