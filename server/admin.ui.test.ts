@@ -62,9 +62,9 @@ describe("Admin panel UI", () => {
       convertedAt: null,
       lastWhatsAppContactAt: null,
     }]);
-    expect(csv).toContain('"Nom";"Téléphone";"E-mail"');
-    expect(csv).toContain('"Entreprise; Test";"2250100000000";"prospect""test@exemple.ci"');
-    expect(csv).toContain('"À relancer";"Jamais"');
+    expect(csv).toContain('"Full name";"Phone number"');
+    expect(csv).toContain('"Entreprise; Test";"2250100000000"');
+    expect(csv).not.toContain("prospect");
   });
   it("renders a protected administrator unlock screen before exposing client management", () => {
     render(React.createElement(Admin));
@@ -118,6 +118,31 @@ describe("Admin panel UI", () => {
     fireEvent.click(screen.getByRole("button", { name: "À relancer" }));
     expect(screen.getByText("Prospect à relancer")).toBeTruthy();
     expect(screen.queryByText("Prospect converti")).toBeNull();
+  });
+
+  it("filters free trials by start and end dates", () => {
+    testState.adminUnlocked = true;
+    testState.trials = [
+      { id: 8, clientName: "Prospect ancien", phone: "2250700000000", email: "ancien@exemple.ci", trialAt: new Date("2026-08-01T12:00:00Z"), convertedAt: null },
+      { id: 9, clientName: "Prospect retenu", phone: "2250500000000", email: "retenu@exemple.ci", trialAt: new Date("2026-08-15T12:00:00Z"), convertedAt: null },
+    ];
+    render(React.createElement(Admin));
+    fireEvent.change(screen.getByLabelText("Du"), { target: { value: "2026-08-10" } });
+    fireEvent.change(screen.getByLabelText("Au"), { target: { value: "2026-08-20" } });
+    expect(screen.queryByText("Prospect ancien")).toBeNull();
+    expect(screen.getByText("Prospect retenu")).toBeTruthy();
+    expect(screen.getByLabelText("1 prospect affiché sur 2")).toBeTruthy();
+  });
+
+  it("asks for a prospect count before exporting the filtered list", () => {
+    testState.adminUnlocked = true;
+    testState.trials = [{ id: 5, clientName: "Prospect export", phone: "2250100000000", email: "export@exemple.ci", trialAt: new Date(), convertedAt: null }];
+    render(React.createElement(Admin));
+    fireEvent.click(screen.getByRole("button", { name: "Exporter la liste filtrée en CSV" }));
+    expect(screen.getByRole("alertdialog").textContent).toContain("1 prospect");
+    expect(screen.getByRole("alertdialog").textContent).toContain("nom complet et numéro de téléphone");
+    fireEvent.click(screen.getByRole("button", { name: "Annuler" }));
+    expect(screen.queryByRole("alertdialog")).toBeNull();
   });
 
   it("shows the active code count and asks for confirmation before revocation", () => {

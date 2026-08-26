@@ -20,3 +20,11 @@ La capture mobile du 26 août 2026 confirme que Home et l’écran de connexion 
 ## Validation export CSV et conversion rapide
 
 Les captures desktop du 26 août 2026 confirment que Home et l’écran d’accès `/admin` conservent leur mise en page blueprint. Le tableau Admin déverrouillé, l’export CSV et l’action de conversion sont couverts par les tests d’interface ; l’écran verrouillé affiché par capture protège les données tant qu’une session Admin valide n’est pas ouverte.
+
+## Format WhatsApp Business vérifié
+
+La documentation officielle du WhatsApp Business App Web indique que l’import accepte un fichier CSV ou XLSX structuré avec exactement deux colonnes : le nom complet du contact et son numéro de téléphone. L’import sert à constituer une audience de diffusion ; il ne s’agit pas d’un import CRM général. La sortie CSV sera donc centrée sur ces deux colonnes, avec numéros normalisés en format international lorsque disponibles. Source : https://faq.whatsapp.com/1859909068279102
+
+## Validation filtres de période et confirmation CSV
+
+Les captures mobiles du 26 août 2026 montrent que la page principale et l’écran Admin verrouillé restent lisibles sans débordement horizontal. Les champs de date et la confirmation d’export sont couverts par les tests UI ; les données Admin restent masquées tant que la session n’est pas déverrouillée.

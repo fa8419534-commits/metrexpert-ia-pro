@@ -214,3 +214,7 @@
 - [x] Ajouter un bouton d’export CSV reprenant uniquement les prospects actuellement filtrés
 - [x] Ajouter une action rapide « Marquer converti » sur chaque ligne de prospect
 - [x] Tester le contenu CSV, l’échappement des données, la mutation de conversion et le rendu responsive avant checkpoint
+- [x] Ajouter les dates de début et de fin pour filtrer les essais gratuits
+- [x] Ajouter une modale de confirmation récapitulant le nombre de prospects avant export CSV
+- [x] Adapter le CSV aux colonnes importables dans WhatsApp Business et documenter les limites éventuelles
+- [x] Tester le filtrage de période, la confirmation, le CSV et le rendu responsive avant checkpoint
