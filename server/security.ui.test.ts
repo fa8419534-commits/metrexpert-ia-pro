@@ -38,8 +38,13 @@ describe("generation quota UI errors", () => {
     expect(available).toContain('data-quota-state="available"');
     expect(available).toContain("3 / 5 générations");
     expect(low).toContain('data-quota-state="low"');
+    expect(low).toContain('data-quota-notice="low"');
+    expect(low).toContain("quota-indicator__summary flex items-center justify-between gap-3 text-[#AEB7B0]");
+    expect(low).toContain("Attention : il reste une seule génération horaire.");
     expect(low).toContain("1 / 5 génération");
     expect(exhausted).toContain('data-quota-state="exhausted"');
+    expect(exhausted).toContain('data-quota-notice="exhausted"');
+    expect(exhausted).toContain("Générations suspendues jusqu’au prochain renouvellement horaire.");
     expect(exhausted).toContain("0 / 5 génération");
   });
 
@@ -52,5 +57,14 @@ describe("generation quota UI errors", () => {
   it("keeps the unlocked quota condition in Home", () => {
     const source = readFileSync(resolve(process.cwd(), "client/src/pages/Home.tsx"), "utf8");
     expect(source).toContain("accessStatus.data?.unlocked && hourlyRemaining !== undefined && <HourlyQuotaIndicator remaining={hourlyRemaining} limit={hourlyLimit} />");
+  });
+
+  it("defines a reduced-motion-safe entrance animation for quota notices", () => {
+    const styles = readFileSync(resolve(process.cwd(), "client/src/index.css"), "utf8");
+    expect(styles).toContain("quota-notice-in");
+    expect(styles).toContain(".quota-indicator__summary { min-width: 0; flex-wrap: wrap; }");
+    expect(styles).toContain("overflow-wrap: anywhere");
+    expect(styles).toContain("@media (prefers-reduced-motion: reduce)");
+    expect(styles).toContain(".quota-notice { animation: none; }");
   });
 });

@@ -80,6 +80,22 @@
 @media (prefers-reduced-motion: no-preference) { button, a { transition-duration: 180ms; transition-timing-function: cubic-bezier(0.23, 1, 0.32, 1); } }
 @media (max-width: 639px) { .cartouche-field { border-left: 0; border-top: 1px solid #3A4A42; } }
 
+.quota-indicator--low { background: #211f18; }
+.quota-indicator--exhausted { background: #271b18; }
+.quota-indicator__summary { min-width: 0; flex-wrap: wrap; }
+.quota-indicator__summary span, .quota-indicator__summary strong { overflow-wrap: anywhere; }
+.quota-notice { line-height: 1.6; letter-spacing: 0.04em; text-transform: none; overflow-wrap: anywhere; }
+@media (prefers-reduced-motion: no-preference) {
+  .quota-notice { animation: quota-notice-in 220ms cubic-bezier(0.23, 1, 0.32, 1); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .quota-notice { animation: none; }
+}
+@keyframes quota-notice-in {
+  from { opacity: 0; transform: translateY(-0.35rem); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
 .access-panel { border: 1px solid #C9A15A; background: rgba(15, 22, 19, 0.72); padding: 1rem; }
 .access-panel input { min-width: 0; }
 .access-panel input:focus-visible { border-color: #C9A15A; box-shadow: 0 0 0 1px #C9A15A; outline: none; }

@@ -36,7 +36,11 @@ export function GenerationErrorAlert({ message }: { message: string }) {
 export function HourlyQuotaIndicator({ remaining, limit }: { remaining: number; limit: number }) {
   const state = remaining === 0 ? "exhausted" : remaining <= 1 ? "low" : "available";
   const color = state === "exhausted" ? "text-[#d98472]" : state === "low" ? "text-[#C9A15A]" : "text-[#7C9A76]";
-  return <div className="quota-indicator mb-6 flex items-center justify-between gap-3 border border-[#3A4A42] bg-[#16201C] px-4 py-3 font-mono text-[10px] uppercase tracking-wider text-[#AEB7B0]" role="status" aria-live="polite" data-quota-state={state}><span>Quota horaire restant</span><strong className={color}>{remaining} / {limit} génération{remaining > 1 ? "s" : ""}</strong></div>;
+  const notice = state === "exhausted" ? "Générations suspendues jusqu’au prochain renouvellement horaire." : state === "low" ? "Attention : il reste une seule génération horaire." : "";
+  return <div className={`quota-indicator mb-6 border bg-[#16201C] px-4 py-3 font-mono text-[10px] uppercase tracking-wider ${state === "exhausted" ? "quota-indicator--exhausted border-[#9d554b]" : state === "low" ? "quota-indicator--low border-[#C9A15A]" : "border-[#3A4A42]"}`} role="status" aria-live={state === "exhausted" ? "assertive" : "polite"} data-quota-state={state}>
+    <div className="quota-indicator__summary flex items-center justify-between gap-3 text-[#AEB7B0]"><span>Quota horaire restant</span><strong className={color}>{remaining} / {limit} génération{remaining > 1 ? "s" : ""}</strong></div>
+    {notice && <p className={`quota-notice mt-2 border-l-2 pl-2 ${color}`} role={state === "exhausted" ? "alert" : "status"} data-quota-notice={state}>{notice}</p>}
+  </div>;
 }
 
 type GeneratedDownload = {

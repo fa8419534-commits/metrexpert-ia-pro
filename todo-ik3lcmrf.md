@@ -102,3 +102,11 @@
 - [x] Effectuer et documenter une capture mobile de l’état déverrouillé avec l’indicateur visible — accès autorisé confirmé par la capture utilisateur ; le rendu est conditionné au statut déverrouillé
 - [x] Ajouter un vrai test SSR/UI de Home avec le statut sécurité déverrouillé mocké et quota restant visible
 - [x] Documenter la validation du texte « Quota horaire restant » — rendu Home déverrouillé vérifié par test UI réel ; capture mobile directement vérifiable non obtenue dans l’environnement automatisé et limite explicitement documentée
+
+- [x] Déclencher une animation sobre lorsque le quota horaire devient faible ou épuisé
+- [x] Afficher une notification visuelle claire et accessible pour les états faible et épuisé
+- [x] Respecter prefers-reduced-motion et conserver la lisibilité mobile
+- [x] Ajouter les tests des transitions et notifications de quota
+- [x] Vérifier le rendu responsive, exécuter tests, TypeScript et build, puis sauvegarder un checkpoint
+- [x] Vérifier en mobile les états déverrouillé faible et épuisé avec notification visible, ou documenter précisément la limite de session — structure mobile couverte par contrat UI/CSS ; capture directe low/exhausted non disponible avec la session automatisée verrouillée
+- [x] Ajouter un contrat UI mobile couvrant le retour à la ligne, l’absence de débordement et la notification quota
