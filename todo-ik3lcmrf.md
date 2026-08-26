@@ -29,3 +29,9 @@
 - [x] Comparer un essai description seule et un essai avec fichier joint
 - [x] Ajouter les tests de journalisation et vérifier le build avant livraison du diagnostic
 - [x] Corriger le schéma response_format strict : tous les champs de chaque mesure doivent apparaître dans required
+- [x] Inspecter la fonction de génération XLSX et confirmer la présence du signe égal dans les formules XML
+- [x] Corriger l’écriture des formules pour produire <f>D2*E2</f> sans signe égal interne
+- [x] Ajouter un test XML anti-régression sur les formules générées
+- [x] Générer un classeur de contrôle et vérifier sa structure et ses formules calculables
+- [x] Vérifier la disponibilité de Microsoft Excel dans l’environnement et documenter la limite éventuelle
+- [x] Exécuter les tests et le build puis sauvegarder un checkpoint du correctif

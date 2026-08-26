@@ -24,7 +24,7 @@ const cell = (value: unknown): XLSX.CellObject => ({
   t: typeof value === "number" ? "n" : "s",
 });
 
-const formula = (f: string): XLSX.CellObject => ({ f, v: 0, t: "n" });
+const formula = (f: string): XLSX.CellObject => ({ f: f.replace(/^=+/, ""), v: 0, t: "n" });
 
 export function buildEstimateWorkbook(data: ProjectEstimate): Buffer {
   const workbook = XLSX.utils.book_new();
