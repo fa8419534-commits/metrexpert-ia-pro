@@ -17,6 +17,7 @@ import { trpc } from "@/lib/trpc";
 import {
   Check,
   Clipboard,
+  Download,
   KeyRound,
   Loader2,
   MessageCircle,
@@ -34,6 +35,22 @@ function buildWhatsAppUrl(phone: string, clientName: string) {
   const internationalPhone = digits.startsWith("0") ? `225${digits.slice(1)}` : digits;
   const message = `Bonjour ${clientName}, merci pour votre intérêt pour MÉTREXPERT IA PRO. Je reste disponible pour échanger sur votre étude de métré et votre abonnement.`;
   return `https://wa.me/${internationalPhone}?text=${encodeURIComponent(message)}`;
+}
+
+export function buildFreeTrialCsv(trials: Array<{ clientName: string; phone: string; email: string; trialAt: Date | string; convertedAt: Date | string | null; lastWhatsAppContactAt?: Date | string | null }>) {
+  const escape = (value: string) => `"${value.replace(/"/g, '""')}"`;
+  const rows = trials.map((trial) => [
+    trial.clientName,
+    trial.phone,
+    trial.email,
+    new Date(trial.trialAt).toLocaleDateString("fr-FR"),
+    trial.convertedAt ? "Converti" : "À relancer",
+    trial.lastWhatsAppContactAt ? new Date(trial.lastWhatsAppContactAt).toLocaleDateString("fr-FR") : "Jamais",
+  ]);
+  return [
+    ["Nom", "Téléphone", "E-mail", "Date de l’essai", "Conversion", "Dernière relance WhatsApp"],
+    ...rows,
+  ].map((row) => row.map((value) => escape(String(value))).join(";")) .join("\r\n");
 }
 
 type CodeToRevoke = { id: number; clientName: string } | null;
@@ -138,6 +155,17 @@ export default function Admin() {
 
   function requestRevoke(id: number, name: string) {
     setCodeToRevoke({ id, clientName: name });
+  }
+
+  function downloadFilteredTrials() {
+    const csv = `\uFEFF${buildFreeTrialCsv(filteredTrials)}`;
+    const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = `metrexpert-essais-${trialFilter}-${new Date().toISOString().slice(0, 10)}.csv`;
+    anchor.click();
+    URL.revokeObjectURL(url);
+    toast.success(`${filteredTrials.length} prospect${filteredTrials.length > 1 ? "s" : ""} exporté${filteredTrials.length > 1 ? "s" : ""}.`);
   }
 
   if (!isAdminUnlocked) {
@@ -401,7 +429,7 @@ export default function Admin() {
               <CardTitle className="font-serif text-2xl">Essais gratuits</CardTitle>
               <p className="mt-1 text-sm text-[#AEB7B0]">Contacts à relancer après leur génération offerte.</p>
             </div>
-            <div className="flex flex-wrap items-center justify-end gap-2"><span aria-label={`${filteredTrials.length} prospect${filteredTrials.length > 1 ? "s" : ""} affiché${filteredTrials.length > 1 ? "s" : ""} sur ${trials.data?.length ?? 0}`} className="border border-[#C9A15A]/60 bg-[#211d14] px-3 py-2 font-mono text-[10px] uppercase tracking-wider text-[#C9A15A]">{filteredTrials.length} / {trials.data?.length ?? 0} affiché{filteredTrials.length === 1 ? "" : "s"}</span><div className="flex flex-wrap gap-2" role="group" aria-label="Filtrer les essais gratuits"><button type="button" onClick={() => setTrialFilter("all")} aria-pressed={trialFilter === "all"} className={`border px-3 py-2 font-mono text-[10px] uppercase tracking-wider ${trialFilter === "all" ? "border-[#C9A15A] bg-[#C9A15A] text-[#0F1613]" : "border-[#3A4A42] text-[#AEB7B0]"}`}>Tous</button><button type="button" onClick={() => setTrialFilter("followup")} aria-pressed={trialFilter === "followup"} className={`border px-3 py-2 font-mono text-[10px] uppercase tracking-wider ${trialFilter === "followup" ? "border-[#C9A15A] bg-[#C9A15A] text-[#0F1613]" : "border-[#3A4A42] text-[#AEB7B0]"}`}>À relancer</button><button type="button" onClick={() => setTrialFilter("converted")} aria-pressed={trialFilter === "converted"} className={`border px-3 py-2 font-mono text-[10px] uppercase tracking-wider ${trialFilter === "converted" ? "border-[#7C9A76] bg-[#7C9A76] text-[#0F1613]" : "border-[#3A4A42] text-[#AEB7B0]"}`}>Convertis</button></div></div>
+            <div className="flex flex-wrap items-center justify-end gap-2"><span aria-label={`${filteredTrials.length} prospect${filteredTrials.length > 1 ? "s" : ""} affiché${filteredTrials.length > 1 ? "s" : ""} sur ${trials.data?.length ?? 0}`} className="border border-[#C9A15A]/60 bg-[#211d14] px-3 py-2 font-mono text-[10px] uppercase tracking-wider text-[#C9A15A]">{filteredTrials.length} / {trials.data?.length ?? 0} affiché{filteredTrials.length === 1 ? "" : "s"}</span><div className="flex flex-wrap gap-2" role="group" aria-label="Filtrer les essais gratuits"><button type="button" onClick={() => setTrialFilter("all")} aria-pressed={trialFilter === "all"} className={`border px-3 py-2 font-mono text-[10px] uppercase tracking-wider ${trialFilter === "all" ? "border-[#C9A15A] bg-[#C9A15A] text-[#0F1613]" : "border-[#3A4A42] text-[#AEB7B0]"}`}>Tous</button><button type="button" onClick={() => setTrialFilter("followup")} aria-pressed={trialFilter === "followup"} className={`border px-3 py-2 font-mono text-[10px] uppercase tracking-wider ${trialFilter === "followup" ? "border-[#C9A15A] bg-[#C9A15A] text-[#0F1613]" : "border-[#3A4A42] text-[#AEB7B0]"}`}>À relancer</button><button type="button" onClick={() => setTrialFilter("converted")} aria-pressed={trialFilter === "converted"} className={`border px-3 py-2 font-mono text-[10px] uppercase tracking-wider ${trialFilter === "converted" ? "border-[#7C9A76] bg-[#7C9A76] text-[#0F1613]" : "border-[#3A4A42] text-[#AEB7B0]"}`}>Convertis</button><Button type="button" variant="outline" size="sm" onClick={downloadFilteredTrials} disabled={!filteredTrials.length} className="border-[#C9A15A] text-[#C9A15A]" aria-label="Exporter la liste filtrée en CSV"><Download className="mr-1 h-4 w-4" />Exporter CSV</Button></div></div>
           </CardHeader>
           <CardContent>
             {trials.isLoading ? <div className="flex items-center gap-2 text-sm text-[#AEB7B0]"><Loader2 className="h-4 w-4 animate-spin" />Chargement des essais…</div> : filteredTrials.length ? <div className="overflow-x-auto"><table className="w-full min-w-[720px] text-left text-sm"><thead className="border-b border-[#3A4A42] font-mono text-[10px] uppercase tracking-wider text-[#C9A15A]"><tr><th className="px-3 py-3">Nom</th><th className="px-3 py-3">Téléphone</th><th className="px-3 py-3">E-mail</th><th className="px-3 py-3">Date de l’essai</th><th className="px-3 py-3">Conversion</th><th className="px-3 py-3">Dernière relance</th><th className="px-3 py-3 text-right">Action</th></tr></thead><tbody>{filteredTrials.map((trial) => <tr key={trial.id} className="border-b border-[#3A4A42]/70"><td className="px-3 py-4 font-medium">{trial.clientName}</td><td className="px-3 py-4 font-mono text-xs">{trial.phone}</td><td className="px-3 py-4 text-xs">{trial.email}</td><td className="px-3 py-4 text-[#AEB7B0]">{new Date(trial.trialAt).toLocaleDateString("fr-FR")}</td><td className={`px-3 py-4 font-mono text-xs uppercase ${trial.convertedAt ? "text-[#7C9A76]" : "text-[#C9A15A]"}`}>{trial.convertedAt ? "Converti" : "À relancer"}</td><td className="px-3 py-4 text-xs text-[#AEB7B0]">{trial.lastWhatsAppContactAt ? new Date(trial.lastWhatsAppContactAt).toLocaleDateString("fr-FR") : "Jamais"}</td><td className="flex flex-wrap justify-end gap-2 px-3 py-4 text-right">{trial.phone !== "À compléter" && <a href={buildWhatsAppUrl(trial.phone, trial.clientName)} onClick={() => markTrialContacted.mutate({ id: trial.id })} target="_blank" rel="noreferrer" aria-label={`Ouvrir WhatsApp pour ${trial.clientName}`} className="inline-flex h-9 items-center justify-center gap-1 border border-[#7C9A76] px-3 font-mono text-[10px] uppercase tracking-wider text-[#7C9A76] transition-colors hover:bg-[#7C9A76] hover:text-[#0F1613]"><MessageCircle className="h-4 w-4" aria-hidden="true" />WhatsApp</a>}{!trial.convertedAt && <Button type="button" variant="outline" size="sm" className="border-[#7C9A76] text-[#7C9A76]" onClick={() => markTrialConverted.mutate({ id: trial.id })} disabled={markTrialConverted.isPending}>Marquer converti</Button>}</td></tr>)}</tbody></table></div> : <p className="py-8 text-sm text-[#AEB7B0]">{trials.data?.length ? "Aucun prospect dans ce filtre." : "Aucun essai gratuit enregistré."}</p>}

@@ -211,3 +211,6 @@
 - [x] Enregistrer la dernière relance lors de l’ouverture du lien WhatsApp sans envoyer automatiquement de message
 - [x] Ajouter les filtres « À relancer » et « Convertis » dans la section Essais gratuits
 - [x] Afficher la date de dernière relance et tester les filtres, la persistance et le rendu responsive avant checkpoint
+- [x] Ajouter un bouton d’export CSV reprenant uniquement les prospects actuellement filtrés
+- [x] Ajouter une action rapide « Marquer converti » sur chaque ligne de prospect
+- [x] Tester le contenu CSV, l’échappement des données, la mutation de conversion et le rendu responsive avant checkpoint

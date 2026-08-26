@@ -16,3 +16,7 @@ Les captures mobile du 26 août 2026 montrent que le formulaire d’essai reste 
 ## Validation filtres et relances
 
 La capture mobile du 26 août 2026 confirme que Home et l’écran de connexion `/admin` restent lisibles sans débordement après l’ajout du suivi de relance. Les états du tableau Admin, les filtres et la date de dernière relance sont couverts par les tests UI ; la capture verrouillée ne montre pas le tableau, car une session administrateur authentifiée est nécessaire.
+
+## Validation export CSV et conversion rapide
+
+Les captures desktop du 26 août 2026 confirment que Home et l’écran d’accès `/admin` conservent leur mise en page blueprint. Le tableau Admin déverrouillé, l’export CSV et l’action de conversion sont couverts par les tests d’interface ; l’écran verrouillé affiché par capture protège les données tant qu’une session Admin valide n’est pas ouverte.

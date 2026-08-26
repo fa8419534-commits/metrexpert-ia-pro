@@ -50,9 +50,22 @@ vi.mock("@/lib/trpc", () => ({
   },
 }));
 
-import Admin from "../client/src/pages/Admin";
+import Admin, { buildFreeTrialCsv } from "../client/src/pages/Admin";
 
 describe("Admin panel UI", () => {
+  it("builds a CSV with escaped prospect fields and follow-up status", () => {
+    const csv = buildFreeTrialCsv([{
+      clientName: "Entreprise; Test",
+      phone: "2250100000000",
+      email: "prospect\"test@exemple.ci",
+      trialAt: new Date("2026-08-26T00:00:00Z"),
+      convertedAt: null,
+      lastWhatsAppContactAt: null,
+    }]);
+    expect(csv).toContain('"Nom";"Téléphone";"E-mail"');
+    expect(csv).toContain('"Entreprise; Test";"2250100000000";"prospect""test@exemple.ci"');
+    expect(csv).toContain('"À relancer";"Jamais"');
+  });
   it("renders a protected administrator unlock screen before exposing client management", () => {
     render(React.createElement(Admin));
     expect(screen.getByRole("heading", { name: "Accès administration" })).toBeTruthy();
