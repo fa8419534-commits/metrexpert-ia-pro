@@ -17,7 +17,7 @@ describe("buildEstimateWorkbook", () => {
       ],
     };
 
-    const workbook = XLSX.read(buildEstimateWorkbook(input), { type: "buffer", cellFormula: true });
+    const workbook = XLSX.read(buildEstimateWorkbook(input), { type: "buffer", cellFormula: true, cellStyles: true });
     expect(workbook.SheetNames).toEqual(["Couverture", "Métré", "DQE"]);
     expect(workbook.Sheets.Métré?.F2.f).toBe("D2*E2");
     expect(workbook.Sheets.DQE?.D2.f).toBe("IFERROR('Métré'!F2,0)");
@@ -26,6 +26,10 @@ describe("buildEstimateWorkbook", () => {
     expect(workbook.Sheets.Métré?.F2.f).not.toMatch(/^=/);
     expect(workbook.Sheets.DQE?.D2.f).not.toMatch(/^=/);
     expect(workbook.Sheets.DQE?.F2.f).not.toMatch(/^=/);
+    expect(workbook.Sheets.Couverture?.A1.v).toBe("MÉTREXPERT IA PRO");
+    expect(workbook.Sheets.Couverture?.A1.s).toBeDefined();
+    expect(workbook.Sheets.Métré?.A1.s).toBeDefined();
+    expect(workbook.Sheets.DQE?.A1.s).toBeDefined();
   });
 
   it("writes formula XML without a leading equals sign", () => {
@@ -36,7 +40,7 @@ describe("buildEstimateWorkbook", () => {
         projectTitle: "XML test",
         measures: [{ code: "01", designation: "Béton", unit: "m³", quantity: 2, unitPrice: 85000 }],
       }));
-      const worksheetXml = ["sheet2.xml", "sheet3.xml"].map((name) =>
+      const worksheetXml = ["sheet1.xml", "sheet2.xml", "sheet3.xml"].map((name) =>
         execFileSync("unzip", ["-p", xlsxPath, `xl/worksheets/${name}`], { encoding: "utf8" }),
       ).join("\\n");
       const formulas = [...worksheetXml.matchAll(/<f(?: [^>]*)?>([^<]*)<\/f>/g)].map((match) => match[1]);

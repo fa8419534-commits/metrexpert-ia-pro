@@ -64,6 +64,7 @@ describe("LLM request diagnostics", () => {
     if (settled.ok) throw new Error("Expected the provider request to fail");
     expect(settled.requestError).toHaveProperty("message");
     expect(String(settled.requestError.message)).toContain("400");
+    expect(fetch).toHaveBeenCalledTimes(1);
     const logged = String(error.mock.calls[0]?.[1] ?? error.mock.calls[0]?.[0]);
     expect(logged).toContain("unsupported parameter");
     expect(logged).toContain("invalid_request_error");

@@ -269,6 +269,9 @@ const normalizeResponseFormat = ({
 };
 
 const RETRY_MAX_RETRIES = 4;
+const LLM_ATTEMPT_TIMEOUT_MS = 60_000;
+
+const isRetryableStatus = (status: number) => status === 408 || status === 425 || status === 429 || status >= 500;
 
 const redactPayloadForLogs = (payload: Record<string, unknown>) => {
   const messages = Array.isArray(payload.messages)
@@ -334,9 +337,14 @@ const fetchWithBackoff = async (
   let lastError: unknown;
 
   for (let attempt = 0; attempt <= RETRY_MAX_RETRIES; attempt++) {
+    let timeout: ReturnType<typeof setTimeout> | undefined;
     try {
-      const response = await fetch(url, init);
-      if (response.ok || attempt === RETRY_MAX_RETRIES) {
+      const controller = new AbortController();
+      timeout = setTimeout(() => controller.abort(), LLM_ATTEMPT_TIMEOUT_MS);
+      const response = await fetch(url, { ...init, signal: controller.signal });
+      clearTimeout(timeout);
+      timeout = undefined;
+      if (response.ok || attempt === RETRY_MAX_RETRIES || !isRetryableStatus(response.status)) {
         return response;
       }
 
@@ -353,6 +361,7 @@ const fetchWithBackoff = async (
       );
       await sleep(computeBackoffDelay(attempt, retryAfterMs));
     } catch (error) {
+      if (timeout) clearTimeout(timeout);
       lastError = error;
       if (attempt === RETRY_MAX_RETRIES) throw error;
       console.warn(

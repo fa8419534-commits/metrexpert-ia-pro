@@ -49,3 +49,25 @@
 - [x] Ajouter une normalisation serveur déterministe des postes de peinture ambigus avant création du classeur
 - [x] Garantir par test concret le marqueur exact dans notes et summary ainsi que la quantité globale par défaut
 - [x] Créer un nouveau checkpoint après ces validations métier
+- [x] Auditer plusieurs familles de projets avec et sans fichier joint, en distinguant les cas déterministes, ambigus et incohérents
+- [x] Vérifier les données manquantes, contradictoires, mal formulées et les erreurs réseau/timeout
+- [x] Auditer la sécurité des descriptions et des fichiers uploadés sans exécuter de contenu fourni
+- [x] Inspecter les formules XML de toutes les feuilles XLSX et les contrôles de recalcul
+- [x] Vérifier le rendu mobile du formulaire, de l’upload et du téléchargement
+- [x] Rédiger l’audit priorisé avant toute nouvelle fonctionnalité
+- [x] Corriger les problèmes critiques bloquants identifiés par l’audit
+- [x] Moderniser la feuille Couverture avec la palette MÉTREXPERT IA PRO
+- [x] Harmoniser les en-têtes des feuilles Métré et DQE
+- [x] Ajouter les tests de régression du classeur et des garde-fous de sécurité
+- [x] Valider tests, TypeScript, build, rendu mobile et classeur final
+- [x] Sauvegarder un checkpoint final avec l’audit et la refonte Excel
+- [x] Corriger les retries LLM pour exclure les erreurs 4xx déterministes et ajouter un timeout par tentative
+- [x] Vérifier les signatures binaires des fichiers PDF/PNG/JPEG/WEBP côté serveur
+- [x] Renforcer l’instruction contre les injections provenant de la description ou des documents
+- [x] Documenter les risques restant ouverts : contrôle indépendant des quantités et rate limiting applicatif
+- [ ] Exécuter des probes réels sur plusieurs scénarios texte, ambiguïté, contradiction et fichier joint
+- [ ] Ajouter un test démontrant l’abort sur timeout et l’absence de retry sur une erreur 400
+- [x] Vérifier ou documenter la limite effective du recalcul natif Excel dans le fichier produit
+- [x] Documenter la limite de validation interactionnelle mobile upload/téléchargement
+- [x] Maintenir explicitement ouverts le contrôle indépendant généralisé des quantités et le rate limiting/quota
+- [x] Créer le checkpoint final après ces validations et limites documentées

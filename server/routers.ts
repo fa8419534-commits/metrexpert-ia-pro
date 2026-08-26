@@ -49,6 +49,29 @@ const requestSchema = z.object({
   }).optional(),
 });
 
+export function validateUploadedDataUrl(file: { mimeType: string; dataUrl: string }) {
+  const match = file.dataUrl.match(/^data:([^;,]+);base64,([A-Za-z0-9+/=\r\n]+)$/);
+  if (!match || match[1] !== file.mimeType) {
+    throw new TRPCError({ code: "BAD_REQUEST", message: "Le fichier joint est malformé ou son type déclaré est incohérent." });
+  }
+  let bytes: Buffer;
+  try {
+    bytes = Buffer.from(match[2].replace(/\s/g, ""), "base64");
+  } catch {
+    throw new TRPCError({ code: "BAD_REQUEST", message: "Le fichier joint ne peut pas être décodé." });
+  }
+  const isPdf = file.mimeType === "application/pdf" && bytes.subarray(0, 4).toString("ascii") === "%PDF";
+  const isPng = file.mimeType === "image/png" && bytes.subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]));
+  const isJpeg = file.mimeType === "image/jpeg" && bytes.subarray(0, 3).equals(Buffer.from([255, 216, 255]));
+  const isWebp = file.mimeType === "image/webp" && bytes.subarray(0, 4).toString("ascii") === "RIFF" && bytes.subarray(8, 12).toString("ascii") === "WEBP";
+  if (!isPdf && !isPng && !isJpeg && !isWebp) {
+    throw new TRPCError({ code: "BAD_REQUEST", message: "Le contenu du fichier ne correspond pas à son type déclaré." });
+  }
+  if (bytes.length > 8 * 1024 * 1024) {
+    throw new TRPCError({ code: "BAD_REQUEST", message: "Le fichier joint dépasse la limite de 8 Mo." });
+  }
+}
+
 function extractText(response: Awaited<ReturnType<typeof invokeLLM>>): string {
   const content = response.choices?.[0]?.message?.content;
   if (typeof content === "string") return content;
@@ -93,6 +116,7 @@ export const appRouter = router({
   estimate: router({
     generate: publicProcedure.input(requestSchema).mutation(async ({ input }) => {
       try {
+        if (input.file) validateUploadedDataUrl(input.file);
         const userContent: Array<Record<string, unknown>> = [{
           type: "text",
           text: `Description du projet :\n${input.description}\n\nDocument joint : ${input.file?.name || "aucun"}`,
