@@ -149,3 +149,12 @@
 - [x] Valider côté serveur les dimensions minimales et maximales des images de signature/tampon avec tests dédiés
 - [x] Sauvegarder un checkpoint postérieur à l’intégration complète des images et de toutes les validations
 - [x] Sauvegarder un nouveau checkpoint après l’intégration des imports d’images de signature/tampon et leurs validations finales
+
+- [x] Persister localement les images de signature et de tampon dans le navigateur
+- [x] Restaurer automatiquement les images au chargement de la page
+- [x] Ajouter une suppression explicite et gérer les erreurs de stockage local
+- [x] Ajouter les tests de persistance, restauration, suppression et structure responsive
+- [x] Vérifier la suite complète et sauvegarder un checkpoint
+- [x] Ajouter un contrat UI responsive pour les contrôles d’image persistés et le bouton « Effacer »
+- [x] Sauvegarder un nouveau checkpoint après la persistance locale et la validation finale
+- [x] Sauvegarder un checkpoint postérieur à la persistance locale des images et à la validation finale

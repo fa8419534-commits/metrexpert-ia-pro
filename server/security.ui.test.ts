@@ -16,7 +16,7 @@ import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import Home, { GenerationErrorAlert, HourlyQuotaIndicator } from "../client/src/pages/Home";
+import Home, { GenerationErrorAlert, HourlyQuotaIndicator, persistBrandImage, readStoredBrandImage } from "../client/src/pages/Home";
 
 describe("generation quota UI errors", () => {
   it("renders the hourly limit message in the visible generation alert", () => {
@@ -69,6 +69,22 @@ describe("generation quota UI errors", () => {
     expect(source).toContain('accept="image/png,image/jpeg"');
     expect(source).toContain("signatureImageDataUrl: signatureImage?.dataUrl");
     expect(source).toContain("stampImageDataUrl: stampImage?.dataUrl");
+    expect(source).toContain('className="mt-5 grid min-w-0 gap-4 sm:grid-cols-2"');
+    expect(source).toContain('className="flex shrink-0 items-center gap-2"');
+    expect(source).toContain('className="min-w-0 truncate text-left text-sm text-[#AEB7B0]"');
+    expect(source).toContain('className="font-mono text-[9px] uppercase tracking-wide text-[#C9A15A]">Effacer</span>');
+    expect(source).toContain('localStorage.setItem');
+    expect(source).toContain('localStorage.removeItem');
+  });
+
+  it("persists, restores and clears brand images through local storage", () => {
+    const values = new Map<string, string>();
+    Object.defineProperty(globalThis, "window", { configurable: true, value: { localStorage: { getItem: (key: string) => values.get(key) ?? null, setItem: (key: string, value: string) => values.set(key, value), removeItem: (key: string) => values.delete(key) } } });
+    const image = { name: "signature.png", dataUrl: "data:image/png;base64,abc" };
+    expect(persistBrandImage("signature-key", image)).toBe(true);
+    expect(readStoredBrandImage("signature-key")).toEqual(image);
+    expect(persistBrandImage("signature-key", null)).toBe(true);
+    expect(readStoredBrandImage("signature-key")).toBeNull();
   });
 
   it("keeps the unlocked quota condition in Home", () => {
