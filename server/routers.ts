@@ -11,6 +11,7 @@ import { parseJsonObjectFromLLM } from "./json";
 import { normalizeEstimateAmbiguities } from "./estimateNormalization";
 import { createClientAccessCode, DAILY_LIMIT, disableClientAccessCode, getClientAccessStatus, getGenerationStats, getHourlyQuotaStatus, hasValidAccessCookie, hasValidAdminCookie, HOURLY_LIMIT, isAccessCodeValid, isAdminAccessCodeValid, listClientAccessCodes, listFreeTrialContacts, markFreeTrialConverted, markFreeTrialWhatsAppContacted, releaseClientMonthlyQuota, releaseFreeTrialReservation, releaseGenerationQuota, reserveClientMonthlyQuota, reserveGenerationQuota, reserveFreeTrial, setAccessCookie, setAdminCookie, verifyClientAccessCode } from "./security";
 import type { GenerationQuotaReservation } from "./security";
+import { runQuantityChecks } from "./quantityChecks";
 
 const inFlightGenerationRequests = new Map<string, number>();
 const IDEMPOTENCY_KEY_TTL_MS = 10 * 60 * 1000;
@@ -331,6 +332,7 @@ export const appRouter = router({
         }
         const validatedEstimate = validateEstimate(json);
         const estimate = normalizeEstimateAmbiguities({ ...validatedEstimate, geometry: input.geometry ?? validatedEstimate.geometry });
+        const geometryChecks = runQuantityChecks(estimate).filter((check) => (estimate.geometry ?? []).some((dimension) => dimension.code === check.code));
         const workbook = await buildEstimateWorkbookFromRequest(estimate, {
           clientPhone: input.clientPhone || undefined,
           clientEmail: input.clientEmail || undefined,
@@ -350,6 +352,8 @@ export const appRouter = router({
             currency: estimate.currency || "FCFA",
             summary: estimate.summary || "Résumé non renseigné.",
             measures: estimate.measures,
+            geometry: estimate.geometry ?? [],
+            geometryChecks,
           },
         };
       } catch (error) {

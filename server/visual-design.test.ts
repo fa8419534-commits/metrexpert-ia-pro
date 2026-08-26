@@ -33,7 +33,9 @@ describe("technical visual system", () => {
     expect(home).toContain("Génération du classeur en cours");
     expect(home).toContain("aria-busy={generate.isPending}");
     expect(home).toContain('data-loading={generate.isPending ? "true" : undefined}');
-    expect(home).toContain("Préparation du téléchargement…");
+    expect(home).toContain("Le fichier est presque prêt — ne fermez pas cette page.");
+    expect(home).toContain("Traitement sécurisé en cours");
+    expect(home).toContain("CONTRÔLE INDÉPENDANT");
     expect(home).toContain("Déverrouiller l’étude");
     expect(home).toContain('id="access-code"');
     expect(home).toContain("5 / H · 50 / J");
@@ -43,7 +45,7 @@ describe("technical visual system", () => {
     expect(home).toContain("Limites actives : 5 générations par heure et 50 pour toute l’application par jour.");
     expect(home).toContain("security.status.useQuery");
     expect(home).toContain('aria-busy="true"');
-    expect(home).toContain("En préparation");
+    expect(home).toContain("Génération…");
     expect(home).toContain("disabled={generate.isPending || (!accessStatus.data?.unlocked && !hasValidTrialContact)}");
   });
 

@@ -111,6 +111,27 @@ export function MonthlyQuotaProgress({ remaining, limit }: { remaining: number; 
   </div>;
 }
 
+type GeometryPreview = {
+  code: string;
+  designation: string;
+  formula: "linear" | "surface" | "volume" | "count";
+  unit: string;
+  length?: number;
+  width?: number;
+  height?: number;
+  openingArea?: number;
+  quantity?: number;
+};
+
+type GeometryCheckPreview = {
+  code: string;
+  designation: string;
+  status: "OK" | "À VÉRIFIER" | "BLOQUANT";
+  rule: string;
+  observed: string;
+  recommendation: string;
+};
+
 type GeneratedDownload = {
   url: string;
   filename: string;
@@ -120,6 +141,8 @@ type GeneratedDownload = {
     currency: string;
     summary: string;
     measures: PreviewMeasure[];
+    geometry: GeometryPreview[];
+    geometryChecks: GeometryCheckPreview[];
   };
 };
 
@@ -163,6 +186,7 @@ export default function Home() {
   const [accessCode, setAccessCode] = useState("");
   const [clientAccessCode, setClientAccessCode] = useState("");
   const [progressStage, setProgressStage] = useState(0);
+  const progressMessages = ["Lecture de la description et du plan…", "Contrôle de la réponse structurée…", "Construction du classeur Excel et des vérifications…"];
   const documentDate = new Intl.DateTimeFormat("fr-FR").format(new Date());
   const addGeometry = () => setGeometry((rows) => [...rows, { code: `G-${rows.length + 1}`, designation: "", formula: "surface", unit: "m²", length: "", width: "", height: "", openingArea: "", quantity: "1", notes: "" }]);
   const updateGeometry = (index: number, patch: Partial<GeometryDraft>) => setGeometry((rows) => rows.map((row, rowIndex) => rowIndex === index ? { ...row, ...patch } : row));
@@ -404,11 +428,11 @@ export default function Home() {
                 {fileError && <p className="mt-2 flex items-center gap-2 text-xs font-medium text-[#d98472]"><ImageIcon className="h-3.5 w-3.5" />{fileError}</p>}
               </div>
               {generate.error && <GenerationErrorAlert message={generate.error.message} />}
-              {generate.isPending && <div className="progress-panel mt-5"><div className="mb-3 flex items-center justify-between font-mono text-[10px] uppercase tracking-wider text-[#C9A15A]"><span>Traitement en cours</span><span>Étape {progressStage + 1}/3</span></div><div className="grid grid-cols-3 gap-px bg-[#3A4A42]">{["Analyse", "Validation JSON", "Classeur"].map((label, index) => <span key={label} className={`px-2 py-2 text-center font-mono text-[10px] uppercase ${progressStage >= index ? "bg-[#7C9A76] text-[#0F1613]" : "bg-[#1C2822] text-[#87938B]"}`}>{label}</span>)}</div></div>}
+              {generate.isPending && <div className="progress-panel mt-5 animate-pulse motion-reduce:animate-none" role="status" aria-live="polite"><div className="mb-3 flex items-center justify-between font-mono text-[10px] uppercase tracking-wider text-[#C9A15A]"><span>Traitement sécurisé en cours</span><span>Étape {progressStage + 1}/3</span></div><p className="mb-3 text-xs leading-5 text-[#EDEAE2]">{progressMessages[progressStage]}</p><div className="grid grid-cols-3 gap-px bg-[#3A4A42]">{["Analyse", "Validation JSON", "Classeur"].map((label, index) => <span key={label} className={`px-2 py-2 text-center font-mono text-[10px] uppercase transition-colors duration-200 ${progressStage >= index ? "bg-[#7C9A76] text-[#0F1613]" : "bg-[#1C2822] text-[#87938B]"}`}>{progressStage > index ? "Terminé · " : progressStage === index ? "En cours · " : "À venir · "}{label}</span>)}</div></div>}
               <Button onClick={() => void handleGenerate()} disabled={generate.isPending || (!accessStatus.data?.unlocked && !hasValidTrialContact)} aria-busy={generate.isPending} data-loading={generate.isPending ? "true" : undefined} className="technical-button mt-6 h-12 w-full rounded-none">
                 {generate.isPending ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" /> <span>Génération du classeur en cours…</span></> : <><FileSpreadsheet className="mr-2 h-4 w-4" aria-hidden="true" /> <span>Générer mon métré & DQE</span></>}
               </Button>
-              {generate.isPending && <div className="result-download mt-4" role="status" aria-live="polite"><span className="flex min-w-0 items-center gap-2 text-xs font-semibold text-[#C9A15A]"><Loader2 className="h-4 w-4 shrink-0 animate-spin" aria-hidden="true" /><span className="truncate">Préparation du téléchargement…</span></span><button type="button" className="download-button" disabled aria-busy="true">En préparation</button></div>}
+              {generate.isPending && <div className="result-download mt-4" role="status" aria-live="polite"><span className="flex min-w-0 items-center gap-2 text-xs font-semibold text-[#C9A15A]"><Loader2 className="h-4 w-4 shrink-0 animate-spin motion-reduce:animate-none" aria-hidden="true" /><span className="truncate">Le fichier est presque prêt — ne fermez pas cette page.</span></span><button type="button" className="download-button" disabled aria-busy="true">Génération…</button></div>}
               {download && !generate.isPending && <div className="result-download mt-4" role="status" aria-live="polite"><span className="flex min-w-0 items-center gap-2 text-xs font-semibold text-[#7C9A76]"><FileSpreadsheet className="h-4 w-4 shrink-0" /><span className="truncate">Classeur prêt — {download.filename} · {download.lineCount} postes</span></span><a href={download.url} download={download.filename} className="download-button">Télécharger</a></div>}
               <p className="mt-4 text-center font-mono text-[10px] leading-5 text-[#718078]">BASE DE TRAVAIL À CONTRÔLER PAR UN PROFESSIONNEL AVANT USAGE CONTRACTUEL.</p>
             </section>
@@ -422,6 +446,7 @@ export default function Home() {
                 </div>
                 <div className="overflow-x-auto"><table className="technical-table w-full min-w-[860px] border-collapse text-left"><caption className="sr-only">Aperçu interactif des postes générés dans le métré</caption><thead><tr><th scope="col">REPÈRE</th><th scope="col">DÉSIGNATION</th><th scope="col">UNITÉ</th><th scope="col">QUANTITÉ</th><th scope="col">PU ({download.preview.currency})</th><th scope="col">MONTANT</th><th scope="col">OBS.</th></tr></thead><tbody>{visibleMeasures.map((measure) => { const quantity = measure.quantity * (measure.factor ?? 1); const amount = quantity * (measure.unitPrice ?? 0); return <tr key={measure.code}><td>{measure.code}</td><td>{measure.designation}</td><td>{measure.unit}</td><td className="text-[#C9A15A]">{quantity.toLocaleString("fr-FR", { maximumFractionDigits: 2 })}</td><td>{(measure.unitPrice ?? 0).toLocaleString("fr-FR")}</td><td className="font-semibold text-[#C9A15A]">{amount.toLocaleString("fr-FR")}</td><td>{measure.notes || "—"}</td></tr>; })}</tbody></table></div>
                 <div className="dimension-line mx-5 my-4 sm:mx-7"><span>{visibleMeasures.length} POSTES AFFICHÉS</span><span>QUANTITÉS</span><span>MONTANT FILTRÉ : {previewTotal.toLocaleString("fr-FR")} {download.preview.currency}</span></div>
+                {download.preview.geometry.length > 0 && <section className="mx-5 mb-5 border border-[#3A4A42] bg-[#16201C] p-4 sm:mx-7" aria-labelledby="geometry-preview-title"><div className="flex flex-wrap items-start justify-between gap-3"><div><p className="repere">REP. 02A <span>—</span> CONTRÔLE INDÉPENDANT</p><h3 id="geometry-preview-title" className="mt-2 font-serif text-xl text-[#EDEAE2]">Vérification géométrique</h3><p className="mt-1 text-xs leading-5 text-[#87938B]">Les quantités sont comparées aux dimensions explicites saisies, sans modification automatique du résultat.</p></div><span className="font-mono text-[10px] uppercase tracking-wide text-[#C9A15A]">Tolérance 1 %</span></div><div className="mt-4 overflow-x-auto"><table className="technical-table w-full min-w-[780px] border-collapse text-left"><caption className="sr-only">Contrôle géométrique des dimensions et quantités générées</caption><thead><tr><th scope="col">CODE</th><th scope="col">FORMULE</th><th scope="col">DIMENSIONS</th><th scope="col">ATTENDU</th><th scope="col">GÉNÉRÉ</th><th scope="col">STATUT</th></tr></thead><tbody>{download.preview.geometry.map((dimension) => { const check = download.preview.geometryChecks.find((item) => item.code === dimension.code); const status = check?.status || "À VÉRIFIER"; const dimensionText = dimension.formula === "count" ? `${dimension.quantity ?? 1} ×` : `${dimension.length ?? "?"} × ${dimension.width ?? "?"}${dimension.height !== undefined ? ` × ${dimension.height}` : ""}${dimension.openingArea ? ` − ouv. ${dimension.openingArea}` : ""} × ${dimension.quantity ?? 1}`; return <tr key={dimension.code}><td>{dimension.code}</td><td>{dimension.formula}</td><td className="font-mono text-[#AEB7B0]">{dimensionText}</td><td className="font-mono text-[#C9A15A]">{check?.observed.match(/attendu=([^,]+)/)?.[1] || "À confirmer"}</td><td className="font-mono">{check?.observed.match(/généré=(.*)$/)?.[1] || "À confirmer"}</td><td><span className={`inline-flex border px-2 py-1 font-mono text-[10px] uppercase ${status === "OK" ? "border-[#7C9A76] text-[#7C9A76]" : status === "BLOQUANT" ? "border-[#9d554b] text-[#d98472]" : "border-[#C9A15A] text-[#C9A15A]"}`}>{status}</span></td></tr>; })}</tbody></table></div><div className="mt-3 grid gap-2 text-xs text-[#AEB7B0]">{download.preview.geometryChecks.filter((check) => check.status !== "OK").map((check) => <p key={`${check.code}-${check.status}`} className={`border-l-2 pl-3 ${check.status === "BLOQUANT" ? "border-[#9d554b] text-[#d98472]" : "border-[#C9A15A] text-[#C9A15A]"}`}><strong>{check.code} — {check.status} :</strong> {check.recommendation}</p>)}</div></section>}
               </> : <div className="px-5 py-12 text-center sm:px-7" data-preview-state="empty"><FileSpreadsheet className="mx-auto h-8 w-8 text-[#3A4A42]" aria-hidden="true" /><p className="mt-4 font-serif text-xl text-[#EDEAE2]">L’aperçu apparaîtra ici</p><p className="mx-auto mt-2 max-w-sm text-sm leading-6 text-[#87938B]">Générez votre métré pour consulter les postes réels, les quantités, les prix et les montants avant le téléchargement Excel.</p></div>}
               <div className="flex items-center justify-between px-5 pb-5 font-mono text-[10px] uppercase tracking-wider text-[#718078] sm:px-7"><span>{download ? "APERÇU INTERACTIF" : "APERÇU EN ATTENTE"}</span><span className="text-[#C9A15A]">Contrôle humain requis</span></div>
             </section>

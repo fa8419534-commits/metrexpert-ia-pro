@@ -259,3 +259,13 @@
 - [x] Exécuter tests, TypeScript, build et vérification de stabilité
 - [x] Présenter à Daouda les coûts potentiels et confirmer que le secours multi-clés reste désactivé
 - [x] Confirmer avec Daouda l’absence de clés alternatives et laisser le secours multi-clés désactivé pour éviter toute dépense imprévue
+
+- [x] Diagnostiquer précisément la chaîne de dépendances lodash/recharts et choisir une correction compatible
+- [x] Corriger ou remplacer la chaîne vulnérable sans régression de production
+- [x] Ajouter un contrôle géométrique visuel dans l’aperçu web avant téléchargement
+- [x] Afficher les dimensions, résultat indépendant, écart et statut de chaque contrôle
+- [x] Renforcer les animations et messages d’état pendant la génération Excel
+- [x] Respecter prefers-reduced-motion et l’accessibilité des états de chargement
+- [x] Ajouter les tests de sécurité, aperçu géométrique et états de génération
+- [x] Exécuter audit production, tests, TypeScript, build et contrôles responsive
+- [x] Sauvegarder un checkpoint avec les résultats et limites restantes
