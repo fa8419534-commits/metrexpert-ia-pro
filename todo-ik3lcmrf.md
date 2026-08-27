@@ -439,3 +439,11 @@
 - [x] Indiquer clairement que l’ouverture dans Microsoft Excel Desktop reste recommandée pour le recalcul et l’impression.
 - [x] Ajouter les tests Vitest des notifications et de l’aperçu Excel.
 - [x] Exécuter TypeScript, tests, build, contrôle responsive et sauvegarder un checkpoint.
+
+
+## Session procédure exploitation — 27/08/2026
+
+- [x] Vérifier le mécanisme Heartbeat de purge et sa configuration de planification quotidienne.
+- [x] Documenter les commandes sûres de sauvegarde et restauration de la base, sans exposer les secrets.
+- [x] Rédiger le test complet du parcours client avec critères de réussite et points de contrôle.
+- [x] Livrer la procédure d’exploitation et les limites à l’utilisateur.
