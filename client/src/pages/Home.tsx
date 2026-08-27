@@ -143,6 +143,34 @@ type GeneratedDownload = {
   preview: WorkbookPreviewData;
 };
 
+const ONBOARDING_EVENT_KEY = "metrexpert:onboarding-events:v1";
+const ONBOARDING_STEPS = [
+  { number: 1, title: "Accès & contact", description: "Déverrouillez l’étude ou renseignez le contact de votre essai." },
+  { number: 2, title: "Décrire le projet", description: "Expliquez le chantier, les lots et les dimensions connues." },
+  { number: 3, title: "Relire les données", description: "Ajoutez les dimensions explicites et vérifiez les hypothèses." },
+  { number: 4, title: "Générer le livrable", description: "Contrôlez la checklist, puis produisez le métré et le DQE." },
+] as const;
+
+export function trackOnboardingEvent(event: string, step: number): void {
+  try {
+    const raw = window.localStorage.getItem(ONBOARDING_EVENT_KEY);
+    const events = raw ? JSON.parse(raw) as Array<{ event: string; step: number; at: number }> : [];
+    events.push({ event, step, at: Date.now() });
+    window.localStorage.setItem(ONBOARDING_EVENT_KEY, JSON.stringify(events.slice(-200)));
+    window.dispatchEvent(new CustomEvent("metrexpert:onboarding-event", { detail: { event, step } }));
+  } catch {
+    // Le suivi ne doit jamais bloquer le formulaire ni exposer le contenu du projet.
+  }
+}
+
+export function GuidedOnboarding({ step, onStepChange }: { step: number; onStepChange: (step: number) => void }) {
+  return <section className="mb-6 border border-[#3A4A42] bg-[#0F1613] p-4" aria-labelledby="onboarding-title" data-onboarding-guide>
+    <div className="flex flex-wrap items-start justify-between gap-3"><div><p className="repere">GUIDE · DÉMARRAGE</p><h3 id="onboarding-title" className="mt-2 font-serif text-xl text-[#EDEAE2]">Votre étude en 4 repères</h3></div><span className="font-mono text-[10px] uppercase tracking-wider text-[#C9A15A]">Étape {step}/4</span></div>
+    <ol className="mt-4 grid gap-2 sm:grid-cols-4" aria-label="Étapes du parcours de génération">{ONBOARDING_STEPS.map((item) => <li key={item.number}><button type="button" aria-current={step === item.number ? "step" : undefined} onClick={() => { trackOnboardingEvent("step_selected", item.number); onStepChange(item.number); }} className={`w-full border px-3 py-3 text-left ${step === item.number ? "border-[#C9A15A] bg-[#16201C]" : "border-[#3A4A42]"}`}><span className="font-mono text-[10px] text-[#C9A15A]">REP. 0{item.number}</span><span className="mt-1 block text-xs font-semibold text-[#EDEAE2]">{item.title}</span></button></li>)}</ol>
+    <div className="mt-4 border-t border-[#3A4A42] pt-4"><p className="text-sm text-[#EDEAE2]">{ONBOARDING_STEPS[step - 1]?.description}</p><div className="mt-3 flex flex-wrap justify-between gap-2"><button type="button" disabled={step <= 1} onClick={() => { trackOnboardingEvent("step_back", step); onStepChange(Math.max(1, step - 1)); }} className="border border-[#3A4A42] px-3 py-2 font-mono text-[10px] uppercase tracking-wider text-[#AEB7B0] disabled:opacity-40">← Précédent</button><button type="button" disabled={step >= 4} onClick={() => { trackOnboardingEvent("step_completed", step); onStepChange(Math.min(4, step + 1)); }} className="border border-[#C9A15A] px-3 py-2 font-mono text-[10px] uppercase tracking-wider text-[#C9A15A] disabled:opacity-40">Suivant →</button></div></div>
+  </section>;
+}
+
 export default function Home() {
   const [description, setDescription] = useState("");
   const [geometry, setGeometry] = useState<GeometryDraft[]>([]);
@@ -169,6 +197,7 @@ export default function Home() {
   const [file, setFile] = useState<File | null>(null);
   const [fileError, setFileError] = useState("");
   const [download, setDownload] = useState<GeneratedDownload | null>(null);
+  const [onboardingStep, setOnboardingStep] = useState(1);
   const [previewGeometryDrafts, setPreviewGeometryDrafts] = useState<GeometryDraft[]>([]);
   const [previewQuery, setPreviewQuery] = useState("");
   const [workbookPreviewTab, setWorkbookPreviewTab] = useState<WorkbookPreviewTab>("cover");
@@ -221,6 +250,16 @@ export default function Home() {
       window.clearInterval(elapsedTimer);
     };
   }, [generate.isPending]);
+
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      if (!download && (description.trim() || file || trialPhone.trim() || trialEmail.trim())) {
+        trackOnboardingEvent("form_abandoned", onboardingStep);
+      }
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [description, download, file, onboardingStep, trialEmail, trialPhone]);
 
   const onFileChange = (candidate?: File) => {
     setFileError("");
@@ -302,6 +341,7 @@ export default function Home() {
 
   const handleGenerate = async (geometryOverride?: GeometryDraft[]) => {
     if (generationRequestKeyRef.current) return;
+    trackOnboardingEvent("generation_started", 4);
     const requestKey = typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
       ? crypto.randomUUID()
       : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
@@ -425,6 +465,13 @@ export default function Home() {
   const validTrialPhone = isValidTrialPhone(trialPhone);
   const validTrialEmail = isValidTrialEmail(trialEmail);
   const hasValidTrialContact = validTrialPhone || validTrialEmail;
+  const checklistItems = [
+    { id: "access", label: accessStatus.data?.unlocked ? "Accès déverrouillé" : "Contact d’essai valide", complete: Boolean(accessStatus.data?.unlocked || hasValidTrialContact) },
+    { id: "description", label: "Description détaillée du projet", complete: description.trim().length >= 20 },
+    { id: "file-or-description", label: "Base de travail fournie", complete: Boolean(file || description.trim().length >= 20) },
+    { id: "consent", label: "Consentement d’essai", complete: Boolean(accessStatus.data?.unlocked || trialConsent) },
+  ];
+  const checklistComplete = checklistItems.every((item) => item.complete);
 
   return (
     <main className={`internal-page internal-page--${theme} min-h-screen overflow-hidden bg-[#0F1613] text-[#EDEAE2]`}><div className="internal-theme-toolbar"><ThemeToggle /></div>
@@ -468,6 +515,12 @@ export default function Home() {
               {!accessStatus.data?.unlocked && <div className="access-panel mb-6" role="region" aria-labelledby="access-title"><div className="mb-4 flex items-start justify-between gap-4"><div><p className="repere">PROTECTION <span>—</span> ACCÈS REQUIS</p><h3 id="access-title" className="mt-2 font-serif text-xl text-[#EDEAE2]">Déverrouiller l’étude</h3></div><span className="font-mono text-[10px] uppercase text-[#C9A15A]">5 / H · 50 / J</span></div><p className="mb-4 text-xs leading-5 text-[#AEB7B0]">Un code d’accès est nécessaire avant toute génération payante. Limites actives : 5 générations par heure et 50 pour toute l’application par jour.</p><form onSubmit={handleVerifyAccess} className="flex flex-col gap-3 sm:flex-row"><label htmlFor="access-code" className="sr-only">Code d’accès partagé</label><input id="access-code" type="password" autoComplete="off" value={accessCode} onChange={(event) => setAccessCode(event.target.value)} placeholder="Code d’accès partagé" className="technical-input h-11 min-w-0 flex-1 px-3 text-sm" required /><Button type="submit" disabled={verifyAccess.isPending || !accessCode} className="technical-button h-11 rounded-none sm:w-40">{verifyAccess.isPending ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />Vérification…</> : "Déverrouiller"}</Button></form>{verifyAccess.error && <p className="mt-3 text-xs font-medium text-[#d98472]" role="alert">{verifyAccess.error.message}</p>}<div className="my-4 flex items-center gap-3 font-mono text-[10px] uppercase tracking-wider text-[#607068]"><span className="h-px flex-1 bg-[#3A4A42]" />ou accès client<span className="h-px flex-1 bg-[#3A4A42]" /></div><form onSubmit={handleVerifyClientAccess} className="flex flex-col gap-3 sm:flex-row"><label htmlFor="client-access-code" className="sr-only">Code client</label><input id="client-access-code" type="password" autoComplete="off" value={clientAccessCode} onChange={(event) => setClientAccessCode(event.target.value)} placeholder="Code client transmis" className="technical-input h-11 min-w-0 flex-1 px-3 text-sm" required /><Button type="submit" disabled={verifyClientAccess.isPending || !clientAccessCode} className="technical-button h-11 rounded-none sm:w-40">{verifyClientAccess.isPending ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />Vérification…</> : "Activer mon accès"}</Button></form>{verifyClientAccess.error && <p className="mt-3 text-xs font-medium text-[#d98472]" role="alert">{verifyClientAccess.error.message}</p>}<div className="my-4 flex items-center gap-3 font-mono text-[10px] uppercase tracking-wider text-[#607068]"><span className="h-px flex-1 bg-[#3A4A42]" />ou essai gratuit<span className="h-px flex-1 bg-[#3A4A42]" /></div><p className="mb-3 text-xs leading-5 text-[#AEB7B0]">Une seule génération gratuite par téléphone ou e-mail. Renseignez au moins un contact pour commencer.</p><div className="grid gap-3 sm:grid-cols-2"><div><label htmlFor="trial-phone" className="field-label">Téléphone d’essai <span>REQUIS SI PAS D’E-MAIL</span></label><input id="trial-phone" type="tel" autoComplete="tel" value={trialPhone} onChange={(event) => setTrialPhone(event.target.value)} placeholder="+225 …" aria-invalid={Boolean(trialPhone) && !validTrialPhone} className={`technical-input h-11 w-full min-w-0 px-3 text-sm ${trialPhone && !validTrialPhone ? "border-[#9d554b]" : trialPhone && validTrialPhone ? "border-[#7C9A76]" : ""}`} />{trialPhone && <p className={`mt-1 text-[11px] ${validTrialPhone ? "text-[#7C9A76]" : "text-[#d98472]"}`} role="status">{validTrialPhone ? "Format reconnu." : "Format attendu : 10 chiffres ivoiriens ou +225 suivi du numéro."}</p>}</div><div><label htmlFor="trial-email" className="field-label">E-mail d’essai <span>REQUIS SI PAS DE TÉL.</span></label><input id="trial-email" type="email" autoComplete="email" value={trialEmail} onChange={(event) => setTrialEmail(event.target.value)} placeholder="vous@exemple.ci" aria-invalid={Boolean(trialEmail) && !validTrialEmail} className={`technical-input h-11 w-full min-w-0 px-3 text-sm ${trialEmail && !validTrialEmail ? "border-[#9d554b]" : trialEmail && validTrialEmail ? "border-[#7C9A76]" : ""}`} />{trialEmail && <p className={`mt-1 text-[11px] ${validTrialEmail ? "text-[#7C9A76]" : "text-[#d98472]"}`} role="status">{validTrialEmail ? "Format reconnu." : "Format attendu : nom@domaine.ci"}</p>}</div><label className="mt-4 flex items-start gap-3 text-xs leading-5 text-[#AEB7B0]"><input type="checkbox" checked={trialConsent} onChange={(event) => setTrialConsent(event.target.checked)} className="mt-1 accent-[#C9A15A]" />J’accepte que mes coordonnées soient conservées pour traiter l’essai et me recontacter au sujet du service. Je peux me désinscrire depuis l’accueil.</label></div></div>}
               {accessStatus.data?.unlocked && accessStatus.data.accessType === "client" && accessStatus.data.monthlyRemaining !== undefined && accessStatus.data.monthlyQuota !== undefined && <MonthlyQuotaProgress remaining={accessStatus.data.monthlyRemaining} limit={accessStatus.data.monthlyQuota} />}{accessStatus.data?.unlocked && hourlyRemaining !== undefined && <HourlyQuotaIndicator remaining={hourlyRemaining} limit={hourlyLimit} />}
               {accessStatus.data?.dailyTotal !== undefined && <div className="mb-6 flex items-center justify-between gap-3 border border-[#3A4A42] bg-[#16201C] px-4 py-3 font-mono text-[10px] uppercase tracking-wider text-[#AEB7B0]"><span>Compteur global du jour</span><strong className="text-[#C9A15A]">{accessStatus.data.dailyTotal} / {accessStatus.data.dailyLimit}</strong></div>}
+              <GuidedOnboarding step={onboardingStep} onStepChange={(nextStep) => { setOnboardingStep(nextStep); trackOnboardingEvent("step_viewed", nextStep); }} />
+              <section className="mb-5 border border-[#C9A15A]/70 bg-[#16201C] p-4" aria-labelledby="generation-checklist-title" data-generation-checklist>
+                <div className="flex flex-wrap items-start justify-between gap-3"><div><p className="repere">REP. 01B <span>—</span> CONTRÔLE AVANT LANCEMENT</p><h3 id="generation-checklist-title" className="mt-2 font-serif text-xl text-[#EDEAE2]">Checklist de génération</h3></div><span className={`font-mono text-[10px] uppercase tracking-wider ${checklistComplete ? "text-[#7C9A76]" : "text-[#C9A15A]"}`}>{checklistItems.filter((item) => item.complete).length}/{checklistItems.length} validés</span></div>
+                <ul className="mt-4 grid gap-2 sm:grid-cols-2" aria-label="Vérifications requises avant génération">{checklistItems.map((item) => <li key={item.id} className={`flex items-center gap-2 border px-3 py-2 text-xs ${item.complete ? "border-[#7C9A76]/60 text-[#7C9A76]" : "border-[#3A4A42] text-[#AEB7B0]"}`}><span aria-hidden="true" className={`inline-flex h-4 w-4 items-center justify-center border font-mono text-[10px] ${item.complete ? "border-[#7C9A76]" : "border-[#C9A15A]"}`}>{item.complete ? "✓" : "·"}</span>{item.label}</li>)}</ul>
+                {!checklistComplete && <p className="mt-3 border-l-2 border-[#C9A15A] pl-3 text-xs text-[#C9A15A]" role="status">Complétez les éléments signalés avant de générer le fichier.</p>}
+              </section>
               <label htmlFor="description" className="field-label">Description du projet <span>REQUIS</span></label>
               <Textarea id="description" value={description} onChange={(event) => setDescription(event.target.value)} placeholder="Ex. Construction d’une villa R+1 de 180 m² à Abidjan, avec fondations en béton armé, murs en agglos..." className="technical-input min-h-40 resize-none" />
               <section className="mt-5 border border-[#3A4A42] bg-[#16201C] p-4" aria-labelledby="geometry-title">
@@ -515,7 +568,7 @@ export default function Home() {
               </div>
               {generate.error && <GenerationErrorAlert message={generate.error.message} />}
               {generate.isPending && <div className="progress-panel mt-5 animate-pulse motion-reduce:animate-none" role="status" aria-live="polite"><div className="mb-3 flex items-center justify-between font-mono text-[10px] uppercase tracking-wider text-[#C9A15A]"><span>Traitement sécurisé en cours</span><span>Étape {progressStage + 1}/3</span></div><p className="mb-3 text-xs leading-5 text-[#EDEAE2]">{progressMessages[progressStage]}</p><div className="mb-3 h-2 overflow-hidden border border-[#3A4A42] bg-[#0F1613]" role="progressbar" aria-label="Progression indicative de la génération" aria-valuemin={0} aria-valuemax={100} aria-valuenow={progressPercent} aria-valuetext={`${progressPercent}% — environ ${estimatedRemainingSeconds} seconde${estimatedRemainingSeconds > 1 ? "s" : ""} restante${estimatedRemainingSeconds > 1 ? "s" : ""}`}><div className="h-full bg-[#C9A15A] transition-[width] duration-500 ease-out motion-reduce:transition-none" style={{ width: `${progressPercent}%` }} /></div><p className="mb-3 font-mono text-[10px] uppercase tracking-wider text-[#87938B]">Progression indicative : {progressPercent}% · environ {estimatedRemainingSeconds}s restantes</p><div className="grid grid-cols-3 gap-px bg-[#3A4A42]">{["Analyse", "Validation JSON", "Classeur"].map((label, index) => <span key={label} className={`px-2 py-2 text-center font-mono text-[10px] uppercase transition-colors duration-200 ${progressStage >= index ? "bg-[#7C9A76] text-[#0F1613]" : "bg-[#1C2822] text-[#87938B]"}`}>{progressStage > index ? "Terminé · " : progressStage === index ? "En cours · " : "À venir · "}{label}</span>)}</div></div>}
-              <Button onClick={() => void handleGenerate()} disabled={generate.isPending || (!accessStatus.data?.unlocked && !hasValidTrialContact)} aria-busy={generate.isPending} data-loading={generate.isPending ? "true" : undefined} className="technical-button mt-6 h-12 w-full rounded-none">
+              <Button onClick={() => { if (!checklistComplete) { trackOnboardingEvent("generation_blocked_checklist", onboardingStep); toast.error("Complétez la checklist avant de générer le fichier."); return; } void handleGenerate(); }} disabled={generate.isPending} aria-busy={generate.isPending} data-loading={generate.isPending ? "true" : undefined} className="technical-button mt-6 h-12 w-full rounded-none">
                 {generate.isPending ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" /> <span>Génération du classeur en cours…</span></> : <><FileSpreadsheet className="mr-2 h-4 w-4" aria-hidden="true" /> <span>Générer mon métré & DQE</span></>}
               </Button>
               {generate.isPending && <div className="result-download mt-4" role="status" aria-live="polite"><span className="flex min-w-0 items-center gap-2 text-xs font-semibold text-[#C9A15A]"><Loader2 className="h-4 w-4 shrink-0 animate-spin motion-reduce:animate-none" aria-hidden="true" /><span className="truncate">Le fichier est presque prêt — ne fermez pas cette page.</span></span><button type="button" className="download-button" disabled aria-busy="true">Génération…</button></div>}

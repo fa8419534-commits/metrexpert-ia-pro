@@ -5471,3 +5471,23 @@ Décision provisoire : privilégier d’abord un guide interactif déterministe,
 - [x] Vérifier le build.
 - [x] Vérifier le checkpoint.
 - [x] Terminer.
+
+
+## Session onboarding guidé et suivi des abandons — 27/08/2026
+
+- [x] Créer un parcours d’intégration guidé en 4 étapes pour le formulaire de génération.
+- [x] Ajouter des indications contextuelles et une navigation précédente/suivante accessibles.
+- [x] Ajouter une checklist visuelle avant génération pour les informations requises, fichiers et consentements.
+- [x] Bloquer ou signaler clairement la génération lorsque la checklist identifie une donnée indispensable manquante.
+- [x] Ajouter le suivi d’événements des étapes vues, franchies, abandonnées et de la génération lancée.
+- [x] Ne pas enregistrer la description, les coordonnées, le contenu des fichiers ni les secrets dans les événements.
+- [x] Respecter le consentement et permettre la désactivation du suivi non nécessaire.
+- [x] Ajouter les tests Vitest du parcours, de la checklist, des abandons et de la confidentialité.
+- [x] Exécuter TypeScript, tests, build et contrôle responsive avant checkpoint.
+- [x] Relire le suivi et sauvegarder un checkpoint avant remise.
+- [x] Garder le parcours guidé déterministe sans appel API IA payant.
+- [x] Ne pas modifier les quotas, paiements, preuves Mobile Money ni Heartbeat.
+- [x] Ne pas publier automatiquement.
+- [x] Ne pas envoyer de communications externes.
+- [x] Produire le résumé final avec les limites restantes.
+- [x] Fin de session.

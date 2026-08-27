@@ -18,7 +18,7 @@ import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import Home, { GenerationErrorAlert, HourlyQuotaIndicator, MonthlyQuotaProgress, persistBrandImage, readStoredBrandImage } from "../client/src/pages/Home";
+import Home, { GenerationErrorAlert, GuidedOnboarding, HourlyQuotaIndicator, MonthlyQuotaProgress, persistBrandImage, readStoredBrandImage, trackOnboardingEvent } from "../client/src/pages/Home";
 import { isValidTrialEmail, isValidTrialPhone } from "../client/src/lib/trialValidation";
 
 describe("generation quota UI errors", () => {
@@ -73,10 +73,41 @@ describe("generation quota UI errors", () => {
     expect(exhausted).toContain("0 / 5 génération");
   });
 
+  it("renders the four-step onboarding guide with accessible navigation", () => {
+    const markup = renderToStaticMarkup(React.createElement(GuidedOnboarding, { step: 2, onStepChange: () => undefined }));
+    expect(markup).toContain("Votre étude en 4 repères");
+    expect(markup).toContain("Étape 2/4");
+    expect(markup).toContain("Accès &amp; contact");
+    expect(markup).toContain("Décrire le projet");
+    expect(markup).toContain('aria-label="Étapes du parcours de génération"');
+    expect(markup).toContain('aria-current="step"');
+  });
+
+  it("tracks only anonymous onboarding event metadata locally", () => {
+    const values = new Map<string, string>();
+    Object.defineProperty(globalThis, "window", { configurable: true, value: { localStorage: { getItem: (key: string) => values.get(key) ?? null, setItem: (key: string, value: string) => values.set(key, value) }, dispatchEvent: vi.fn(), CustomEvent: class { constructor(public type: string, public detail: unknown) {} } } });
+    trackOnboardingEvent("step_viewed", 3);
+    const eventLog = values.get("metrexpert:onboarding-events:v1") ?? "";
+    expect(eventLog).toContain("step_viewed");
+    expect(eventLog).toContain("\"step\":3");
+    expect(eventLog).not.toContain("description");
+    expect(eventLog).not.toContain("phone");
+  });
+
   it("renders the quota indicator in Home when the mocked session is unlocked", () => {
     const markup = renderToStaticMarkup(React.createElement(Home));
     expect(markup).toContain("Quota horaire restant");
     expect(markup).toContain("3 / 5 générations");
+  });
+
+  it("includes the generation checklist and privacy-safe abandonment hooks", () => {
+    const source = readFileSync(resolve(process.cwd(), "client/src/pages/Home.tsx"), "utf8");
+    expect(source).toContain('data-generation-checklist');
+    expect(source).toContain("Checklist de génération");
+    expect(source).toContain("generation_blocked_checklist");
+    expect(source).toContain("generation_started");
+    expect(source).toContain("ONBOARDING_EVENT_KEY");
+    expect(source).toContain('trackOnboardingEvent("step_viewed", nextStep)');
   });
 
   it("renders client contact fields and forwards them during generation", () => {

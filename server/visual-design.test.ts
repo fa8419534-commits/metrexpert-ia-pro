@@ -61,7 +61,9 @@ describe("technical visual system", () => {
     expect(home).toContain("security.status.useQuery");
     expect(home).toContain('aria-busy="true"');
     expect(home).toContain("Génération…");
-    expect(home).toContain("disabled={generate.isPending || (!accessStatus.data?.unlocked && !hasValidTrialContact)}");
+    expect(home).toContain("disabled={generate.isPending}");
+    expect(home).toContain("generation_blocked_checklist");
+    expect(home).toContain("checklistComplete");
   });
 
   it("exposes the workbook preview before the Excel download", () => {
