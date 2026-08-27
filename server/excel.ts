@@ -137,6 +137,12 @@ export async function buildEstimateWorkbook(data: ProjectEstimate): Promise<Buff
     data.geometry.forEach((dimension) => geometrySheet.addRow([dimension.code, dimension.designation, dimension.formula, dimension.unit, dimension.length ?? "", dimension.width ?? "", dimension.height ?? "", dimension.openingArea ?? 0, dimension.quantity ?? 1, calculateGeometry(dimension) ?? "À confirmer"]));
     styleRange(geometrySheet, `A1:J${geometrySheet.rowCount}`, { fill: "F7F6F1", color: COLORS.anthracite, border: COLORS.line });
     styleRange(geometrySheet, "A1:J1", { fill: COLORS.anthracite, color: COLORS.gold, bold: true, align: "center", border: COLORS.gold });
+    geometrySheet.getColumn(5).numFmt = "#,##0.00";
+    geometrySheet.getColumn(6).numFmt = "#,##0.00";
+    geometrySheet.getColumn(7).numFmt = "#,##0.00";
+    geometrySheet.getColumn(8).numFmt = "#,##0.00";
+    geometrySheet.getColumn(9).numFmt = "#,##0.00";
+    geometrySheet.getColumn(10).numFmt = "#,##0.00";
     geometrySheet.autoFilter = { from: "A1", to: `J${geometrySheet.rowCount}` };
     geometrySheet.views = [{ state: "frozen", ySplit: 1 }];
   }
@@ -153,13 +159,21 @@ export async function buildEstimateWorkbook(data: ProjectEstimate): Promise<Buff
   measure.columns = [{ width: 14 }, { width: 52 }, { width: 12 }, { width: 18 }, { width: 14 }, { width: 20 }, { width: 52 }];
   measure.addRow(["Code", "Désignation", "Unité", "Quantité de base", "Coefficient", "Quantité calculée", "Observations"]);
   data.measures.forEach((item, index) => { const row = index + 2; measure.addRow([item.code, item.designation, item.unit, item.quantity, item.factor ?? 1, null, item.notes || ""]); setFormula(measure.getCell(`F${row}`), `D${row}*E${row}`, item.quantity * (item.factor ?? 1), { fill: "E8F0E7", color: COLORS.anthracite, bold: true, align: "right", border: COLORS.line }); });
-  styleRange(measure, `A1:G${measure.rowCount}`, { fill: "F7F6F1", color: COLORS.anthracite, border: COLORS.line }); styleRange(measure, "A1:G1", { fill: COLORS.anthracite, color: COLORS.gold, bold: true, align: "center", border: COLORS.gold }); measure.autoFilter = { from: "A1", to: `G${measure.rowCount}` }; measure.views = [{ state: "frozen", ySplit: 1 }];
+  styleRange(measure, `A1:G${measure.rowCount}`, { fill: "F7F6F1", color: COLORS.anthracite, border: COLORS.line }); styleRange(measure, "A1:G1", { fill: COLORS.anthracite, color: COLORS.gold, bold: true, align: "center", border: COLORS.gold });
+  measure.getColumn(4).numFmt = "#,##0.00";
+  measure.getColumn(5).numFmt = "#,##0.00";
+  measure.getColumn(6).numFmt = "#,##0.00";
+  measure.autoFilter = { from: "A1", to: `G${measure.rowCount}` }; measure.views = [{ state: "frozen", ySplit: 1 }];
 
   const dqe = workbook.addWorksheet("DQE");
   dqe.columns = [{ width: 14 }, { width: 52 }, { width: 12 }, { width: 16 }, { width: 22 }, { width: 22 }];
   dqe.addRow(["Code", "Désignation", "Unité", "Quantité", `Prix unitaire (${currency})`, `Montant (${currency})`]);
   data.measures.forEach((item, index) => { const row = index + 2; dqe.addRow([item.code, item.designation, item.unit, null, item.unitPrice ?? 0, null]); setFormula(dqe.getCell(`D${row}`), `IFERROR('Métré'!F${row},0)`, item.quantity * (item.factor ?? 1), { fill: "E8F0E7", color: COLORS.anthracite, bold: true, align: "right", border: COLORS.line }); setFormula(dqe.getCell(`F${row}`), `D${row}*E${row}`, item.quantity * (item.factor ?? 1) * (item.unitPrice ?? 0), { fill: "E8F0E7", color: COLORS.anthracite, bold: true, align: "right", border: COLORS.line }); });
-  dqe.addRow(["", "TOTAL ESTIMATIF", "", "", "", null]); setFormula(dqe.getCell(`F${totalRow}`), `SUM(F2:F${totalRow - 1})`, total, { fill: COLORS.gold, color: COLORS.anthracite, bold: true, align: "right", border: COLORS.gold }); styleRange(dqe, `A1:F${dqe.rowCount}`, { fill: "F7F6F1", color: COLORS.anthracite, border: COLORS.line }); styleRange(dqe, "A1:F1", { fill: COLORS.anthracite, color: COLORS.gold, bold: true, align: "center", border: COLORS.gold }); styleRange(dqe, `A${totalRow}:F${totalRow}`, { fill: COLORS.gold, color: COLORS.anthracite, bold: true, border: COLORS.gold }); dqe.autoFilter = { from: "A1", to: `F${totalRow - 1}` }; dqe.views = [{ state: "frozen", ySplit: 1 }];
+  dqe.addRow(["", "TOTAL ESTIMATIF", "", "", "", null]); setFormula(dqe.getCell(`F${totalRow}`), `SUM(F2:F${totalRow - 1})`, total, { fill: COLORS.gold, color: COLORS.anthracite, bold: true, align: "right", border: COLORS.gold }); styleRange(dqe, `A1:F${dqe.rowCount}`, { fill: "F7F6F1", color: COLORS.anthracite, border: COLORS.line }); styleRange(dqe, "A1:F1", { fill: COLORS.anthracite, color: COLORS.gold, bold: true, align: "center", border: COLORS.gold }); styleRange(dqe, `A${totalRow}:F${totalRow}`, { fill: COLORS.gold, color: COLORS.anthracite, bold: true, border: COLORS.gold });
+  dqe.getColumn(4).numFmt = "#,##0.00";
+  dqe.getColumn(5).numFmt = "#,##0";
+  dqe.getColumn(6).numFmt = "#,##0";
+  dqe.autoFilter = { from: "A1", to: `F${totalRow - 1}` }; dqe.views = [{ state: "frozen", ySplit: 1 }];
 
   if (data.signatureImageDataUrl) { const image = decodeBrandImage(data.signatureImageDataUrl); cover.addImage(workbook.addImage({ buffer: image.buffer as any, extension: image.extension }), "B23:B24"); }
   if (data.stampImageDataUrl) { const image = decodeBrandImage(data.stampImageDataUrl); cover.addImage(workbook.addImage({ buffer: image.buffer as any, extension: image.extension }), "D23:D24"); }

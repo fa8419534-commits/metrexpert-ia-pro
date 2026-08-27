@@ -25,7 +25,7 @@ const testState = vi.hoisted(() => ({
   retentionDays: 365,
   lastSuccessfulBackupAt: null as Date | null,
   purgeRuns: [] as Array<{ id: number; runType: "manual" | "automatic"; status: "success" | "failed"; deletedCount: number; retentionDays: number; cutoff: Date; taskUid: string | null; errorMessage: string | null; startedAt: Date; completedAt: Date }>,
-  paymentRequests: [] as Array<{ id: number; clientName: string; phone: string; email: string | null; planQuota: number; amountXof: number; paymentMethod: string; paymentReference: string; status: "pending" | "confirmed" | "rejected"; accessCodeId: number | null; adminNote: string | null; createdAt: Date; reviewedAt: Date | null }>,
+  paymentRequests: [] as Array<{ id: number; clientName: string; phone: string; email: string | null; planQuota: number; amountXof: number; paymentMethod: string; paymentReference: string; status: "pending" | "confirmed" | "rejected"; accessCodeId: number | null; adminNote: string | null; createdAt: Date; reviewedAt: Date | null; hasProof?: boolean; proofStatus?: "pending" | "approved" | "rejected" | null; proofFileName?: string | null }>,
 }));
 
 beforeEach(() => {
@@ -65,6 +65,8 @@ vi.mock("@/lib/trpc", () => ({
       adminSetFreeTrialRetention: { useMutation: (options?: { onSuccess?: (data: { retentionDays: number }) => void }) => ({ isPending: false, mutate: (input: { retentionDays: number }) => { testState.saveRetention(input); testState.retentionDays = input.retentionDays; options?.onSuccess?.({ retentionDays: input.retentionDays }); } }) },
       adminPurgeExpiredFreeTrials: { useMutation: (options?: { onSuccess?: (data: { deletedCount: number; retentionDays: number; cutoff: Date }) => void; onError?: (error: Error) => void }) => ({ isPending: false, mutate: () => { testState.purgeRetention(); if (testState.purgeShouldFail) options?.onError?.(new Error("Session administrateur expirée.")); else options?.onSuccess?.({ deletedCount: 0, retentionDays: testState.retentionDays, cutoff: new Date() }); } }) },
       adminListPaymentRequests: { useQuery: () => ({ data: testState.paymentRequests, isLoading: false, refetch: vi.fn() }) },
+      adminGetPaymentProof: { useQuery: () => ({ data: undefined, isLoading: false, isFetching: false, refetch: vi.fn() }) },
+      adminReviewPaymentProof: { useMutation: (options?: { onSuccess?: () => void; onError?: (error: Error) => void }) => ({ isPending: false, mutate: () => options?.onSuccess?.() }) },
       clientPaymentDashboard: { useQuery: () => ({ data: { access: { unlocked: false }, requests: [] }, isLoading: false }) },
       adminMarkFreeTrialWhatsAppContacted: { useMutation: () => ({ isPending: false, mutate: testState.contacted }) },
       adminMarkFreeTrialConverted: { useMutation: () => ({ isPending: false, mutate: vi.fn() }) },

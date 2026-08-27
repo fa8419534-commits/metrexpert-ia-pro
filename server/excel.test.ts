@@ -58,6 +58,10 @@ describe("buildEstimateWorkbook", () => {
     expect(workbook.Sheets.Couverture?.D23.v).toBe("À compléter");
     expect(workbook.Sheets.Métré?.A1.s).toBeDefined();
     expect(workbook.Sheets.DQE?.A1.s).toBeDefined();
+    expect(workbook.Sheets.Métré?.D2.z).toContain("0.00");
+    expect(workbook.Sheets.Métré?.F2.z).toContain("0.00");
+    expect(workbook.Sheets.DQE?.E2.z).toContain("0");
+    expect(workbook.Sheets.DQE?.F2.z).toContain("0");
   });
 
   it("renders supplied client and validation metadata", async () => {

@@ -11,7 +11,7 @@ import { parseJsonObjectFromLLM } from "./json";
 import { normalizeEstimateAmbiguities } from "./estimateNormalization";
 import { createClientAccessCode, DAILY_LIMIT, disableClientAccessCode, getClientAccessStatus, getFreeTrialRetentionDays, getGenerationStats, getHourlyQuotaStatus, hasValidAccessCookie, hasValidAdminCookie, HOURLY_LIMIT, isAccessCodeValid, isAdminAccessCodeValid, listClientAccessCodes, listFreeTrialContacts, markFreeTrialConverted, markFreeTrialWhatsAppContacted, markFreeTrialUnsubscribed, purgeExpiredFreeTrialContacts, releaseClientMonthlyQuota, releaseFreeTrialReservation, releaseGenerationQuota, reserveClientMonthlyQuota, reserveGenerationQuota, reserveFreeTrial, setAccessCookie, setAdminCookie, setFreeTrialRetentionDays, unsubscribeFreeTrialContact, verifyClientAccessCode } from "./security";
 import type { GenerationQuotaReservation } from "./security";
-import { createPaymentRequest, getClientPaymentHistory, getPaymentRequest, listPaymentRequests, reviewPaymentRequest } from "./paymentRequests";
+import { createPaymentRequest, getClientPaymentHistory, getPaymentProofUrl, getPaymentRequest, listPaymentRequests, reviewPaymentProof, reviewPaymentRequest, uploadPaymentProof } from "./paymentRequests";
 import { buildHypotheses, runQuantityChecks } from "./quantityChecks";
 import { getLastSuccessfulBackupAt, listPurgeRuns, markSuccessfulBackupAt, recordPurgeRun } from "./opsTracking";
 
@@ -250,8 +250,11 @@ export const appRouter = router({
     adminStatus: publicProcedure.query(({ ctx }) => ({ unlocked: hasValidAdminCookie(ctx) })),
     adminListCodes: adminProcedure.query(() => listClientAccessCodes()),
     adminListPaymentRequests: adminProcedure.query(() => listPaymentRequests()),
+    adminGetPaymentProof: adminProcedure.input(z.object({ id: z.number().int().positive() })).query(({ input }) => getPaymentProofUrl(input.id)),
+    adminReviewPaymentProof: adminProcedure.input(z.object({ id: z.number().int().positive(), status: z.enum(["approved", "rejected"]), proofNote: z.string().trim().max(500).optional() })).mutation(({ input }) => reviewPaymentProof(input.id, input.status, input.proofNote)),
     adminReviewPaymentRequest: adminProcedure.input(z.object({ id: z.number().int().positive(), status: z.enum(["confirmed", "rejected"]), adminNote: z.string().trim().max(500).optional() })).mutation(({ input }) => reviewPaymentRequest(input.id, input.status, input.adminNote)),
     submitPaymentRequest: publicProcedure.input(z.object({ clientName: z.string().trim().min(1).max(160), phone: z.string().trim().min(8).max(32), email: z.string().trim().email().max(320).optional(), planQuota: z.union([z.literal(5), z.literal(15), z.literal(40)]), paymentMethod: z.enum(["wave", "moov", "mtn", "autre"]), paymentReference: z.string().trim().min(3).max(120) })).mutation(({ input }) => createPaymentRequest(input)),
+    uploadPaymentProof: publicProcedure.input(z.object({ requestKey: z.string().trim().min(16).max(64), fileName: z.string().trim().min(1).max(160), dataUrl: z.string().max(8 * 1024 * 1024) })).mutation(({ input }) => uploadPaymentProof(input.requestKey, { fileName: input.fileName, dataUrl: input.dataUrl })),
     getPaymentRequest: publicProcedure.input(z.object({ requestKey: z.string().trim().min(16).max(64) })).query(({ input }) => getPaymentRequest(input.requestKey)),
     clientPaymentDashboard: publicProcedure.query(({ ctx }) => getClientPaymentHistory(ctx)),
     adminListFreeTrials: adminProcedure.query(() => listFreeTrialContacts()),

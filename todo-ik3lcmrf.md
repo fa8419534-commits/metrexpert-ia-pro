@@ -480,13 +480,13 @@
 
 ## Session comptes de paiement — 27/08/2026
 
-- [ ] Centraliser les coordonnées publiques fournies pour Wave, Moov Money et MTN Money.
-- [ ] Afficher les comptes de réception avec le nom de chaque titulaire.
-- [ ] Ajouter un bouton Copier pour chaque numéro.
-- [ ] Afficher un récapitulatif dynamique du forfait et du montant choisi.
-- [ ] Ajouter l’avertissement de sécurité avant transfert.
-- [ ] Ajouter les tests Vitest des coordonnées, copies et montants.
-- [ ] Exécuter TypeScript, tests, build et contrôle responsive avant checkpoint.
+- [x] Centraliser les coordonnées publiques fournies pour Wave, Moov Money et MTN Money.
+- [x] Afficher les comptes de réception avec le nom de chaque titulaire.
+- [x] Ajouter un bouton Copier pour chaque numéro.
+- [x] Afficher un récapitulatif dynamique du forfait et du montant choisi.
+- [x] Ajouter l’avertissement de sécurité avant transfert.
+- [x] Ajouter les tests Vitest des coordonnées, copies et montants.
+- [x] Exécuter TypeScript, tests, build et contrôle responsive avant checkpoint.
 
 
 ## Session audit global actualisé — 27/08/2026
@@ -496,3 +496,24 @@
 - [x] Vérifier Admin, sauvegardes, purges, Excel/PDF, sécurité et configuration de production.
 - [x] Exécuter les validations automatisées et les contrôles responsive actualisés.
 - [x] Rédiger l’audit priorisé avec les éléments bloquants, risques et améliorations recommandées.
+
+
+## Session Heartbeat, sauvegarde immédiate et preuve de paiement — 27/08/2026
+
+- [ ] Vérifier les contrats existants du Heartbeat, des sauvegardes, du stockage et des demandes de paiement.
+- [ ] Afficher dans Admin l’état et la fraîcheur du dernier Heartbeat quotidien.
+- [ ] Ajouter un déclenchement manuel de sauvegarde avec état de réussite ou d’échec.
+- [ ] Ajouter le téléchargement sécurisé d’une capture de transfert à une demande de paiement.
+- [ ] Ajouter les validations de type, format, taille et signature binaire de la preuve.
+- [ ] Ajouter les tests Vitest et le contrôle responsive des trois parcours.
+- [ ] Exécuter TypeScript, tests, build et contrôle final avant checkpoint.
+
+
+## Session preuves Admin, sauvegarde et formatage Excel — 27/08/2026
+
+- [x] Ajouter dans Admin la liste des preuves de paiement disponibles avec prévisualisation protégée.
+- [x] Ajouter les actions Admin de validation ou rejet d’une preuve de paiement avec note facultative.
+- [x] Ajouter des toasts animés de succès et d’échec pour le déclenchement manuel de sauvegarde.
+- [x] Renforcer le formatage automatique des colonnes et formats numériques du classeur Excel.
+- [x] Ajouter les tests Vitest des preuves, toasts et formats Excel.
+- [x] Exécuter TypeScript, tests, build et contrôle responsive avant checkpoint.

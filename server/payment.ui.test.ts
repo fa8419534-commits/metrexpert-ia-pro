@@ -9,7 +9,8 @@ vi.mock("@/lib/trpc", () => ({
   trpc: {
     security: {
       submitPaymentRequest: { useMutation: () => ({ isPending: false, mutate: vi.fn() }) },
-      getPaymentRequest: { useQuery: () => ({ data: undefined }) },
+      uploadPaymentProof: { useMutation: () => ({ isPending: false, mutate: vi.fn() }) },
+      getPaymentRequest: { useQuery: () => ({ data: undefined, refetch: vi.fn() }) },
     },
   },
 }));
