@@ -12,7 +12,7 @@ import { normalizeEstimateAmbiguities } from "./estimateNormalization";
 import { createClientAccessCode, DAILY_LIMIT, disableClientAccessCode, getClientAccessStatus, getFreeTrialRetentionDays, getGenerationStats, getHourlyQuotaStatus, hasValidAccessCookie, hasValidAdminCookie, HOURLY_LIMIT, isAccessCodeValid, isAdminAccessCodeValid, listClientAccessCodes, listFreeTrialContacts, markFreeTrialConverted, markFreeTrialWhatsAppContacted, markFreeTrialUnsubscribed, purgeExpiredFreeTrialContacts, releaseClientMonthlyQuota, releaseFreeTrialReservation, releaseGenerationQuota, reserveClientMonthlyQuota, reserveGenerationQuota, reserveFreeTrial, setAccessCookie, setAdminCookie, setFreeTrialRetentionDays, unsubscribeFreeTrialContact, verifyClientAccessCode } from "./security";
 import type { GenerationQuotaReservation } from "./security";
 import { createPaymentRequest, getClientPaymentHistory, getPaymentRequest, listPaymentRequests, reviewPaymentRequest } from "./paymentRequests";
-import { runQuantityChecks } from "./quantityChecks";
+import { buildHypotheses, runQuantityChecks } from "./quantityChecks";
 
 const inFlightGenerationRequests = new Map<string, number>();
 const IDEMPOTENCY_KEY_TTL_MS = 10 * 60 * 1000;
@@ -362,11 +362,20 @@ export const appRouter = router({
           lineCount: estimate.measures.length,
           preview: {
             projectTitle: estimate.projectTitle,
+            client: estimate.client || "À compléter",
+            location: estimate.location || "À compléter",
+            clientPhone: input.clientPhone || "À compléter",
+            clientEmail: input.clientEmail || "À compléter",
+            verifiedBy: input.verifiedBy || "À compléter",
+            validationDate: input.validationDate || "À compléter",
+            trialVersion: isFreeTrial,
             currency: estimate.currency || "FCFA",
             summary: estimate.summary || "Résumé non renseigné.",
+            hypotheses: estimate.hypotheses?.length ? estimate.hypotheses : buildHypotheses(estimate),
             measures: estimate.measures,
             geometry: estimate.geometry ?? [],
             geometryChecks,
+            total: estimate.measures.reduce((sum, item) => sum + item.quantity * (item.factor ?? 1) * (item.unitPrice ?? 0), 0),
           },
         };
       } catch (error) {

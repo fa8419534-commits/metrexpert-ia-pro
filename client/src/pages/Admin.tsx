@@ -99,6 +99,7 @@ export function buildEmailTrialCsv(trials: CsvTrial[]) {
 }
 
 type CodeToRevoke = { id: number; clientName: string } | null;
+type PurgeFeedback = { tone: "success" | "error"; title: string; message: string } | null;
 
 export default function Admin() {
   const [adminCode, setAdminCode] = useState("");
@@ -123,6 +124,7 @@ export default function Admin() {
   const [retentionDays, setRetentionDays] = useState(365);
   const [retentionDraft, setRetentionDraft] = useState("365");
   const [purgeRetentionOpen, setPurgeRetentionOpen] = useState(false);
+  const [purgeFeedback, setPurgeFeedback] = useState<PurgeFeedback>(null);
 
   useEffect(() => {
     if (trialStartDate) window.localStorage.setItem("metrexpert.trials.startDate", trialStartDate);
@@ -251,9 +253,18 @@ export default function Admin() {
     onSuccess: (data) => {
       setPurgeRetentionOpen(false);
       void trials.refetch();
-      toast.success(data.deletedCount ? `${data.deletedCount} contact${data.deletedCount > 1 ? "s" : ""} supprimé${data.deletedCount > 1 ? "s" : ""}.` : "Aucun contact arrivé à échéance.");
+      const message = data.deletedCount
+        ? `${data.deletedCount} contact${data.deletedCount > 1 ? "s" : ""} supprimé${data.deletedCount > 1 ? "s" : ""}.`
+        : "Aucun contact arrivé à échéance : aucune donnée n’a été supprimée.";
+      setPurgeFeedback({ tone: "success", title: "Purge terminée", message });
+      toast.success(message);
     },
-    onError: (error) => toast.error(error.message),
+    onError: (error) => {
+      setPurgeRetentionOpen(false);
+      const message = error instanceof Error ? error.message : "La purge n’a pas pu être exécutée. Aucune donnée n’a été modifiée.";
+      setPurgeFeedback({ tone: "error", title: "Purge non effectuée", message });
+      toast.error(message);
+    },
   });
 
   const activeCodesCount =
@@ -647,9 +658,13 @@ export default function Admin() {
               </div>
               <div className="flex flex-wrap gap-2">
                 <Button type="submit" className="bg-[#C9A15A] text-[#0F1613] hover:bg-[#d8b574]" disabled={saveRetention.isPending}>{saveRetention.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />}Enregistrer</Button>
-                <Button type="button" variant="outline" className="border-[#9d554b] text-[#d98472]" onClick={() => setPurgeRetentionOpen(true)} disabled={purgeRetention.isPending}>Purger les contacts échus</Button>
+                <Button type="button" variant="outline" className="border-[#9d554b] text-[#d98472]" onClick={() => { setPurgeFeedback(null); setPurgeRetentionOpen(true); }} disabled={purgeRetention.isPending}>Purger les contacts échus</Button>
               </div>
             </form>
+            {purgeFeedback && <div className={`mt-4 flex items-start gap-3 border px-4 py-3 ${purgeFeedback.tone === "success" ? "border-[#7C9A76] bg-[#1b2a20] text-[#c9dec5]" : "border-[#9d554b] bg-[#2b1b18] text-[#f0c1b7]"}`} role={purgeFeedback.tone === "success" ? "status" : "alert"} aria-live={purgeFeedback.tone === "success" ? "polite" : "assertive"} data-purge-feedback={purgeFeedback.tone}>
+              {purgeFeedback.tone === "success" ? <Check className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" /> : <XCircle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />}
+              <div><p className="font-mono text-[10px] uppercase tracking-wider">{purgeFeedback.title}</p><p className="mt-1 text-xs leading-5">{purgeFeedback.message}</p></div>
+            </div>}
             <p className="mt-4 border-t border-[#3A4A42] pt-4 text-xs leading-5 text-[#AEB7B0]">La suppression est irréversible et ne concerne que les essais dont la date est antérieure au délai choisi. La purge automatique quotidienne est prête côté serveur et doit être activée après publication du site.</p>
           </CardContent>
         </Card>

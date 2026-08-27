@@ -11,5 +11,9 @@ describe("estimate preview contract", () => {
     expect(routers).toContain('currency: estimate.currency || "FCFA"');
     expect(routers).toContain('summary: estimate.summary || "Résumé non renseigné."');
     expect(routers).toContain("measures: estimate.measures");
+    expect(routers).toContain('client: estimate.client || "À compléter"');
+    expect(routers).toContain('location: estimate.location || "À compléter"');
+    expect(routers).toContain("hypotheses: estimate.hypotheses?.length ? estimate.hypotheses : buildHypotheses(estimate)");
+    expect(routers).toContain("total: estimate.measures.reduce");
   });
 });

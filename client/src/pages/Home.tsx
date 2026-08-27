@@ -10,6 +10,7 @@ import { FileSpreadsheet, FileText, Image as ImageIcon, Loader2, Paperclip, Rule
 import { toast } from "sonner";
 import ThemeToggle from "@/components/ThemeToggle";
 import ClientSubscriptionPanel from "@/components/ClientSubscriptionPanel";
+import { WorkbookPreview, type WorkbookPreviewData, type WorkbookPreviewTab } from "@/components/WorkbookPreview";
 import { useTheme } from "@/contexts/ThemeContext";
 
 const MAX_FILE_SIZE = 8 * 1024 * 1024;
@@ -139,14 +140,7 @@ type GeneratedDownload = {
   url: string;
   filename: string;
   lineCount: number;
-  preview: {
-    projectTitle: string;
-    currency: string;
-    summary: string;
-    measures: PreviewMeasure[];
-    geometry: GeometryPreview[];
-    geometryChecks: GeometryCheckPreview[];
-  };
+  preview: WorkbookPreviewData;
 };
 
 export default function Home() {
@@ -177,6 +171,7 @@ export default function Home() {
   const [download, setDownload] = useState<GeneratedDownload | null>(null);
   const [previewGeometryDrafts, setPreviewGeometryDrafts] = useState<GeometryDraft[]>([]);
   const [previewQuery, setPreviewQuery] = useState("");
+  const [workbookPreviewTab, setWorkbookPreviewTab] = useState<WorkbookPreviewTab>("cover");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const generationRequestKeyRef = useRef<string | null>(null);
   const signatureInputRef = useRef<HTMLInputElement>(null);
@@ -354,6 +349,7 @@ export default function Home() {
       const url = URL.createObjectURL(blob);
       setDownload((previous) => {
         if (previous) URL.revokeObjectURL(previous.url);
+        setWorkbookPreviewTab("cover");
         return { url, filename: result.filename, lineCount: result.lineCount, preview: result.preview };
       });
       setPreviewGeometryDrafts(result.preview.geometry.map(toGeometryDraft));
@@ -529,7 +525,7 @@ export default function Home() {
 
               <section className="estimate-preview technical-panel p-0">
               <div className="panel-heading px-5 py-4 sm:px-7"><div><p className="repere">REP. 02 <span>—</span> {download ? "LIVRABLE GÉNÉRÉ" : "APERÇU DU LIVRABLE"}</p><h2 className="mt-2 font-serif text-2xl text-[#EDEAE2]">Tableau de métré</h2></div><span className="font-mono text-[10px] text-[#7C9A76]">{download ? `${download.lineCount} POSTES` : "EN ATTENTE"}</span></div>
-              {generate.isPending ? <div className="px-5 py-14 text-center sm:px-7" role="status" aria-live="polite" data-preview-state="loading"><Loader2 className="mx-auto h-8 w-8 animate-spin text-[#C9A15A]" aria-hidden="true" /><p className="mt-4 font-serif text-xl text-[#EDEAE2]">Préparation de l’aperçu</p><p className="mx-auto mt-2 max-w-sm text-sm leading-6 text-[#87938B]">Les postes générés seront affichés ici dès que la validation JSON et le classeur seront prêts.</p></div> : generate.error ? <div className="px-5 py-14 text-center sm:px-7" role="alert" data-preview-state="error"><Alert className="mx-auto max-w-md border-[#9d554b] bg-[#271b18] text-left text-[#EDEAE2]"><AlertTitle>Aperçu indisponible</AlertTitle><AlertDescription>Le résultat n’a pas pu être chargé. Corrigez la saisie ou réessayez avant de télécharger un classeur.</AlertDescription></Alert></div> : download ? <>
+              {generate.isPending ? <div className="px-5 py-14 text-center sm:px-7" role="status" aria-live="polite" data-preview-state="loading"><Loader2 className="mx-auto h-8 w-8 animate-spin text-[#C9A15A]" aria-hidden="true" /><p className="mt-4 font-serif text-xl text-[#EDEAE2]">Préparation de l’aperçu</p><p className="mx-auto mt-2 max-w-sm text-sm leading-6 text-[#87938B]">Les postes générés seront affichés ici dès que la validation JSON et le classeur seront prêts.</p></div> : generate.error ? <div className="px-5 py-14 text-center sm:px-7" role="alert" data-preview-state="error"><Alert className="mx-auto max-w-md border-[#9d554b] bg-[#271b18] text-left text-[#EDEAE2]"><AlertTitle>Aperçu indisponible</AlertTitle><AlertDescription>Le résultat n’a pas pu être chargé. Corrigez la saisie ou réessayez avant de télécharger un classeur.</AlertDescription></Alert></div> : download ? <><WorkbookPreview preview={download.preview} activeTab={workbookPreviewTab} onTabChange={setWorkbookPreviewTab} />
                 <div className="flex flex-col gap-3 border-b border-[#3A4A42] px-5 py-4 sm:flex-row sm:items-end sm:justify-between sm:px-7">
                   <div><p className="font-mono text-[10px] uppercase tracking-wider text-[#C9A15A]">{download.preview.projectTitle}</p><p className="mt-1 max-w-2xl text-xs leading-5 text-[#AEB7B0]">{download.preview.summary}</p></div>
                   <label className="font-mono text-[10px] uppercase tracking-wider text-[#87938B]">Rechercher<input value={previewQuery} onChange={(event) => setPreviewQuery(event.target.value)} placeholder="Code ou désignation" className="technical-input mt-2 h-9 w-full min-w-0 px-3 text-xs sm:w-52" /></label>

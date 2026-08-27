@@ -5,6 +5,8 @@ import { resolve } from "node:path";
 const projectRoot = resolve(import.meta.dirname, "..");
 const css = readFileSync(resolve(projectRoot, "client/src/index.css"), "utf8");
 const home = readFileSync(resolve(projectRoot, "client/src/pages/Home.tsx"), "utf8");
+const workbookPreview = readFileSync(resolve(projectRoot, "client/src/components/WorkbookPreview.tsx"), "utf8");
+const admin = readFileSync(resolve(projectRoot, "client/src/pages/Admin.tsx"), "utf8");
 
 describe("technical visual system", () => {
   it("keeps the approved precision-plan palette and type hierarchy", () => {
@@ -60,6 +62,24 @@ describe("technical visual system", () => {
     expect(home).toContain('aria-busy="true"');
     expect(home).toContain("Génération…");
     expect(home).toContain("disabled={generate.isPending || (!accessStatus.data?.unlocked && !hasValidTrialContact)}");
+  });
+
+  it("exposes the workbook preview before the Excel download", () => {
+    expect(home).toContain("<WorkbookPreview preview={download.preview}");
+    expect(home).toContain("workbookPreviewTab");
+    expect(workbookPreview).toContain("Lire avant téléchargement");
+    expect(workbookPreview).toContain("Couverture");
+    expect(workbookPreview).toContain("Microsoft Excel Desktop");
+    expect(workbookPreview).toContain('role="tablist"');
+    expect(workbookPreview).toContain('role="tabpanel"');
+    expect(workbookPreview).toContain("TOTAL ESTIMATIF");
+  });
+
+  it("exposes success and error feedback for manual retention purge", () => {
+    expect(admin).toContain('data-purge-feedback={purgeFeedback.tone}');
+    expect(admin).toContain('Purge terminée');
+    expect(admin).toContain('Purge non effectuée');
+    expect(admin).toContain('role={purgeFeedback.tone === "success" ? "status" : "alert"}');
   });
 
   it("documents the minimum accessibility guards in the rendered contract", () => {

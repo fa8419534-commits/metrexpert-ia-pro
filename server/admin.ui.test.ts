@@ -21,6 +21,7 @@ const testState = vi.hoisted(() => ({
   contacted: vi.fn(),
   saveRetention: vi.fn(),
   purgeRetention: vi.fn(),
+  purgeShouldFail: false,
   retentionDays: 365,
   paymentRequests: [] as Array<{ id: number; clientName: string; phone: string; email: string | null; planQuota: number; amountXof: number; paymentMethod: string; paymentReference: string; status: "pending" | "confirmed" | "rejected"; accessCodeId: number | null; adminNote: string | null; createdAt: Date; reviewedAt: Date | null }>,
 }));
@@ -34,6 +35,7 @@ beforeEach(() => {
   testState.contacted.mockReset();
   testState.saveRetention.mockReset();
   testState.purgeRetention.mockReset();
+  testState.purgeShouldFail = false;
   testState.retentionDays = 365;
   testState.paymentRequests = [];
   window.localStorage.clear();
@@ -54,7 +56,7 @@ vi.mock("@/lib/trpc", () => ({
       adminListFreeTrials: { useQuery: () => ({ data: testState.trials, isLoading: false, refetch: vi.fn() }) },
       adminGetFreeTrialRetention: { useQuery: () => ({ data: { retentionDays: testState.retentionDays }, isLoading: false, isFetching: false, refetch: vi.fn() }) },
       adminSetFreeTrialRetention: { useMutation: (options?: { onSuccess?: (data: { retentionDays: number }) => void }) => ({ isPending: false, mutate: (input: { retentionDays: number }) => { testState.saveRetention(input); testState.retentionDays = input.retentionDays; options?.onSuccess?.({ retentionDays: input.retentionDays }); } }) },
-      adminPurgeExpiredFreeTrials: { useMutation: (options?: { onSuccess?: (data: { deletedCount: number; retentionDays: number; cutoff: Date }) => void }) => ({ isPending: false, mutate: () => { testState.purgeRetention(); options?.onSuccess?.({ deletedCount: 0, retentionDays: testState.retentionDays, cutoff: new Date() }); } }) },
+      adminPurgeExpiredFreeTrials: { useMutation: (options?: { onSuccess?: (data: { deletedCount: number; retentionDays: number; cutoff: Date }) => void; onError?: (error: Error) => void }) => ({ isPending: false, mutate: () => { testState.purgeRetention(); if (testState.purgeShouldFail) options?.onError?.(new Error("Session administrateur expirée.")); else options?.onSuccess?.({ deletedCount: 0, retentionDays: testState.retentionDays, cutoff: new Date() }); } }) },
       adminListPaymentRequests: { useQuery: () => ({ data: testState.paymentRequests, isLoading: false, refetch: vi.fn() }) },
       clientPaymentDashboard: { useQuery: () => ({ data: { access: { unlocked: false }, requests: [] }, isLoading: false }) },
       adminMarkFreeTrialWhatsAppContacted: { useMutation: () => ({ isPending: false, mutate: testState.contacted }) },
@@ -230,6 +232,18 @@ describe("Admin panel UI", () => {
     fireEvent.click(screen.getByRole("button", { name: "Purger les contacts échus" }));
     fireEvent.click(screen.getByRole("button", { name: "Confirmer la purge" }));
     expect(testState.purgeRetention).toHaveBeenCalled();
+    expect(screen.getByText("Purge terminée")).toBeTruthy();
+    expect(screen.getByText(/Aucun contact arrivé à échéance/)).toBeTruthy();
+  });
+
+  it("shows an accessible error when the manual purge fails", () => {
+    testState.adminUnlocked = true;
+    testState.purgeShouldFail = true;
+    render(React.createElement(Admin));
+    fireEvent.click(screen.getByRole("button", { name: "Purger les contacts échus" }));
+    fireEvent.click(screen.getByRole("button", { name: "Confirmer la purge" }));
+    expect(screen.getByRole("alert").textContent).toContain("Purge non effectuée");
+    expect(screen.getByRole("alert").textContent).toContain("Session administrateur expirée.");
   });
 
   it("shows the active code count and asks for confirmation before revocation", () => {

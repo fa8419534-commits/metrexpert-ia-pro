@@ -429,3 +429,13 @@
 - [x] Ajouter le panneau Admin de configuration de conservation et de purge manuelle.
 - [x] Ajouter les tests Vitest backend et UI associés.
 - [x] Exécuter TypeScript, tests, build et contrôle final avant checkpoint.
+
+
+## Session amélioration Admin et aperçu Excel — 27/08/2026
+
+- [x] Ajouter une notification visuelle accessible de succès après purge manuelle des contacts.
+- [x] Ajouter une notification visuelle accessible d’échec après purge manuelle des contacts.
+- [x] Ajouter un aperçu web des feuilles et données principales du classeur Excel avant téléchargement.
+- [x] Indiquer clairement que l’ouverture dans Microsoft Excel Desktop reste recommandée pour le recalcul et l’impression.
+- [x] Ajouter les tests Vitest des notifications et de l’aperçu Excel.
+- [x] Exécuter TypeScript, tests, build, contrôle responsive et sauvegarder un checkpoint.
