@@ -5591,7 +5591,7 @@ Décision provisoire : privilégier d’abord un guide interactif déterministe,
 - [x] Ajouter ou fiabiliser l’aperçu web du XLSX généré avant téléchargement : aperçu interactif des onglets Couverture, Métré, DQE, Hypothèses, Géométrie et Contrôles déjà présent.
 - [x] Ajouter ou fiabiliser l’aperçu web du rapport PDF généré avant téléchargement : rapport de contrôle géométrique généré côté navigateur et affiché dans une modale iframe avant téléchargement.
 - [x] Exécuter un test de génération avec signature et tampon fictifs non sensibles et vérifier leur insertion dans le classeur : fichier réel produit avec `xl/media/image1.png`, `image2.png` et `xl/drawings/drawing1.xml`.
-- [ ] Préparer la sauvegarde de production et documenter les prérequis de restauration.
-- [ ] Vérifier l’état du Heartbeat et préparer son activation selon les règles de déploiement, sans l’activer avant publication confirmée.
-- [ ] Ajouter les tests Vitest, vérifier TypeScript, build et rendu avant checkpoint.
-- [ ] Corriger dans le guide d’exploitation le chemin Heartbeat pour utiliser `/api/scheduled/cleanup-free-trials`, qui est la route réellement montée par le serveur.
+- [ ] Effectuer l’export officiel de sauvegarde de production depuis Manus : la page accessible affiche uniquement les sauvegardes historiques et la restauration, sans bouton d’export ; procédure et prérequis restent documentés.
+- [x] Vérifier puis activer le Heartbeat après publication : tâche `metrexpert-daily-free-trials-cleanup`, UID `PfEvHSoM2APVf88EdshM2E`, active à `02:00 UTC`, route `/api/scheduled/cleanup-free-trials`.
+- [x] Ajouter les tests Vitest, vérifier TypeScript, build et rendu avant checkpoint : 112 tests, TypeScript et build réussis.
+- [x] Corriger dans le guide d’exploitation le chemin Heartbeat pour utiliser `/api/scheduled/cleanup-free-trials`, qui est la route réellement montée par le serveur.
