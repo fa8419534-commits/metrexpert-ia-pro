@@ -18,7 +18,8 @@ import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import Home, { GenerationErrorAlert, GuidedOnboarding, HourlyQuotaIndicator, MonthlyQuotaProgress, persistBrandImage, readStoredBrandImage, trackOnboardingEvent } from "../client/src/pages/Home";
+import Home, { GenerationErrorAlert, GuidedOnboarding, HourlyQuotaIndicator, MonthlyQuotaProgress, persistBrandImage, readStoredBrandImage } from "../client/src/pages/Home";
+import { trackOnboardingEvent } from "../client/src/lib/onboardingTelemetry";
 import { isValidTrialEmail, isValidTrialPhone } from "../client/src/lib/trialValidation";
 
 describe("generation quota UI errors", () => {
@@ -106,7 +107,7 @@ describe("generation quota UI errors", () => {
     expect(source).toContain("Checklist de génération");
     expect(source).toContain("generation_blocked_checklist");
     expect(source).toContain("generation_started");
-    expect(source).toContain("ONBOARDING_EVENT_KEY");
+    expect(source).toContain("onboardingTelemetry");
     expect(source).toContain('trackOnboardingEvent("step_viewed", nextStep)');
   });
 
@@ -126,7 +127,12 @@ describe("generation quota UI errors", () => {
     expect(homeSource).toContain("setDraftSaveNotice(true)");
     expect(homeSource).toContain('new URLSearchParams(window.location.search).get("example") === "1"');
     expect(homeSource).toContain('trackOnboardingEvent("example_started", 2)');
+    expect(homeSource).toContain("Réinitialiser le formulaire ?");
+    expect(homeSource).toContain("Formulaire et brouillon local réinitialisés.");
+    expect(homeSource).toContain("setGeometry([])");
+    expect(homeSource).toContain("setDownload(null)");
     expect(landingSource).toContain('href="/etude?example=1"');
+    expect(landingSource).toContain('trackOnboardingEvent("example_cta_clicked", 1)');
     expect(landingSource).toContain("Commencer avec l’exemple");
   });
 

@@ -5526,3 +5526,18 @@ Décision provisoire : privilégier d’abord un guide interactif déterministe,
 - [x] Relire le suivi avant checkpoint.
 - [x] Sauvegarder un checkpoint projet et livrer le fichier SKILL.md.
 - [x] Ne pas publier automatiquement, ne pas envoyer de communication externe et ne pas toucher aux quotas, paiements ou secrets.
+
+
+## Session clic exemple et réinitialisation complète — 27/08/2026
+
+- [x] Suivre le clic réel sur « Commencer avec l’exemple » dans un événement minimal.
+- [x] Afficher le volume de clics d’exemple dans le tableau de bord d’onboarding.
+- [x] Distinguer les clics du CTA et les exemples effectivement utilisés sans compter deux fois l’action.
+- [x] Ajouter une action de réinitialisation complète du formulaire.
+- [x] Demander confirmation avant l’effacement des champs et du brouillon local.
+- [x] Réinitialiser l’étape, les champs non sensibles et les états de validation sans toucher aux images persistées séparément.
+- [x] Ajouter les tests UI et de confidentialité des nouveaux événements et de la réinitialisation.
+- [x] Exécuter TypeScript, tests, build et contrôle responsive avant checkpoint.
+- [x] Relire le suivi et sauvegarder un checkpoint avant remise.
+- [x] Ne pas modifier quotas, paiements, preuves, secrets ou Heartbeat.
+- [x] Ne pas envoyer de communication externe ni publier automatiquement.

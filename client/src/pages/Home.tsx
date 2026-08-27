@@ -12,6 +12,7 @@ import ThemeToggle from "@/components/ThemeToggle";
 import ClientSubscriptionPanel from "@/components/ClientSubscriptionPanel";
 import { WorkbookPreview, type WorkbookPreviewData, type WorkbookPreviewTab } from "@/components/WorkbookPreview";
 import { useTheme } from "@/contexts/ThemeContext";
+import { trackOnboardingEvent } from "@/lib/onboardingTelemetry";
 
 const MAX_FILE_SIZE = 8 * 1024 * 1024;
 const ACCEPTED_TYPES = ["application/pdf", "image/png", "image/jpeg", "image/webp"];
@@ -145,7 +146,6 @@ type GeneratedDownload = {
   preview: WorkbookPreviewData;
 };
 
-const ONBOARDING_EVENT_KEY = "metrexpert:onboarding-events:v1";
 const ONBOARDING_STEPS = [
   { number: 1, title: "Accès & contact", description: "Déverrouillez l’étude ou renseignez le contact de votre essai." },
   { number: 2, title: "Décrire le projet", description: "Expliquez le chantier, les lots et les dimensions connues." },
@@ -153,17 +153,6 @@ const ONBOARDING_STEPS = [
   { number: 4, title: "Générer le livrable", description: "Contrôlez la checklist, puis produisez le métré et le DQE." },
 ] as const;
 
-export function trackOnboardingEvent(event: string, step: number): void {
-  try {
-    const raw = window.localStorage.getItem(ONBOARDING_EVENT_KEY);
-    const events = raw ? JSON.parse(raw) as Array<{ event: string; step: number; at: number }> : [];
-    events.push({ event, step, at: Date.now() });
-    window.localStorage.setItem(ONBOARDING_EVENT_KEY, JSON.stringify(events.slice(-200)));
-    window.dispatchEvent(new CustomEvent("metrexpert:onboarding-event", { detail: { event, step } }));
-  } catch {
-    // Le suivi ne doit jamais bloquer le formulaire ni exposer le contenu du projet.
-  }
-}
 
 export function GuidedOnboarding({ step, onStepChange }: { step: number; onStepChange: (step: number) => void }) {
   return <section className="mb-6 border border-[#3A4A42] bg-[#0F1613] p-4" aria-labelledby="onboarding-title" data-onboarding-guide>
@@ -202,6 +191,7 @@ export default function Home() {
   const [onboardingStep, setOnboardingStep] = useState(1);
   const [draftRestored, setDraftRestored] = useState(false);
   const [draftSaveNotice, setDraftSaveNotice] = useState(false);
+  const [resetFormOpen, setResetFormOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
   const [previewGeometryDrafts, setPreviewGeometryDrafts] = useState<GeometryDraft[]>([]);
   const [previewQuery, setPreviewQuery] = useState("");
@@ -527,6 +517,7 @@ export default function Home() {
   const clearSavedDraft = () => {
     window.localStorage.removeItem(FORM_DRAFT_STORAGE_KEY);
     setDraftRestored(false);
+    setDraftSaveNotice(false);
     setDescription("");
     setClientPhone("");
     setClientEmail("");
@@ -535,8 +526,17 @@ export default function Home() {
     setTrialConsent(false);
     setVerifiedBy("");
     setValidationDate("");
+    setGeometry([]);
+    setFile(null);
+    setFileError("");
+    setBrandImageError("");
+    setDownload(null);
+    setPreviewGeometryDrafts([]);
+    setPreviewQuery("");
+    setWorkbookPreviewTab("cover");
     setOnboardingStep(1);
-    toast.success("Brouillon local effacé.");
+    setResetFormOpen(false);
+    toast.success("Formulaire et brouillon local réinitialisés.");
   };
 
   const useExampleDescription = () => {
@@ -593,7 +593,7 @@ export default function Home() {
                 <ul className="mt-4 grid gap-2 sm:grid-cols-2" aria-label="Vérifications requises avant génération">{checklistItems.map((item) => <li key={item.id} className={`flex items-center gap-2 border px-3 py-2 text-xs ${item.complete ? "border-[#7C9A76]/60 text-[#7C9A76]" : "border-[#3A4A42] text-[#AEB7B0]"}`}><span aria-hidden="true" className={`inline-flex h-4 w-4 items-center justify-center border font-mono text-[10px] ${item.complete ? "border-[#7C9A76]" : "border-[#C9A15A]"}`}>{item.complete ? "✓" : "·"}</span>{item.label}</li>)}</ul>
                 {!checklistComplete && <p className="mt-3 border-l-2 border-[#C9A15A] pl-3 text-xs text-[#C9A15A]" role="status">Complétez les éléments signalés avant de générer le fichier.</p>}
               </section>
-              <div className="mb-3 flex flex-wrap items-center justify-between gap-3"><label htmlFor="description" className="field-label">Description du projet <span>REQUIS</span></label><div className="flex items-center gap-2">{draftRestored && <span className="font-mono text-[10px] uppercase tracking-wide text-[#7C9A76]" role="status">Brouillon restauré</span>}<button type="button" onClick={() => setHelpOpen((open) => !open)} aria-expanded={helpOpen} aria-controls="description-help" className="border border-[#C9A15A] px-3 py-2 font-mono text-[10px] uppercase tracking-wide text-[#C9A15A]">Aide — exemple</button>{draftRestored && <button type="button" onClick={clearSavedDraft} className="border border-[#3A4A42] px-3 py-2 font-mono text-[10px] uppercase tracking-wide text-[#AEB7B0]">Effacer le brouillon</button>}</div></div>
+              <div className="mb-3 flex flex-wrap items-center justify-between gap-3"><label htmlFor="description" className="field-label">Description du projet <span>REQUIS</span></label><div className="flex items-center gap-2">{draftRestored && <span className="font-mono text-[10px] uppercase tracking-wide text-[#7C9A76]" role="status">Brouillon restauré</span>}<button type="button" onClick={() => setHelpOpen((open) => !open)} aria-expanded={helpOpen} aria-controls="description-help" className="border border-[#C9A15A] px-3 py-2 font-mono text-[10px] uppercase tracking-wide text-[#C9A15A]">Aide — exemple</button>{draftRestored && <button type="button" onClick={() => setResetFormOpen(true)} className="border border-[#3A4A42] px-3 py-2 font-mono text-[10px] uppercase tracking-wide text-[#AEB7B0]">Effacer le brouillon</button>}<button type="button" onClick={() => setResetFormOpen(true)} className="border border-[#9d554b] px-3 py-2 font-mono text-[10px] uppercase tracking-wide text-[#d98472]">Réinitialiser le formulaire</button></div></div>
               {draftSaveNotice && <p className="mb-2 font-mono text-[10px] uppercase tracking-wider text-[#7C9A76]" role="status" aria-live="polite">Brouillon sauvegardé automatiquement</p>}
               {helpOpen && <aside id="description-help" className="mb-3 border border-[#C9A15A]/70 bg-[#16201C] p-4 text-xs leading-5 text-[#AEB7B0]" role="note"><p className="font-mono text-[10px] uppercase tracking-wider text-[#C9A15A]">Exemple de description bien remplie</p><p className="mt-2">{EXAMPLE_PROJECT_DESCRIPTION}</p><button type="button" onClick={useExampleDescription} className="mt-3 border border-[#7C9A76] px-3 py-2 font-mono text-[10px] uppercase tracking-wide text-[#7C9A76]">Utiliser cet exemple</button></aside>}
               <Textarea id="description" value={description} onChange={(event) => setDescription(event.target.value)} placeholder="Ex. Construction d’une villa R+1 de 180 m² à Abidjan, avec fondations en béton armé, murs en agglos..." className="technical-input min-h-40 resize-none" />
@@ -613,6 +613,12 @@ export default function Home() {
               </div>
               {brandImageError && <p className="mt-2 flex items-center gap-2 text-xs font-medium text-[#d98472]" role="alert"><ImageIcon className="h-3.5 w-3.5" />{brandImageError}</p>}
               {(signatureImage || stampImage) && <button type="button" onClick={() => setPendingRemoval("all")} className="mt-3 inline-flex items-center gap-2 border border-[#3A4A42] px-3 py-2 font-mono text-[9px] uppercase tracking-wide text-[#C9A15A] hover:border-[#C9A15A]" aria-label="Effacer toutes les données locales de signature et de tampon"><Trash2 className="h-3.5 w-3.5" />Effacer toutes les données locales</button>}
+              <Dialog open={resetFormOpen} onOpenChange={setResetFormOpen}>
+                <DialogContent className="border-[#9d554b] bg-[#16201C] text-[#EDEAE2]">
+                  <DialogHeader><DialogTitle className="font-serif text-2xl text-[#EDEAE2]">Réinitialiser le formulaire ?</DialogTitle><DialogDescription className="text-[#AEB7B0]">Tous les champs du formulaire, les dimensions saisies, le fichier sélectionné, l’aperçu et le brouillon local seront effacés. Les images de signature et de tampon mémorisées séparément ne seront pas supprimées.</DialogDescription></DialogHeader>
+                  <DialogFooter><button type="button" onClick={() => setResetFormOpen(false)} className="border border-[#3A4A42] px-4 py-2 font-mono text-[10px] uppercase tracking-wide text-[#AEB7B0]">Annuler</button><button type="button" onClick={clearSavedDraft} className="bg-[#9d554b] px-4 py-2 font-mono text-[10px] uppercase tracking-wide text-[#F4F0E8]">Réinitialiser</button></DialogFooter>
+                </DialogContent>
+              </Dialog>
               <Dialog open={pendingRemoval !== null} onOpenChange={(open) => { if (!open) setPendingRemoval(null); }}>
                 <DialogContent className="border-[#C9A15A] bg-[#16201C] text-[#EDEAE2]">
                   <DialogHeader><DialogTitle className="font-serif text-2xl text-[#EDEAE2]">Confirmer la suppression</DialogTitle><DialogDescription className="text-[#AEB7B0]">{pendingRemoval === "all" ? "Les images mémorisées de signature et de tampon seront supprimées de ce navigateur." : `L’image de ${pendingRemoval === "signature" ? "signature" : "tampon"} sera supprimée de ce navigateur.`}</DialogDescription></DialogHeader>
