@@ -43,3 +43,16 @@ it("supports summary mode and an embedded logo", async () => {
   expect(blob.type).toBe("application/pdf");
   expect(blob.size).toBeGreaterThan(1000);
 });
+
+it("adds a custom watermark and footer to the exported document", async () => {
+  const blob = await exportResultsPdf({
+    preview,
+    documentDate: "27/08/2026",
+    filename: "metrexpert-watermark.xlsx",
+    watermark: "CONFIDENTIEL",
+    customFooter: "MÉTREXPERT IA PRO · Rapport de travail",
+    detail: "detailed",
+  });
+  expect(blob.type).toBe("application/pdf");
+  expect(blob.size).toBeGreaterThan(1000);
+});

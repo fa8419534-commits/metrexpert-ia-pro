@@ -5625,3 +5625,11 @@ Décision provisoire : privilégier d’abord un guide interactif déterministe,
 - [x] Ajouter un champ de pied de page personnalisé transmis au PDF, limité à 130 caractères et normalisé pour l’encodage PDF.
 - [x] Ajouter la palette prédéfinie « MÉTREXPERT » et un bouton de réinitialisation des couleurs.
 - [x] Ajouter les tests de restauration et d’export, puis vérifier TypeScript, build et rendu responsive avant checkpoint : 114 tests, TypeScript, build et captures desktop/mobile validés.
+
+
+## Nouvelle demande — palettes et filigrane PDF
+
+- [x] Ajouter plusieurs palettes PDF prédéfinies adaptées aux rapports et aux clients, avec sélection persistante : MÉTREXPERT, Ardoise, Sable et Atelier.
+- [x] Ajouter un champ de filigrane personnalisé avec option d’activation/désactivation et transmission au PDF : champ vide = désactivé.
+- [x] Appliquer le filigrane de façon lisible et discrète sur toutes les pages du PDF exporté, avec opacité réduite et texte limité à 60 caractères.
+- [x] Ajouter les tests des palettes et du filigrane, puis vérifier TypeScript, build et rendu responsive avant checkpoint : 115 tests Vitest réussis, TypeScript, build et contrôle visuel validés.

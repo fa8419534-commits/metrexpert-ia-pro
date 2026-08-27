@@ -1,4 +1,4 @@
-import { PDFDocument, StandardFonts, rgb, type PDFImage } from "pdf-lib";
+import { PDFDocument, StandardFonts, degrees, rgb, type PDFImage } from "pdf-lib";
 import type { WorkbookPreviewData } from "@/components/WorkbookPreview";
 
 const defaultColors = {
@@ -71,6 +71,7 @@ export async function exportResultsPdf(input: {
   darkColor?: string;
   detail?: "summary" | "detailed";
   customFooter?: string;
+  watermark?: string;
 }) {
   const pdf = await PDFDocument.create();
   const regular = await pdf.embedFont(StandardFonts.Helvetica);
@@ -198,6 +199,13 @@ export async function exportResultsPdf(input: {
   text("Document d’assistance au calcul — vérification humaine requise avant usage contractuel.", margin + 10, 8, regular, colors.paper);
   const footer = pdfSafeText(input.customFooter?.trim() || (input.preview.verifiedBy ? `Vérifié par : ${input.preview.verifiedBy}` : "Contrôle humain requis avant utilisation professionnelle"));
   text(footer.slice(0, 130), margin, 7, regular, colors.muted);
+
+  const watermark = pdfSafeText(input.watermark?.trim() || "").slice(0, 60);
+  if (watermark) {
+    for (const currentPage of pdf.getPages()) {
+      currentPage.drawText(watermark, { x: pageWidth * 0.19, y: pageHeight * 0.42, size: 42, font: bold, color: colors.gold, opacity: 0.12, rotate: degrees(35) });
+    }
+  }
 
   const bytes = await pdf.save();
   const arrayBuffer = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer;
