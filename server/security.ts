@@ -1,6 +1,6 @@
 import crypto from "node:crypto";
-import { and, eq, gt, isNull, like, or, sql } from "drizzle-orm";
-import { clientAccessCodes, freeTrialContacts, generationWindows } from "../drizzle/schema";
+import { and, eq, gt, isNull, like, lt, or, sql } from "drizzle-orm";
+import { adminSettings, clientAccessCodes, freeTrialContacts, generationWindows } from "../drizzle/schema";
 import { getDb } from "./db";
 import { ENV } from "./_core/env";
 import type { TrpcContext } from "./_core/context";
@@ -12,6 +12,10 @@ const ACCESS_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
 const ADMIN_ACCESS_MAX_AGE_MS = 8 * 60 * 60 * 1000;
 export const ADMIN_ACCESS_COOKIE = "metrexpert_admin_access";
 export const CLIENT_ACCESS_COOKIE = "metrexpert_client_access";
+export const DEFAULT_FREE_TRIAL_RETENTION_DAYS = 365;
+export const MIN_FREE_TRIAL_RETENTION_DAYS = 30;
+export const MAX_FREE_TRIAL_RETENTION_DAYS = 730;
+const FREE_TRIAL_RETENTION_SETTING_KEY = "free_trial_retention_days";
 const isTestRuntime = process.env.NODE_ENV === "test" || process.env.VITEST === "true" || Boolean(process.env.VITEST_WORKER_ID) || process.argv.some((argument) => argument.includes("vitest"));
 let forceMemoryForTests = false;
 const memoryWindows = new Map<string, { count: number; windowStart: number; kind: "hour" | "day" }>();
@@ -22,6 +26,7 @@ const memoryFreeTrialContacts = new Map<number, MemoryFreeTrialContact>();
 const memoryFreeTrialContactKeys = new Set<string>();
 let nextMemoryClientCodeId = 1;
 let nextMemoryFreeTrialId = 1;
+let memoryFreeTrialRetentionDays = DEFAULT_FREE_TRIAL_RETENTION_DAYS;
 
 export function resetSecurityStateForTests() {
   forceMemoryForTests = true;
@@ -31,6 +36,7 @@ export function resetSecurityStateForTests() {
   memoryFreeTrialContactKeys.clear();
   nextMemoryClientCodeId = 1;
   nextMemoryFreeTrialId = 1;
+  memoryFreeTrialRetentionDays = DEFAULT_FREE_TRIAL_RETENTION_DAYS;
 }
 
 function hashClientCode(code: string) {
@@ -113,7 +119,7 @@ export async function reserveFreeTrial(
 
     if (existing.length) return { allowed: false, reason: "already_used" };
     try {
-      const inserted = await db.insert(freeTrialContacts).values({ clientName: clientName || null, phone: phone || null, phoneHash: phoneHash || null, email: email || null, emailHash: emailHash || null, consentedAt });
+      const inserted = await db.insert(freeTrialContacts).values({ clientName: clientName || null, phone: phone || null, phoneHash: phoneHash || null, email: email || null, emailHash: emailHash || null, trialAt: consentedAt, consentedAt });
       contactKeys.forEach((key) => memoryFreeTrialContactKeys.add(key));
       return { allowed: true, contactId: Number(inserted[0].insertId), phone, email };
     } catch (error) {
@@ -122,7 +128,7 @@ export async function reserveFreeTrial(
     }
   }
   const now = new Date();
-  const contact = { id: nextMemoryFreeTrialId++, clientName: clientName || null, phone: phone || null, phoneHash: phoneHash || null, email: email || null, emailHash: emailHash || null, trialAt: now, convertedAt: null, lastWhatsAppContactAt: null, consentedAt, unsubscribedAt: null, updatedAt: now };
+  const contact = { id: nextMemoryFreeTrialId++, clientName: clientName || null, phone: phone || null, phoneHash: phoneHash || null, email: email || null, emailHash: emailHash || null, trialAt: consentedAt, convertedAt: null, lastWhatsAppContactAt: null, consentedAt, unsubscribedAt: null, updatedAt: now };
   memoryFreeTrialContacts.set(contact.id, contact);
   contactKeys.forEach((key) => memoryFreeTrialContactKeys.add(key));
   return { allowed: true, contactId: contact.id, phone, email };
@@ -132,6 +138,52 @@ export async function listFreeTrialContacts() {
   const db = isTestRuntime || forceMemoryForTests ? null : await getDb();
   const rows = db ? await db.select().from(freeTrialContacts).orderBy(freeTrialContacts.trialAt) : Array.from(memoryFreeTrialContacts.values()).sort((a, b) => a.trialAt.getTime() - b.trialAt.getTime());
   return rows.map((record) => ({ id: record.id, clientName: record.clientName || "À compléter", phone: record.phone || "À compléter", email: record.email || "À compléter", trialAt: record.trialAt, convertedAt: record.convertedAt, lastWhatsAppContactAt: record.lastWhatsAppContactAt, consentedAt: record.consentedAt, unsubscribedAt: record.unsubscribedAt }));
+}
+
+function normalizeRetentionDays(value: number) {
+  if (!Number.isInteger(value) || value < MIN_FREE_TRIAL_RETENTION_DAYS || value > MAX_FREE_TRIAL_RETENTION_DAYS) {
+    throw new Error(`La durée de conservation doit être comprise entre ${MIN_FREE_TRIAL_RETENTION_DAYS} et ${MAX_FREE_TRIAL_RETENTION_DAYS} jours.`);
+  }
+  return value;
+}
+
+export async function getFreeTrialRetentionDays() {
+  const db = isTestRuntime || forceMemoryForTests ? null : await getDb();
+  if (!db) return memoryFreeTrialRetentionDays;
+  const setting = (await db.select({ value: adminSettings.settingValue }).from(adminSettings).where(eq(adminSettings.settingKey, FREE_TRIAL_RETENTION_SETTING_KEY)).limit(1))[0];
+  if (!setting) return DEFAULT_FREE_TRIAL_RETENTION_DAYS;
+  const parsed = Number(setting.value);
+  return Number.isInteger(parsed) && parsed >= MIN_FREE_TRIAL_RETENTION_DAYS && parsed <= MAX_FREE_TRIAL_RETENTION_DAYS ? parsed : DEFAULT_FREE_TRIAL_RETENTION_DAYS;
+}
+
+export async function setFreeTrialRetentionDays(value: number) {
+  const retentionDays = normalizeRetentionDays(value);
+  const db = isTestRuntime || forceMemoryForTests ? null : await getDb();
+  if (db) {
+    await db.insert(adminSettings).values({ settingKey: FREE_TRIAL_RETENTION_SETTING_KEY, settingValue: String(retentionDays) }).onDuplicateKeyUpdate({ set: { settingValue: String(retentionDays) } });
+  } else {
+    memoryFreeTrialRetentionDays = retentionDays;
+  }
+  return retentionDays;
+}
+
+export async function purgeExpiredFreeTrialContacts(now = new Date()) {
+  const retentionDays = await getFreeTrialRetentionDays();
+  const cutoff = new Date(now.getTime() - retentionDays * 86_400_000);
+  const db = isTestRuntime || forceMemoryForTests ? null : await getDb();
+  if (db) {
+    const expired = await db.select({ id: freeTrialContacts.id, phone: freeTrialContacts.phone, email: freeTrialContacts.email }).from(freeTrialContacts).where(lt(freeTrialContacts.trialAt, cutoff));
+    if (!expired.length) return { deletedCount: 0, retentionDays, cutoff };
+    await db.delete(freeTrialContacts).where(lt(freeTrialContacts.trialAt, cutoff));
+    return { deletedCount: expired.length, retentionDays, cutoff };
+  }
+  const expired = Array.from(memoryFreeTrialContacts.values()).filter((record) => record.trialAt.getTime() < cutoff.getTime());
+  expired.forEach((record) => {
+    memoryFreeTrialContacts.delete(record.id);
+    if (record.phone) memoryFreeTrialContactKeys.delete(`phone:${record.phone}`);
+    if (record.email) memoryFreeTrialContactKeys.delete(`email:${record.email}`);
+  });
+  return { deletedCount: expired.length, retentionDays, cutoff };
 }
 
 export async function markFreeTrialWhatsAppContacted(id: number) {

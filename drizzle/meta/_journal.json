@@ -57,6 +57,13 @@
       "when": 1787773738485,
       "tag": "0007_fixed_photon",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "5",
+      "when": 1787832376661,
+      "tag": "0008_neat_spencer_smythe",
+      "breakpoints": true
     }
   ]
 }

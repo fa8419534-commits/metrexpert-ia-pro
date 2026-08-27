@@ -87,7 +87,7 @@ export async function buildEstimateWorkbook(data: ProjectEstimate): Promise<Buff
   const total = data.measures.reduce((sum, item) => sum + item.quantity * (item.factor ?? 1) * (item.unitPrice ?? 0), 0);
   const totalRow = data.measures.length + 2;
   const cover = workbook.addWorksheet("Couverture");
-  cover.columns = [{ width: 18 }, { width: 17 }, { width: 18 }, { width: 17 }];
+  cover.columns = [{ width: 18 }, { width: 28 }, { width: 18 }, { width: 28 }];
   cover.pageSetup = { orientation: "portrait", fitToPage: true, fitToWidth: 1, fitToHeight: 1, paperSize: 9 };
   cover.pageSetup.margins = { left: 0.25, right: 0.25, top: 0.35, bottom: 0.35, header: 0.1, footer: 0.1 };
   const set = (address: string, value: string | number) => { cover.getCell(address).value = value; };
@@ -115,7 +115,13 @@ export async function buildEstimateWorkbook(data: ProjectEstimate): Promise<Buff
   section(25, "MENTIONS, HYPOTHÈSES ET AVERTISSEMENT");
   merged("A26:D26", data.summary || "Généré à partir des éléments fournis. Vérifier les hypothèses, unités et prix avant usage contractuel.", { fill: "F5F3ED", color: COLORS.anthracite, border: COLORS.line });
   merged("A27:D27", "Les informations absentes sont indiquées « À compléter ». Ce document est une base de travail assistée par IA : vérifier données d’entrée, hypothèses, unités, prix, quantités et périmètre des lots avant toute utilisation contractuelle.", { fill: COLORS.anthracite, color: COLORS.paper, italic: true, size: 9, border: COLORS.gold });
-  for (let row = 1; row <= 27; row += 1) cover.getRow(row).height = [1, 2, 3, 4, 5, 7, 8, 10, 11, 12, 14, 15, 16, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27].includes(row) ? 22 : 6;
+  for (let row = 1; row <= 27; row += 1) {
+    if ([1, 2, 3, 4, 5, 7, 10, 14, 15, 16, 18, 22, 25].includes(row)) cover.getRow(row).height = 22;
+    else if ([8, 11, 12, 19, 20, 21, 23, 24].includes(row)) cover.getRow(row).height = 30;
+    else if (row === 26) cover.getRow(row).height = 34;
+    else if (row === 27) cover.getRow(row).height = 44;
+    else cover.getRow(row).height = 6;
+  }
 
   const hypotheses = data.hypotheses?.length ? data.hypotheses : buildHypotheses(data);
   const hypothesisSheet = workbook.addWorksheet("Hypothèses");

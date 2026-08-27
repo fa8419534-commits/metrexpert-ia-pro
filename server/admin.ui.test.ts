@@ -19,6 +19,9 @@ const testState = vi.hoisted(() => ({
   writeText: vi.fn(),
   disable: vi.fn(),
   contacted: vi.fn(),
+  saveRetention: vi.fn(),
+  purgeRetention: vi.fn(),
+  retentionDays: 365,
   paymentRequests: [] as Array<{ id: number; clientName: string; phone: string; email: string | null; planQuota: number; amountXof: number; paymentMethod: string; paymentReference: string; status: "pending" | "confirmed" | "rejected"; accessCodeId: number | null; adminNote: string | null; createdAt: Date; reviewedAt: Date | null }>,
 }));
 
@@ -29,6 +32,9 @@ beforeEach(() => {
   testState.writeText.mockReset().mockResolvedValue(undefined);
   testState.disable.mockReset();
   testState.contacted.mockReset();
+  testState.saveRetention.mockReset();
+  testState.purgeRetention.mockReset();
+  testState.retentionDays = 365;
   testState.paymentRequests = [];
   window.localStorage.clear();
   Object.defineProperty(navigator, "clipboard", {
@@ -46,6 +52,9 @@ vi.mock("@/lib/trpc", () => ({
       verifyAdminCode: { useMutation: (options?: { onSuccess?: () => void }) => ({ isPending: false, mutate: () => options?.onSuccess?.(), error: undefined }) },
       adminListCodes: { useQuery: () => ({ data: testState.codes, isLoading: false, refetch: vi.fn() }) },
       adminListFreeTrials: { useQuery: () => ({ data: testState.trials, isLoading: false, refetch: vi.fn() }) },
+      adminGetFreeTrialRetention: { useQuery: () => ({ data: { retentionDays: testState.retentionDays }, isLoading: false, isFetching: false, refetch: vi.fn() }) },
+      adminSetFreeTrialRetention: { useMutation: (options?: { onSuccess?: (data: { retentionDays: number }) => void }) => ({ isPending: false, mutate: (input: { retentionDays: number }) => { testState.saveRetention(input); testState.retentionDays = input.retentionDays; options?.onSuccess?.({ retentionDays: input.retentionDays }); } }) },
+      adminPurgeExpiredFreeTrials: { useMutation: (options?: { onSuccess?: (data: { deletedCount: number; retentionDays: number; cutoff: Date }) => void }) => ({ isPending: false, mutate: () => { testState.purgeRetention(); options?.onSuccess?.({ deletedCount: 0, retentionDays: testState.retentionDays, cutoff: new Date() }); } }) },
       adminListPaymentRequests: { useQuery: () => ({ data: testState.paymentRequests, isLoading: false, refetch: vi.fn() }) },
       clientPaymentDashboard: { useQuery: () => ({ data: { access: { unlocked: false }, requests: [] }, isLoading: false }) },
       adminMarkFreeTrialWhatsAppContacted: { useMutation: () => ({ isPending: false, mutate: testState.contacted }) },
@@ -54,7 +63,7 @@ vi.mock("@/lib/trpc", () => ({
       adminReviewPaymentRequest: { useMutation: (options?: { onSuccess?: (data: { status: "confirmed" | "rejected"; accessCode?: string }) => void }) => ({ isPending: false, mutate: (input: { status: "confirmed" | "rejected" }) => options?.onSuccess?.({ status: input.status, accessCode: input.status === "confirmed" ? "MXP-PAYMENT123" : undefined }) }) },
       adminDisableCode: { useMutation: () => ({ isPending: false, mutate: testState.disable }) },
     },
-    useUtils: () => ({ security: { adminListCodes: { invalidate: vi.fn() }, adminListFreeTrials: { invalidate: vi.fn() } } }),
+      useUtils: () => ({ security: { adminListCodes: { invalidate: vi.fn() }, adminListFreeTrials: { invalidate: vi.fn() } } }),
   },
 }));
 
@@ -106,7 +115,7 @@ describe("Admin panel UI", () => {
     expect(source).toContain("Recharger les données");
     expect(source).toContain("Vérification de l’accès administrateur");
     expect(source).toContain("isRefreshingAdminData");
-    expect(source).toContain("Promise.all([codes.refetch(), trials.refetch(), paymentRequests.refetch()])");
+    expect(source).toContain("Promise.all([codes.refetch(), trials.refetch(), paymentRequests.refetch(), retention.refetch()])");
   });
 
   it("renders a protected administrator unlock screen before exposing client management", () => {
@@ -203,6 +212,24 @@ describe("Admin panel UI", () => {
     expect(screen.getByRole("alertdialog").textContent).toContain("nom complet et numéro de téléphone");
     fireEvent.click(screen.getByRole("button", { name: "Annuler" }));
     expect(screen.queryByRole("alertdialog")).toBeNull();
+  });
+
+  it("saves the retention duration and confirms a manual purge", async () => {
+    testState.adminUnlocked = true;
+    render(React.createElement(Admin));
+    const retentionInput = screen.getByLabelText("Durée de conservation (jours)");
+    fireEvent.change(retentionInput, { target: { value: "90" } });
+    fireEvent.click(screen.getByRole("button", { name: "Enregistrer" }));
+    await waitFor(() => expect(testState.saveRetention).toHaveBeenCalledWith({ retentionDays: 90 }));
+    expect(screen.getByText(/Valeur actuelle : 90 jours\./)).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Purger les contacts échus" }));
+    const dialog = screen.getByRole("alertdialog");
+    expect(within(dialog).getByText(/plus anciens que 90 jours/)).toBeTruthy();
+    fireEvent.click(within(dialog).getByRole("button", { name: "Annuler" }));
+    expect(screen.queryByRole("alertdialog")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Purger les contacts échus" }));
+    fireEvent.click(screen.getByRole("button", { name: "Confirmer la purge" }));
+    expect(testState.purgeRetention).toHaveBeenCalled();
   });
 
   it("shows the active code count and asks for confirmation before revocation", () => {

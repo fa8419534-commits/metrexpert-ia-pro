@@ -2,7 +2,7 @@
 
 ## Conclusion
 
-MÉTREXPERT IA PRO est techniquement prêt pour un **pilote limité**, mais je recommande de ne pas partager largement le lien avant les vérifications manuelles listées ci-dessous. La base actuelle est solide : 81 tests réussis, TypeScript et build validés, quotas, code Admin séparé, essai gratuit, consentement, désinscription, paiements manuels et exports professionnels.
+MÉTREXPERT IA PRO est techniquement prêt pour un **pilote limité**, mais je recommande de ne pas partager largement le lien avant les vérifications manuelles listées ci-dessous. La base actuelle est solide : 86 tests réussis, TypeScript et build validés, quotas, code Admin séparé, essai gratuit, consentement, désinscription, paiements manuels, exports professionnels et conservation configurable.
 
 ## Points obligatoires avant une première utilisation commerciale
 
@@ -12,7 +12,7 @@ MÉTREXPERT IA PRO est techniquement prêt pour un **pilote limité**, mais je r
 | Coûts IA et quotas | Prêt avec limites | Conserver 5 générations/heure et 50 générations/jour ; faire un premier pilote avec peu de clients. |
 | Paiement | Manuel | Vérifier un paiement Wave, Moov Money ou MTN Money, puis confirmer manuellement dans Admin. |
 | Excel Desktop | À vérifier manuellement | Ouvrir un fichier réel dans Microsoft Excel Desktop, recalculer, contrôler les formules, images, totaux et impression. |
-| Données personnelles | Partiellement prêt | Ajouter une durée de conservation opérationnelle et une procédure de suppression des contacts. |
+| Données personnelles | Prêt pour pilote | Durée persistante de 30 à 730 jours, purge manuelle confirmée et callback automatique prête ; activer la tâche quotidienne après publication. |
 | Périmètre du métré | À confirmer | Ne jamais présenter un calcul partiel comme un DQE complet ; faire confirmer lots inclus et exclus. |
 | Support client | À préparer | Afficher clairement le numéro WhatsApp et le délai normal de réponse. |
 
@@ -20,7 +20,7 @@ MÉTREXPERT IA PRO est techniquement prêt pour un **pilote limité**, mais je r
 
 | Point | Risque | Recommandation |
 |---|---|---|
-| Dépendance `uuid` | Avis moderate transitif via ExcelJS | Tester une version ExcelJS compatible ou documenter l’acceptation temporaire du risque. |
+| Dépendance `uuid` | Patch local appliqué | Le patch bounds-check est appliqué à `uuid@8.3.2` via le lockfile ; `pnpm audit` peut encore compter l’avis versionnel comme moderate, donc surveiller une mise à jour ExcelJS compatible. |
 | Bundle frontend | Environ 1,38 Mo avant gzip | Faire du code-splitting sur Admin et les modules rares. |
 | Transport base64 | Requêtes lourdes avec gros plans/images | Passer progressivement par le stockage objet et des identifiants temporaires. |
 | Historique Admin | Suivi commercial limité | Ajouter un journal de renouvellements, de confirmations et de relances. |

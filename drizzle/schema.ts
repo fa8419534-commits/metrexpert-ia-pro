@@ -94,3 +94,14 @@ export type FreeTrialContact = typeof freeTrialContacts.$inferSelect;
 export type InsertFreeTrialContact = typeof freeTrialContacts.$inferInsert;
 
 // TODO: Add your tables here
+
+
+export const adminSettings = mysqlTable("admin_settings", {
+  id: int("id").autoincrement().primaryKey(),
+  settingKey: varchar("settingKey", { length: 80 }).notNull().unique(),
+  settingValue: varchar("settingValue", { length: 255 }).notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type AdminSetting = typeof adminSettings.$inferSelect;
+export type InsertAdminSetting = typeof adminSettings.$inferInsert;

@@ -8,6 +8,7 @@ import { registerOAuthRoutes } from "./oauth";
 import { registerStorageProxy } from "./storageProxy";
 import { appRouter } from "../routers";
 import { createContext } from "./context";
+import { cleanupFreeTrialsHandler } from "../scheduled";
 import { serveStatic, setupVite } from "./vite";
 
 function isPortAvailable(port: number): Promise<boolean> {
@@ -42,6 +43,7 @@ async function startServer() {
   });
   registerStorageProxy(app);
   registerOAuthRoutes(app);
+  app.post("/api/scheduled/cleanup-free-trials", cleanupFreeTrialsHandler);
   // tRPC API
   app.use(
     "/api/trpc",

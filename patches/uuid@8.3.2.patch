@@ -1,0 +1,14 @@
+diff --git a/dist/v35.js b/dist/v35.js
+index f784c6337fa0e29c17fecd43e90a478f0d2e206a..82ecfd6db2f374fe650667a8268237ea4286ef53 100644
+--- a/dist/v35.js
++++ b/dist/v35.js
+@@ -55,6 +55,9 @@ function _default(name, version, hashfunc) {
+ 
+     if (buf) {
+       offset = offset || 0;
++      if (offset < 0 || offset + 16 > buf.length) {
++        throw new RangeError(`UUID byte range ${offset}:${offset + 15} is out of buffer bounds`);
++      }
+ 
+       for (let i = 0; i < 16; ++i) {
+         buf[offset + i] = bytes[i];

@@ -120,6 +120,9 @@ export default function Admin() {
   const [trialStartDate, setTrialStartDate] = useState(() => typeof window === "undefined" ? "" : window.localStorage.getItem("metrexpert.trials.startDate") ?? "");
   const [trialEndDate, setTrialEndDate] = useState(() => typeof window === "undefined" ? "" : window.localStorage.getItem("metrexpert.trials.endDate") ?? "");
   const [csvExportKind, setCsvExportKind] = useState<"whatsapp" | "email" | "combined" | null>(null);
+  const [retentionDays, setRetentionDays] = useState(365);
+  const [retentionDraft, setRetentionDraft] = useState("365");
+  const [purgeRetentionOpen, setPurgeRetentionOpen] = useState(false);
 
   useEffect(() => {
     if (trialStartDate) window.localStorage.setItem("metrexpert.trials.startDate", trialStartDate);
@@ -155,19 +158,30 @@ export default function Admin() {
     retry: false,
     refetchOnWindowFocus: false,
   });
+  const retention = trpc.security.adminGetFreeTrialRetention.useQuery(undefined, {
+    enabled: canLoadAdminData,
+    retry: false,
+    refetchOnWindowFocus: false,
+  });
+  useEffect(() => {
+    if (retention.data?.retentionDays) {
+      setRetentionDays(retention.data.retentionDays);
+      setRetentionDraft(String(retention.data.retentionDays));
+    }
+  }, [retention.data?.retentionDays]);
   const paymentRequests = trpc.security.adminListPaymentRequests.useQuery(undefined, {
     enabled: canLoadAdminData,
     retry: false,
     refetchOnWindowFocus: false,
   });
-  const isRefreshingAdminData = Boolean(codes.isFetching || trials.isFetching || paymentRequests.isFetching);
+  const isRefreshingAdminData = Boolean(codes.isFetching || trials.isFetching || paymentRequests.isFetching || retention.isFetching);
 
   async function refreshAdminData() {
     if (!canLoadAdminData) {
       await adminStatus.refetch();
       return;
     }
-    await Promise.all([codes.refetch(), trials.refetch(), paymentRequests.refetch()]);
+    await Promise.all([codes.refetch(), trials.refetch(), paymentRequests.refetch(), retention.refetch()]);
     toast.success("Données administratives actualisées.");
   }
 
@@ -221,6 +235,23 @@ export default function Admin() {
     onSuccess: () => {
       void utils.security.adminListFreeTrials.invalidate();
       toast.success("Essai marqué comme converti.");
+    },
+    onError: (error) => toast.error(error.message),
+  });
+  const saveRetention = trpc.security.adminSetFreeTrialRetention.useMutation({
+    onSuccess: (data) => {
+      setRetentionDays(data.retentionDays);
+      setRetentionDraft(String(data.retentionDays));
+      void retention.refetch();
+      toast.success(`Conservation réglée à ${data.retentionDays} jours.`);
+    },
+    onError: (error) => toast.error(error.message),
+  });
+  const purgeRetention = trpc.security.adminPurgeExpiredFreeTrials.useMutation({
+    onSuccess: (data) => {
+      setPurgeRetentionOpen(false);
+      void trials.refetch();
+      toast.success(data.deletedCount ? `${data.deletedCount} contact${data.deletedCount > 1 ? "s" : ""} supprimé${data.deletedCount > 1 ? "s" : ""}.` : "Aucun contact arrivé à échéance.");
     },
     onError: (error) => toast.error(error.message),
   });
@@ -601,7 +632,41 @@ export default function Admin() {
             {trials.isLoading ? <div className="flex items-center gap-2 text-sm text-[#AEB7B0]"><Loader2 className="h-4 w-4 animate-spin" />Chargement des essais…</div> : filteredTrials.length ? <div className="overflow-x-auto"><table className="w-full min-w-[720px] text-left text-sm"><thead className="border-b border-[#3A4A42] font-mono text-[10px] uppercase tracking-wider text-[#C9A15A]"><tr><th className="px-3 py-3">Nom</th><th className="px-3 py-3">Téléphone</th><th className="px-3 py-3">E-mail</th><th className="px-3 py-3">Date de l’essai</th><th className="px-3 py-3">Conversion</th><th className="px-3 py-3">Dernière relance</th><th className="px-3 py-3 text-right">Action</th></tr></thead><tbody>{filteredTrials.map((trial) => <tr key={trial.id} className="border-b border-[#3A4A42]/70"><td className="px-3 py-4 font-medium">{trial.clientName}</td><td className="px-3 py-4 font-mono text-xs">{trial.phone}</td><td className="px-3 py-4 text-xs">{trial.email}</td><td className="px-3 py-4 text-[#AEB7B0]">{new Date(trial.trialAt).toLocaleDateString("fr-FR")}</td><td className={`px-3 py-4 font-mono text-xs uppercase ${trial.convertedAt ? "text-[#7C9A76]" : "text-[#C9A15A]"}`}>{trial.convertedAt ? "Converti" : "À relancer"}</td><td className="px-3 py-4 text-xs text-[#AEB7B0]">{trial.unsubscribedAt ? "Désinscrit" : trial.lastWhatsAppContactAt ? new Date(trial.lastWhatsAppContactAt).toLocaleDateString("fr-FR") : "Jamais"}</td><td className="flex flex-wrap justify-end gap-2 px-3 py-4 text-right">{trial.phone !== "À compléter" && !trial.unsubscribedAt && <a href={buildWhatsAppUrl(trial.phone, trial.clientName)} onClick={() => markTrialContacted.mutate({ id: trial.id })} target="_blank" rel="noreferrer" aria-label={`Ouvrir WhatsApp pour ${trial.clientName}`} className="inline-flex h-9 items-center justify-center gap-1 border border-[#7C9A76] px-3 font-mono text-[10px] uppercase tracking-wider text-[#7C9A76] transition-colors hover:bg-[#7C9A76] hover:text-[#0F1613]"><MessageCircle className="h-4 w-4" aria-hidden="true" />WhatsApp</a>}{!trial.convertedAt && !trial.unsubscribedAt && <Button type="button" variant="outline" size="sm" className="border-[#7C9A76] text-[#7C9A76]" onClick={() => markTrialConverted.mutate({ id: trial.id })} disabled={markTrialConverted.isPending}>Marquer converti</Button>}<Button type="button" variant="outline" size="sm" className="border-[#9d554b] text-[#d98472]" onClick={() => markTrialUnsubscribed.mutate({ id: trial.id })} disabled={markTrialUnsubscribed.isPending}>{trial.unsubscribedAt ? "Désinscrit" : "Désinscrire"}</Button></td></tr>)}</tbody></table></div> : <p className="py-8 text-sm text-[#AEB7B0]">{trials.data?.length ? "Aucun prospect dans ce filtre." : "Aucun essai gratuit enregistré."}</p>}
           </CardContent>
         </Card>
+
+        <Card className="mt-6 border-[#3A4A42] bg-[#16201C] text-[#EDEAE2]">
+          <CardHeader>
+            <CardTitle className="font-serif text-2xl">Conservation des contacts</CardTitle>
+            <p className="text-sm text-[#AEB7B0]">Réglez la durée pendant laquelle les essais gratuits restent dans le panneau avant suppression définitive.</p>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={(event) => { event.preventDefault(); const value = Number(retentionDraft); if (Number.isInteger(value) && value >= 30 && value <= 730) saveRetention.mutate({ retentionDays: value }); else toast.error("Choisissez une durée entière comprise entre 30 et 730 jours."); }} className="flex flex-col gap-4 sm:flex-row sm:items-end">
+              <div className="max-w-xs flex-1">
+                <Label htmlFor="trial-retention-days">Durée de conservation (jours)</Label>
+                <Input id="trial-retention-days" type="number" min={30} max={730} step={1} value={retentionDraft} onChange={(event) => setRetentionDraft(event.target.value)} className="mt-2 border-[#3A4A42] bg-[#0F1613] text-[#EDEAE2]" aria-describedby="trial-retention-help" />
+                <p id="trial-retention-help" className="mt-2 text-xs text-[#AEB7B0]">Valeur actuelle : {retentionDays} jours. Minimum 30, maximum 730.</p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <Button type="submit" className="bg-[#C9A15A] text-[#0F1613] hover:bg-[#d8b574]" disabled={saveRetention.isPending}>{saveRetention.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />}Enregistrer</Button>
+                <Button type="button" variant="outline" className="border-[#9d554b] text-[#d98472]" onClick={() => setPurgeRetentionOpen(true)} disabled={purgeRetention.isPending}>Purger les contacts échus</Button>
+              </div>
+            </form>
+            <p className="mt-4 border-t border-[#3A4A42] pt-4 text-xs leading-5 text-[#AEB7B0]">La suppression est irréversible et ne concerne que les essais dont la date est antérieure au délai choisi. La purge automatique quotidienne est prête côté serveur et doit être activée après publication du site.</p>
+          </CardContent>
+        </Card>
       </div>
+
+      <AlertDialog open={purgeRetentionOpen} onOpenChange={setPurgeRetentionOpen}>
+        <AlertDialogContent className="border-[#3A4A42] bg-[#16201C] text-[#EDEAE2]">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="font-serif text-2xl">Purger les contacts échus ?</AlertDialogTitle>
+            <AlertDialogDescription className="text-[#AEB7B0]">Les essais plus anciens que {retentionDays} jours seront supprimés définitivement. Cette action ne supprime pas les codes clients ni les demandes de paiement.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="border-[#3A4A42] text-[#EDEAE2]">Annuler</AlertDialogCancel>
+            <AlertDialogAction className="bg-[#9d554b] text-[#EDEAE2] hover:bg-[#b86a5e]" onClick={() => purgeRetention.mutate()} disabled={purgeRetention.isPending}>{purgeRetention.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />}Confirmer la purge</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <AlertDialog open={bulkRelanceOpen} onOpenChange={setBulkRelanceOpen}>
         <AlertDialogContent className="border-[#3A4A42] bg-[#16201C] text-[#EDEAE2]">

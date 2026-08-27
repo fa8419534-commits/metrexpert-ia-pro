@@ -9,7 +9,7 @@ import { buildEstimateWorkbook, type ProjectEstimate } from "./excel";
 import { BTP_JSON_OUTPUT_ENFORCEMENT, BTP_SYSTEM_PROMPT } from "./btpPrompt";
 import { parseJsonObjectFromLLM } from "./json";
 import { normalizeEstimateAmbiguities } from "./estimateNormalization";
-import { createClientAccessCode, DAILY_LIMIT, disableClientAccessCode, getClientAccessStatus, getGenerationStats, getHourlyQuotaStatus, hasValidAccessCookie, hasValidAdminCookie, HOURLY_LIMIT, isAccessCodeValid, isAdminAccessCodeValid, listClientAccessCodes, listFreeTrialContacts, markFreeTrialConverted, markFreeTrialWhatsAppContacted, markFreeTrialUnsubscribed, unsubscribeFreeTrialContact, releaseClientMonthlyQuota, releaseFreeTrialReservation, releaseGenerationQuota, reserveClientMonthlyQuota, reserveGenerationQuota, reserveFreeTrial, setAccessCookie, setAdminCookie, verifyClientAccessCode } from "./security";
+import { createClientAccessCode, DAILY_LIMIT, disableClientAccessCode, getClientAccessStatus, getFreeTrialRetentionDays, getGenerationStats, getHourlyQuotaStatus, hasValidAccessCookie, hasValidAdminCookie, HOURLY_LIMIT, isAccessCodeValid, isAdminAccessCodeValid, listClientAccessCodes, listFreeTrialContacts, markFreeTrialConverted, markFreeTrialWhatsAppContacted, markFreeTrialUnsubscribed, purgeExpiredFreeTrialContacts, releaseClientMonthlyQuota, releaseFreeTrialReservation, releaseGenerationQuota, reserveClientMonthlyQuota, reserveGenerationQuota, reserveFreeTrial, setAccessCookie, setAdminCookie, setFreeTrialRetentionDays, unsubscribeFreeTrialContact, verifyClientAccessCode } from "./security";
 import type { GenerationQuotaReservation } from "./security";
 import { createPaymentRequest, getClientPaymentHistory, getPaymentRequest, listPaymentRequests, reviewPaymentRequest } from "./paymentRequests";
 import { runQuantityChecks } from "./quantityChecks";
@@ -254,6 +254,9 @@ export const appRouter = router({
     getPaymentRequest: publicProcedure.input(z.object({ requestKey: z.string().trim().min(16).max(64) })).query(({ input }) => getPaymentRequest(input.requestKey)),
     clientPaymentDashboard: publicProcedure.query(({ ctx }) => getClientPaymentHistory(ctx)),
     adminListFreeTrials: adminProcedure.query(() => listFreeTrialContacts()),
+    adminGetFreeTrialRetention: adminProcedure.query(async () => ({ retentionDays: await getFreeTrialRetentionDays() })),
+    adminSetFreeTrialRetention: adminProcedure.input(z.object({ retentionDays: z.number().int().min(30).max(730) })).mutation(async ({ input }) => ({ retentionDays: await setFreeTrialRetentionDays(input.retentionDays) })),
+    adminPurgeExpiredFreeTrials: adminProcedure.mutation(async () => purgeExpiredFreeTrialContacts()),
     adminMarkFreeTrialWhatsAppContacted: adminProcedure.input(z.object({ id: z.number().int().positive() })).mutation(({ input }) => markFreeTrialWhatsAppContacted(input.id).then((lastWhatsAppContactAt) => ({ success: true as const, lastWhatsAppContactAt }))),
     adminMarkFreeTrialConverted: adminProcedure.input(z.object({ id: z.number().int().positive() })).mutation(({ input }) => markFreeTrialConverted(input.id).then(() => ({ success: true as const }))),
     adminMarkFreeTrialUnsubscribed: adminProcedure.input(z.object({ id: z.number().int().positive() })).mutation(({ input }) => markFreeTrialUnsubscribed(input.id).then(() => ({ success: true as const }))),

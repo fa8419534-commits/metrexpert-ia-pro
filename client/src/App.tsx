@@ -2,11 +2,13 @@ import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/NotFound";
 import { Route, Switch } from "wouter";
+import { lazy, Suspense } from "react";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
-import Home from "./pages/Home";
-import Landing from "./pages/Landing";
-import Admin from "./pages/Admin";
+
+const Home = lazy(() => import("./pages/Home"));
+const Landing = lazy(() => import("./pages/Landing"));
+const Admin = lazy(() => import("./pages/Admin"));
 
 function Router() {
   // make sure to consider if you need authentication for certain routes
@@ -36,7 +38,9 @@ function App() {
       >
         <TooltipProvider>
           <Toaster />
-          <Router />
+          <Suspense fallback={<div className="min-h-screen bg-background p-8 font-mono text-sm text-foreground" role="status">Chargement de l’espace…</div>}>
+            <Router />
+          </Suspense>
         </TooltipProvider>
       </ThemeProvider>
     </ErrorBoundary>

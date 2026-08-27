@@ -408,3 +408,24 @@
 - [x] Vérifier le parcours client, paiement manuel, téléchargement Excel et mobile
 - [x] Classer les derniers points en obligatoires, recommandés et post-publication
 - [x] Rédiger la procédure de publication sans publier à la place de l’utilisateur
+
+- [x] Corriger la vulnérabilité transitive uuid sans casser ExcelJS
+- [ ] Optimiser le bundle frontend par découpage des routes et modules lourds
+- [x] Générer un classeur d’exemple avec données fictives clairement signalées pour Excel Desktop
+- [x] Ajouter dans Admin une durée de conservation configurable pour les contacts
+- [x] Ajouter la suppression automatique idempotente des contacts arrivés à échéance
+- [x] Tester la migration, la sécurité, le bundle, le classeur et la suppression automatique
+- [x] Valider TypeScript, tests et build puis sauvegarder un checkpoint
+
+
+## Session de finalisation — 27/08/2026
+
+- [x] Finaliser et vérifier le patch de sécurité uuid transitif utilisé par ExcelJS.
+- [x] Générer un fichier Excel d’exemple anonymisé avec formules actives et toutes les feuilles.
+- [x] Vérifier l’intégrité OOXML, les formules et l’impression simulée du classeur d’exemple.
+- [x] Ajouter une table persistante de réglages d’administration pour la durée de conservation des contacts.
+- [x] Ajouter les procédures Admin de lecture, mise à jour et purge idempotente des contacts expirés.
+- [x] Ajouter le callback planifié de purge et documenter son activation après déploiement.
+- [x] Ajouter le panneau Admin de configuration de conservation et de purge manuelle.
+- [x] Ajouter les tests Vitest backend et UI associés.
+- [x] Exécuter TypeScript, tests, build et contrôle final avant checkpoint.
