@@ -5584,3 +5584,14 @@ Décision provisoire : privilégier d’abord un guide interactif déterministe,
 - [x] Rejouer la suite complète Vitest : 112 tests réussis
 - [x] Vérifier TypeScript et build de production après le correctif
 - [x] Documenter la limite de récupération locale du fichier téléchargé dans My Browser et l’absence de validation Microsoft Excel Desktop dans cette session
+
+
+## Nouvelle demande — aperçu, signature/tampon et production
+
+- [x] Ajouter ou fiabiliser l’aperçu web du XLSX généré avant téléchargement : aperçu interactif des onglets Couverture, Métré, DQE, Hypothèses, Géométrie et Contrôles déjà présent.
+- [x] Ajouter ou fiabiliser l’aperçu web du rapport PDF généré avant téléchargement : rapport de contrôle géométrique généré côté navigateur et affiché dans une modale iframe avant téléchargement.
+- [x] Exécuter un test de génération avec signature et tampon fictifs non sensibles et vérifier leur insertion dans le classeur : fichier réel produit avec `xl/media/image1.png`, `image2.png` et `xl/drawings/drawing1.xml`.
+- [ ] Préparer la sauvegarde de production et documenter les prérequis de restauration.
+- [ ] Vérifier l’état du Heartbeat et préparer son activation selon les règles de déploiement, sans l’activer avant publication confirmée.
+- [ ] Ajouter les tests Vitest, vérifier TypeScript, build et rendu avant checkpoint.
+- [ ] Corriger dans le guide d’exploitation le chemin Heartbeat pour utiliser `/api/scheduled/cleanup-free-trials`, qui est la route réellement montée par le serveur.
