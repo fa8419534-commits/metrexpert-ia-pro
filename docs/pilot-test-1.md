@@ -35,3 +35,11 @@ La génération a été lancée une seule fois avec la checklist 4/4. L’interf
 
 ## Étape 4 — résultat de la génération
 Après environ 20 secondes, la génération échoue avec le message utilisateur : « Le JSON renvoyé par l’IA ne respecte pas le format attendu. » Aucun fichier Excel ni aperçu de résultat n’est produit. Le bouton revient à l’état actif. Le parcours d’interface et le garde-fou de double soumission fonctionnent, mais le livrable ne peut pas encore être contrôlé.
+
+## Pilote n°2 — après correctif
+- Version publiée testée : 40f456e9, domaine metrexpert-qx6adg9a.manus.space.
+- Contact d’essai distinct utilisé : téléphone fictif +225 0700000001 et e-mail fictif pilote2@example.ci.
+- Description sans fichier joint : maison plain-pied de 90 m² à Yopougon, emprise 10,00 × 9,00 m, hauteur 2,80 m, une porte et quatre fenêtres, lots béton/maçonnerie/enduit/peinture.
+- Résultat : génération réussie, classeur annoncé avec 5 postes, statut LIVRABLE PRÊT, téléchargement XLSX et aperçu PDF disponibles.
+- Contrôle métier visible : surface nette des murs 98,54 m² après déduction de 7,86 m² d’ouvertures ; volumes et prix à 0 lorsque les données indispensables manquent ; mention d’essai gratuit visible.
+- Le total affiché est 0 FCFA, cohérent avec l’absence volontaire de prix unitaires ; aucune valeur n’a été inventée.

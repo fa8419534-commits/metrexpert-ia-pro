@@ -32,7 +32,12 @@ function pdfSafeText(value: string) {
     .replace(/[’‘]/g, "'")
     .replace(/—|–/g, "-")
     .replace(/•/g, "-")
-    .replace(/→/g, "->");
+    .replace(/→/g, "->")
+    .replace(/🔴/g, "[!]")
+    .replace(/🟢/g, "[OK]")
+    .replace(/✅/g, "[OK]")
+    .replace(/⚠️?/g, "[ATTENTION]")
+    .replace(/[^\u0000-\u00ff\u20ac]/g, "");
 }
 
 function dataUrlToBytes(dataUrl: string) {

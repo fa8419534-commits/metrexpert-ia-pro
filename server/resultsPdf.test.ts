@@ -41,6 +41,16 @@ describe("results PDF export", () => {
     const header = new TextDecoder().decode(new Uint8Array(await blob.slice(0, 5).arrayBuffer()));
     expect(header).toBe("%PDF-");
   });
+
+  it("sanitizes emoji markers in observations for WinAnsi fonts", async () => {
+    const blob = await exportResultsPdf({
+      preview: { ...preview, hypotheses: ["🔴 DONNÉE MANQUANTE — prix à confirmer", "✅ Contrôle effectué"] },
+      documentDate: "27/08/2026",
+      filename: "metrexpert-emoji-safe.xlsx",
+    });
+    expect(blob.type).toBe("application/pdf");
+    expect(blob.size).toBeGreaterThan(1000);
+  });
 });
 
 it("supports summary mode and an embedded logo", async () => {
