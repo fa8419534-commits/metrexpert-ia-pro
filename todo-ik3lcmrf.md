@@ -5595,3 +5595,9 @@ Décision provisoire : privilégier d’abord un guide interactif déterministe,
 - [x] Vérifier puis activer le Heartbeat après publication : tâche `metrexpert-daily-free-trials-cleanup`, UID `PfEvHSoM2APVf88EdshM2E`, active à `02:00 UTC`, route `/api/scheduled/cleanup-free-trials`.
 - [x] Ajouter les tests Vitest, vérifier TypeScript, build et rendu avant checkpoint : 112 tests, TypeScript et build réussis.
 - [x] Corriger dans le guide d’exploitation le chemin Heartbeat pour utiliser `/api/scheduled/cleanup-free-trials`, qui est la route réellement montée par le serveur.
+
+
+## Nouvelle demande — export GitHub privé
+
+- [x] Créer le dépôt privé `metrexpert-ia-pro` et pousser le code sans secrets : dépôt `fa8419534-commits/metrexpert-ia-pro` créé et synchronisé via l’intégration Manus.
+- [x] Vérifier la confidentialité du dépôt, les fichiers présents et l’absence de secrets exposés : dépôt affiché `Private`, branche `main`, code présent, aucun `.env` visible à la racine.
