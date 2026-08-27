@@ -1,5 +1,19 @@
 import { describe, expect, it } from "vitest";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+import { afterEach, vi } from "vitest";
 import { exportResultsPdf } from "../client/src/lib/resultsPdf";
+
+afterEach(() => vi.restoreAllMocks());
+
+function mockFontFetch() {
+  vi.spyOn(globalThis, "fetch").mockImplementation(async (input) => {
+    const url = String(input);
+    const packagePath = url.includes("montserrat") ? "node_modules/@fontsource/montserrat/files/" : "node_modules/@fontsource/ibm-plex-mono/files/";
+    const filename = (url.split("/").pop() || "").split("?")[0];
+    return new Response(readFileSync(join(process.cwd(), packagePath, filename)));
+  });
+}
 
 const preview = {
   projectTitle: "Villa d’essai",
@@ -54,6 +68,13 @@ it("adds a custom watermark and footer to the exported document", async () => {
     detail: "detailed",
     fontFamily: "courier",
   });
+  expect(blob.type).toBe("application/pdf");
+  expect(blob.size).toBeGreaterThan(1000);
+});
+
+it.each(["montserrat", "plex-mono"] as const)("embeds the modern font %s in a valid PDF", async (fontFamily) => {
+  mockFontFetch();
+  const blob = await exportResultsPdf({ preview, documentDate: "27/08/2026", filename: `metrexpert-${fontFamily}.xlsx`, fontFamily });
   expect(blob.type).toBe("application/pdf");
   expect(blob.size).toBeGreaterThan(1000);
 });

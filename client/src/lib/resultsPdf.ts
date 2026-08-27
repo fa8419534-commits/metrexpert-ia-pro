@@ -1,4 +1,9 @@
 import { PDFDocument, StandardFonts, degrees, rgb, type PDFImage } from "pdf-lib";
+import fontkit from "@pdf-lib/fontkit";
+import montserratRegularUrl from "@fontsource/montserrat/files/montserrat-latin-400-normal.woff2?inline";
+import montserratBoldUrl from "@fontsource/montserrat/files/montserrat-latin-600-normal.woff2?inline";
+import plexMonoRegularUrl from "@fontsource/ibm-plex-mono/files/ibm-plex-mono-latin-400-normal.woff2?inline";
+import plexMonoBoldUrl from "@fontsource/ibm-plex-mono/files/ibm-plex-mono-latin-600-normal.woff2?inline";
 import type { WorkbookPreviewData } from "@/components/WorkbookPreview";
 
 const defaultColors = {
@@ -72,14 +77,14 @@ export async function exportResultsPdf(input: {
   detail?: "summary" | "detailed";
   customFooter?: string;
   watermark?: string;
-  fontFamily?: "helvetica" | "times" | "courier";
+  fontFamily?: "helvetica" | "times" | "courier" | "montserrat" | "plex-mono";
 }) {
   const pdf = await PDFDocument.create();
   const fontFamily = input.fontFamily || "helvetica";
-  const regularFont = fontFamily === "times" ? StandardFonts.TimesRoman : fontFamily === "courier" ? StandardFonts.Courier : StandardFonts.Helvetica;
-  const boldFont = fontFamily === "times" ? StandardFonts.TimesRomanBold : fontFamily === "courier" ? StandardFonts.CourierBold : StandardFonts.HelveticaBold;
-  const regular = await pdf.embedFont(regularFont);
-  const bold = await pdf.embedFont(boldFont);
+  pdf.registerFontkit(fontkit);
+  const embeddedFonts = fontFamily === "montserrat" ? { regular: montserratRegularUrl, bold: montserratBoldUrl } : fontFamily === "plex-mono" ? { regular: plexMonoRegularUrl, bold: plexMonoBoldUrl } : null;
+  const regular = embeddedFonts ? await pdf.embedFont(await fetch(embeddedFonts.regular).then((response) => response.arrayBuffer())) : await pdf.embedFont(fontFamily === "times" ? StandardFonts.TimesRoman : fontFamily === "courier" ? StandardFonts.Courier : StandardFonts.Helvetica);
+  const bold = embeddedFonts ? await pdf.embedFont(await fetch(embeddedFonts.bold).then((response) => response.arrayBuffer())) : await pdf.embedFont(fontFamily === "times" ? StandardFonts.TimesRomanBold : fontFamily === "courier" ? StandardFonts.CourierBold : StandardFonts.HelveticaBold);
   const pageWidth = 595.28;
   const pageHeight = 841.89;
   const margin = 42;
