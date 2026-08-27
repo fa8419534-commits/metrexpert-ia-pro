@@ -5617,3 +5617,11 @@ Décision provisoire : privilégier d’abord un guide interactif déterministe,
 - [x] Permettre la personnalisation du logo et d’une palette de couleurs du PDF exporté, avec valeurs sûres par défaut et conservation locale.
 - [x] Ajouter le choix entre export PDF résumé et détaillé, avec aperçu correspondant.
 - [x] Ajouter les tests des variantes, vérifier TypeScript, build et rendu responsive avant checkpoint : 114 tests, TypeScript, build et captures desktop/mobile validés.
+
+
+## Nouvelle demande — préférences PDF persistantes
+
+- [x] Persister le logo, les couleurs et le niveau d’export PDF pour les prochaines sessions via le cache local du navigateur.
+- [x] Ajouter un champ de pied de page personnalisé transmis au PDF, limité à 130 caractères et normalisé pour l’encodage PDF.
+- [x] Ajouter la palette prédéfinie « MÉTREXPERT » et un bouton de réinitialisation des couleurs.
+- [x] Ajouter les tests de restauration et d’export, puis vérifier TypeScript, build et rendu responsive avant checkpoint : 114 tests, TypeScript, build et captures desktop/mobile validés.

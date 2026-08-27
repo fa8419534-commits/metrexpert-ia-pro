@@ -181,6 +181,7 @@ export default function Home() {
   const [pdfAccentColor, setPdfAccentColor] = useState("#C9A15A");
   const [pdfDarkColor, setPdfDarkColor] = useState("#0F1613");
   const [pdfDetail, setPdfDetail] = useState<"summary" | "detailed">("detailed");
+  const [pdfFooter, setPdfFooter] = useState("");
   const [pendingRemoval, setPendingRemoval] = useState<"signature" | "stamp" | "logo" | "all" | null>(null);
   const [pendingGeometryRegeneration, setPendingGeometryRegeneration] = useState<GeometryDraft[] | null>(null);
   const [geometryPdfUrl, setGeometryPdfUrl] = useState<string | null>(null);
@@ -243,10 +244,11 @@ export default function Home() {
     setStampImage(readStoredBrandImage(STAMP_STORAGE_KEY));
     setLogoImage(readStoredBrandImage(PDF_LOGO_STORAGE_KEY));
     try {
-      const savedPdfStyle = JSON.parse(window.localStorage.getItem(PDF_STYLE_STORAGE_KEY) || "null") as Partial<{ accentColor: string; darkColor: string; detail: "summary" | "detailed" }> | null;
+      const savedPdfStyle = JSON.parse(window.localStorage.getItem(PDF_STYLE_STORAGE_KEY) || "null") as Partial<{ accentColor: string; darkColor: string; detail: "summary" | "detailed"; footer: string }> | null;
       if (savedPdfStyle?.accentColor) setPdfAccentColor(savedPdfStyle.accentColor);
       if (savedPdfStyle?.darkColor) setPdfDarkColor(savedPdfStyle.darkColor);
       if (savedPdfStyle?.detail === "summary" || savedPdfStyle?.detail === "detailed") setPdfDetail(savedPdfStyle.detail);
+      if (typeof savedPdfStyle?.footer === "string") setPdfFooter(savedPdfStyle.footer);
     } catch {
       // Les options PDF reprennent leurs valeurs sûres par défaut.
     }
@@ -301,11 +303,11 @@ export default function Home() {
 
   useEffect(() => {
     try {
-      window.localStorage.setItem(PDF_STYLE_STORAGE_KEY, JSON.stringify({ accentColor: pdfAccentColor, darkColor: pdfDarkColor, detail: pdfDetail }));
+      window.localStorage.setItem(PDF_STYLE_STORAGE_KEY, JSON.stringify({ accentColor: pdfAccentColor, darkColor: pdfDarkColor, detail: pdfDetail, footer: pdfFooter }));
     } catch {
       // Les options restent actives pour la session même si le cache est indisponible.
     }
-  }, [pdfAccentColor, pdfDarkColor, pdfDetail]);
+  }, [pdfAccentColor, pdfDarkColor, pdfDetail, pdfFooter]);
 
   useEffect(() => {
     if (!generate.isPending) {
@@ -535,7 +537,7 @@ export default function Home() {
     setResultsPdfPending(true);
     try {
       const { exportResultsPdf } = await import("@/lib/resultsPdf");
-      const blob = await exportResultsPdf({ preview: download.preview, documentDate, filename: download.filename, signatureImageDataUrl: signatureImage?.dataUrl, stampImageDataUrl: stampImage?.dataUrl, logoImageDataUrl: logoImage?.dataUrl, accentColor: pdfAccentColor, darkColor: pdfDarkColor, detail: pdfDetail });
+      const blob = await exportResultsPdf({ preview: download.preview, documentDate, filename: download.filename, signatureImageDataUrl: signatureImage?.dataUrl, stampImageDataUrl: stampImage?.dataUrl, logoImageDataUrl: logoImage?.dataUrl, accentColor: pdfAccentColor, darkColor: pdfDarkColor, detail: pdfDetail, customFooter: pdfFooter });
       if (resultsPdfUrl) URL.revokeObjectURL(resultsPdfUrl);
       const url = URL.createObjectURL(blob);
       setResultsPdfUrl(url);
@@ -702,6 +704,8 @@ export default function Home() {
                   <div className="min-w-0"><label htmlFor="pdf-detail" className="field-label">Niveau d’export <span>REQUIS</span></label><select id="pdf-detail" value={pdfDetail} onChange={(event) => setPdfDetail(event.target.value as "summary" | "detailed")} className="technical-input h-11 w-full px-3 text-sm"><option value="summary">Résumé — postes principaux</option><option value="detailed">Détaillé — tous les postes</option></select></div>
                   <label className="flex min-w-0 items-center justify-between gap-3 border border-[#3A4A42] px-3 py-2 font-mono text-[10px] uppercase tracking-wide text-[#AEB7B0]">Couleur principale<input aria-label="Couleur principale du PDF" type="color" value={pdfAccentColor} onChange={(event) => setPdfAccentColor(event.target.value)} className="h-8 w-12 cursor-pointer border-0 bg-transparent p-0" /></label>
                   <label className="flex min-w-0 items-center justify-between gap-3 border border-[#3A4A42] px-3 py-2 font-mono text-[10px] uppercase tracking-wide text-[#AEB7B0]">Fond du bandeau<input aria-label="Fond du bandeau PDF" type="color" value={pdfDarkColor} onChange={(event) => setPdfDarkColor(event.target.value)} className="h-8 w-12 cursor-pointer border-0 bg-transparent p-0" /></label>
+                  <div className="sm:col-span-2"><label htmlFor="pdf-footer" className="field-label">Pied de page personnalisé <span>OPTIONNEL</span></label><input id="pdf-footer" type="text" maxLength={130} value={pdfFooter} onChange={(event) => setPdfFooter(event.target.value)} placeholder="Ex. MÉTREXPERT IA PRO · Document de travail" className="technical-input h-11 w-full px-3 text-sm" /></div>
+                  <button type="button" onClick={() => { setPdfAccentColor("#C9A15A"); setPdfDarkColor("#0F1613"); }} className="justify-self-start border border-[#C9A15A] px-3 py-2 font-mono text-[9px] uppercase tracking-wide text-[#C9A15A]">Réinitialiser palette MÉTREXPERT</button>
                 </div>
               </div>
               <div className="mt-5 grid min-w-0 gap-4 sm:grid-cols-2">
