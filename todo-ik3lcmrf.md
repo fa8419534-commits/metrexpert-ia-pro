@@ -5555,3 +5555,27 @@ Décision provisoire : privilégier d’abord un guide interactif déterministe,
 - [x] Vérifier accessibilité, confidentialité, responsive, TypeScript, tests et build.
 - [x] Relire le suivi avant checkpoint et ne pas publier automatiquement.
 - [x] Ne pas modifier quotas, paiements, preuves, secrets ou Heartbeat.
+
+
+## Session test navigateur client et contrôle du fichier généré — 27/08/2026
+
+- [x] Tester l’accueil et les appels à l’action comme un nouveau client.
+- [x] Tester l’accès à l’espace d’étude et le parcours guidé.
+- [x] Tester la checklist, le brouillon, l’exemple et la réinitialisation.
+- [x] Exécuter une génération de test uniquement avec autorisation et données fictives.
+- [ ] Télécharger le classeur généré et vérifier toutes ses feuilles.
+- [ ] Contrôler les formules OOXML, les formats numériques, les totaux et les hypothèses.
+- [ ] Contrôler la lisibilité et les défauts visibles sur le fichier.
+- [x] Documenter les défauts avec priorité et reproduction.
+- [x] Ne pas envoyer de communication, ne pas publier et ne pas modifier les données de production.
+
+
+## Défauts découverts pendant le test client — 27/08/2026
+
+- [ ] P0 — Corriger le schéma JSON structuré `btp_estimate` : `geometry.items.required` ne contient pas `height`, ce qui provoque HTTP 400 côté fournisseur avant toute génération.
+- [ ] P1 — Reproduire et diagnostiquer le premier clic de génération sans requête visible.
+- [ ] P1 — Après correction P0, générer puis télécharger un classeur et inspecter toutes ses feuilles, formules, totaux, hypothèses et formats.
+- [ ] P1 — Tester séparément le parcours avec fichier joint PDF/image.
+- [ ] P2 — Tester l’essai gratuit dans une session navigateur neuve, distincte de l’accès partagé persistant.
+- [x] Documenter le parcours client et la réponse fournisseur sans exposer de secret.
+- [x] Ne pas corriger le code dans cette session de diagnostic sans demande explicite de l’utilisateur.
