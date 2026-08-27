@@ -500,13 +500,13 @@
 
 ## Session Heartbeat, sauvegarde immédiate et preuve de paiement — 27/08/2026
 
-- [ ] Vérifier les contrats existants du Heartbeat, des sauvegardes, du stockage et des demandes de paiement.
-- [ ] Afficher dans Admin l’état et la fraîcheur du dernier Heartbeat quotidien.
-- [ ] Ajouter un déclenchement manuel de sauvegarde avec état de réussite ou d’échec.
-- [ ] Ajouter le téléchargement sécurisé d’une capture de transfert à une demande de paiement.
-- [ ] Ajouter les validations de type, format, taille et signature binaire de la preuve.
-- [ ] Ajouter les tests Vitest et le contrôle responsive des trois parcours.
-- [ ] Exécuter TypeScript, tests, build et contrôle final avant checkpoint.
+- [x] Vérifier les contrats existants du Heartbeat, des sauvegardes, du stockage et des demandes de paiement.
+- [x] Afficher dans Admin l’état et la fraîcheur du dernier Heartbeat quotidien.
+- [x] Ajouter un déclenchement manuel de sauvegarde avec état de réussite ou d’échec.
+- [x] Ajouter le téléchargement sécurisé d’une capture de transfert à une demande de paiement.
+- [x] Ajouter les validations de type, format, taille et signature binaire de la preuve.
+- [x] Ajouter les tests Vitest et le contrôle responsive des trois parcours.
+- [x] Exécuter TypeScript, tests, build et contrôle final avant checkpoint.
 
 
 ## Session preuves Admin, sauvegarde et formatage Excel — 27/08/2026

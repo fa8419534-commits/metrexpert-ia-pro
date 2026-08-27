@@ -299,6 +299,10 @@ export default function Admin() {
   const lastPurgeRun = purgeRunRows[0];
   const successfulPurgeCount = purgeRunRows.filter((run) => run.status === "success").length;
   const lastBackupLabel = backupStatus.data?.lastSuccessfulBackupAt ? new Date(backupStatus.data.lastSuccessfulBackupAt).toLocaleString("fr-FR") : "Aucune sauvegarde enregistrée";
+  const lastAutomaticHeartbeat = purgeRunRows.find((run) => run.runType === "automatic");
+  const heartbeatLabel = lastAutomaticHeartbeat ? new Date(lastAutomaticHeartbeat.completedAt).toLocaleString("fr-FR") : "Aucune exécution automatique";
+  const heartbeatFresh = lastAutomaticHeartbeat ? Date.now() - new Date(lastAutomaticHeartbeat.completedAt).getTime() <= 36 * 60 * 60 * 1000 : false;
+  const heartbeatState = lastAutomaticHeartbeat ? (heartbeatFresh ? "Actif récemment" : "À vérifier") : "À configurer";
 
   const visiblePurgeRuns = purgeRunRows.filter((run) => {
     const query = purgeSearch.trim().toLowerCase();
@@ -531,12 +535,17 @@ export default function Admin() {
               </Button>
             </div>
           </div>
-          <div className="mt-5 grid gap-3 md:grid-cols-3">
+          <div className="mt-5 grid gap-3 md:grid-cols-4">
             <div className="border border-[#3A4A42] bg-[#0F1613] p-4" aria-live="polite">
               <p className="font-mono text-[10px] uppercase tracking-wider text-[#AEB7B0]">Dernière sauvegarde réussie</p>
               <p className="mt-2 font-mono text-sm text-[#C9A15A]">{lastBackupLabel}</p>
               {backupFeedback === "success" && <p className="mt-2 text-xs text-[#7C9A76]">Enregistrement confirmé.</p>}
               {backupFeedback === "error" && <p className="mt-2 text-xs text-[#D98472]">Échec de l’enregistrement.</p>}
+            </div>
+            <div className="border border-[#3A4A42] bg-[#0F1613] p-4">
+              <p className="font-mono text-[10px] uppercase tracking-wider text-[#AEB7B0]">Heartbeat quotidien</p>
+              <p className={`mt-2 font-mono text-sm ${heartbeatFresh ? "text-[#7C9A76]" : "text-[#C9A15A]"}`}>{heartbeatState}</p>
+              <p className="mt-1 text-[11px] text-[#AEB7B0]">Dernière exécution : {heartbeatLabel}</p>
             </div>
             <div className="border border-[#3A4A42] bg-[#0F1613] p-4">
               <p className="font-mono text-[10px] uppercase tracking-wider text-[#AEB7B0]">Exécutions réussies visibles</p>
