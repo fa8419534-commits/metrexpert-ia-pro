@@ -5655,3 +5655,18 @@ Décision provisoire : privilégier d’abord un guide interactif déterministe,
 - [x] Utiliser le modèle personnalisé dans le partage PDF sans envoi automatique : partage natif ou brouillon mailto avec téléchargement séparé.
 - [x] Vérifier et tester la sauvegarde automatique de la police PDF pour les prochaines sessions, en conservant les cinq options disponibles.
 - [x] Ajouter les tests, vérifier TypeScript, build et rendu responsive avant checkpoint : 117 tests Vitest, TypeScript, build et contrôle mobile validés.
+
+
+## Nouvelle demande — bibliothèque de modèles e-mail
+
+- [x] Ajouter le remplacement dynamique des variables `{nom_client}` et `{projet}` dans l’objet et le corps.
+- [x] Permettre de créer, nommer, sélectionner et sauvegarder plusieurs modèles e-mail localement.
+- [x] Ajouter un aperçu du message final avec variables remplacées avant le partage.
+- [x] Ajouter les tests de persistance, variables, aperçu et partage, puis vérifier TypeScript, build et rendu responsive avant checkpoint.
+
+- [x] Ajouter le remplacement dynamique des variables dans les modèles e-mail ({nom_client}, {projet}, {date}, {total})
+- [x] Ajouter une bibliothèque locale de modèles e-mail nommés avec sélection, création et mise à jour
+- [x] Ajouter un aperçu final du message e-mail avant partage manuel
+- [x] Couvrir le rendu et la persistance des modèles e-mail par des tests Vitest
+- [x] Vérifier le parcours responsive de la gestion des modèles e-mail sur mobile
+- [x] Exécuter la suite complète, le build et sauvegarder un checkpoint publiable
