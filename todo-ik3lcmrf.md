@@ -402,3 +402,9 @@
 - [x] Vérifier et documenter la limite de nettoyage du badge historique de l’aperçu
 - [x] Ajouter les tests Admin et valider TypeScript, tests, build et responsive
 - [x] Sauvegarder un checkpoint de la correction
+
+- [x] Vérifier la checklist de publication : secrets, accès Admin, quotas et limites de coûts
+- [x] Vérifier la confidentialité, le consentement, la désinscription et les données de production
+- [x] Vérifier le parcours client, paiement manuel, téléchargement Excel et mobile
+- [x] Classer les derniers points en obligatoires, recommandés et post-publication
+- [x] Rédiger la procédure de publication sans publier à la place de l’utilisateur
