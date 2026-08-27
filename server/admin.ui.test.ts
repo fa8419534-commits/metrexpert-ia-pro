@@ -129,6 +129,39 @@ describe("Admin panel UI", () => {
     expect(source).toContain("Promise.all([codes.refetch(), trials.refetch(), paymentRequests.refetch(), retention.refetch(), backupStatus.refetch(), purgeRuns.refetch()])");
   });
 
+  it("exposes the protected proof zoom controls and thirty-day Heartbeat dashboard", () => {
+    const source = readFileSync(resolve(process.cwd(), "client/src/pages/Admin.tsx"), "utf8");
+    expect(source).toContain("proofZoom");
+    expect(source).toContain("Agrandir le zoom");
+    expect(source).toContain("Réinitialiser le zoom");
+    expect(source).toContain("Historique Heartbeat — 30 jours");
+    expect(source).toContain("heartbeatStatusFilter");
+    expect(source).toContain("30 derniers jours");
+    expect(source).toContain("run.runType === \"automatic\"");
+  });
+
+  it("renders the Heartbeat dashboard with an explicit empty state for an unlocked admin", () => {
+    testState.adminUnlocked = true;
+    render(React.createElement(Admin));
+    expect(screen.getByRole("heading", { name: "Historique Heartbeat — 30 jours" })).toBeTruthy();
+    expect(screen.getByRole("group", { name: "Filtrer les exécutions Heartbeat par statut" })).toBeTruthy();
+    expect(screen.getByRole("status").textContent).toContain("Aucune exécution Heartbeat");
+  });
+
+  it("filters Heartbeat executions by status without affecting protected access", () => {
+    testState.adminUnlocked = true;
+    testState.purgeRuns = [
+      { id: 21, runType: "automatic", status: "success", deletedCount: 2, retentionDays: 365, cutoff: new Date(), taskUid: "hb-success", errorMessage: null, startedAt: new Date(), completedAt: new Date() },
+      { id: 22, runType: "automatic", status: "failed", deletedCount: 0, retentionDays: 365, cutoff: new Date(), taskUid: "hb-failed", errorMessage: "timeout", startedAt: new Date(), completedAt: new Date() },
+    ];
+    render(React.createElement(Admin));
+    const failedFilter = screen.getByRole("button", { name: "Heartbeat : Échecs" });
+    expect(failedFilter.getAttribute("aria-pressed")).toBe("false");
+    fireEvent.click(failedFilter);
+    expect(screen.getByRole("button", { name: "Heartbeat : Échecs" }).getAttribute("aria-pressed")).toBe("true");
+    expect(screen.getByText("Échecs / 30 jours").parentElement?.textContent).toContain("1");
+  });
+
   it("renders a protected administrator unlock screen before exposing client management", () => {
     render(React.createElement(Admin));
     expect(screen.getByRole("heading", { name: "Accès administration" })).toBeTruthy();

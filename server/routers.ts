@@ -262,7 +262,7 @@ export const appRouter = router({
     adminSetFreeTrialRetention: adminProcedure.input(z.object({ retentionDays: z.number().int().min(30).max(730) })).mutation(async ({ input }) => ({ retentionDays: await setFreeTrialRetentionDays(input.retentionDays) })),
     adminGetBackupStatus: adminProcedure.query(async () => ({ lastSuccessfulBackupAt: await getLastSuccessfulBackupAt() })),
     adminMarkBackupSuccessful: adminProcedure.mutation(async () => ({ lastSuccessfulBackupAt: await markSuccessfulBackupAt() })),
-    adminListPurgeRuns: adminProcedure.query(async () => listPurgeRuns()),
+    adminListPurgeRuns: adminProcedure.query(async () => listPurgeRuns(100)),
     adminPurgeExpiredFreeTrials: adminProcedure.mutation(async () => {
       const startedAt = new Date();
       try {
