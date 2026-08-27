@@ -389,3 +389,9 @@
 - [x] Ajouter une sélection groupée des forfaits expirés et une relance WhatsApp préremplie sans envoi automatique
 - [x] Ajouter les tests d’interaction et valider TypeScript, tests, build et responsive
 - [x] Sauvegarder un checkpoint de ces améliorations
+
+- [x] Inspecter les logs navigateur, réseau et serveur pour les trois erreurs Admin
+- [x] Reproduire l’ouverture, le déverrouillage et le chargement des données Admin
+- [x] Corriger chaque cause identifiée et conserver un état d’erreur explicite
+- [x] Ajouter ou compléter les tests de régression Admin
+- [x] Valider TypeScript, tests, build et responsive puis sauvegarder un checkpoint

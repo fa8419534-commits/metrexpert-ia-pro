@@ -132,6 +132,9 @@ export default function Admin() {
   const utils = trpc.useUtils();
   const isAdminUnlocked =
     sessionUnlocked || adminStatus.data?.unlocked === true;
+  // Les listes protégées ne doivent se charger qu’après confirmation du cookie Admin par le serveur.
+  // Cela évite trois réponses 401 simultanées pendant l’ouverture de la page ou la reconnexion.
+  const canLoadAdminData = adminStatus.data?.unlocked === true;
 
   const login = trpc.security.verifyAdminCode.useMutation({
     onSuccess: () => {
@@ -143,12 +146,20 @@ export default function Admin() {
   });
 
   const codes = trpc.security.adminListCodes.useQuery(undefined, {
-    enabled: isAdminUnlocked,
+    enabled: canLoadAdminData,
+    retry: false,
+    refetchOnWindowFocus: false,
   });
   const trials = trpc.security.adminListFreeTrials.useQuery(undefined, {
-    enabled: isAdminUnlocked,
+    enabled: canLoadAdminData,
+    retry: false,
+    refetchOnWindowFocus: false,
   });
-  const paymentRequests = trpc.security.adminListPaymentRequests.useQuery(undefined, { enabled: isAdminUnlocked });
+  const paymentRequests = trpc.security.adminListPaymentRequests.useQuery(undefined, {
+    enabled: canLoadAdminData,
+    retry: false,
+    refetchOnWindowFocus: false,
+  });
 
   const reviewPayment = trpc.security.adminReviewPaymentRequest.useMutation({
     onSuccess: (data) => {

@@ -1,5 +1,7 @@
 // @vitest-environment jsdom
 import React from "react";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -90,6 +92,13 @@ describe("Admin panel UI", () => {
     expect(csv).toContain('"Full name";"Phone number";"Email";"Preferred contact channel"');
     expect(csv).toContain('"Prospect WhatsApp";"2250100000000";"wa@exemple.ci";"WhatsApp"');
     expect(csv).toContain('"Prospect e-mail";"";"email@exemple.ci";"Email"');
+  });
+
+  it("does not load protected Admin lists before the server confirms the session", () => {
+    const source = readFileSync(resolve(process.cwd(), "client/src/pages/Admin.tsx"), "utf8");
+    expect(source).toContain("const canLoadAdminData = adminStatus.data?.unlocked === true");
+    expect(source).toContain("enabled: canLoadAdminData");
+    expect(source).toContain("retry: false");
   });
 
   it("renders a protected administrator unlock screen before exposing client management", () => {
