@@ -467,3 +467,12 @@
 - [x] Insérer les notes personnalisées dans le rapport PDF.
 - [x] Ajouter les tests Vitest des filtres, du graphique et de la modale PDF.
 - [x] Exécuter TypeScript, tests, build et contrôle responsive avant checkpoint.
+
+
+## Session tendance des purges — 27/08/2026
+
+- [x] Calculer la comparaison réelle entre les 7 derniers jours et les 7 jours précédents.
+- [x] Afficher dans Admin la variation absolue et le pourcentage avec états hausse, baisse et stable.
+- [x] Gérer explicitement l’absence d’historique ou une période précédente à zéro.
+- [x] Ajouter les tests Vitest du calcul et de l’affichage de tendance.
+- [x] Exécuter TypeScript, tests, build et contrôle responsive avant checkpoint.

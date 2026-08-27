@@ -302,6 +302,19 @@ export default function Admin() {
     const deletedCount = purgeRunRows.filter((run) => new Date(run.completedAt).toISOString().slice(0, 10) === key).reduce((total, run) => total + run.deletedCount, 0);
     return { key, label: day.toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit" }), deletedCount };
   });
+  const purgePreviousSevenDays = Array.from({ length: 7 }, (_, index) => {
+    const day = new Date();
+    day.setHours(0, 0, 0, 0);
+    day.setDate(day.getDate() - (13 - index));
+    const key = day.toISOString().slice(0, 10);
+    const deletedCount = purgeRunRows.filter((run) => new Date(run.completedAt).toISOString().slice(0, 10) === key).reduce((total, run) => total + run.deletedCount, 0);
+    return { key, deletedCount };
+  });
+  const currentPurgeTotal = purgeLastSevenDays.reduce((total, day) => total + day.deletedCount, 0);
+  const previousPurgeTotal = purgePreviousSevenDays.reduce((total, day) => total + day.deletedCount, 0);
+  const purgeTrendDelta = currentPurgeTotal - previousPurgeTotal;
+  const purgeTrendPercent = previousPurgeTotal > 0 ? Math.round((purgeTrendDelta / previousPurgeTotal) * 100) : null;
+  const purgeTrendTone = purgeTrendDelta > 0 ? "text-[#C9A15A]" : purgeTrendDelta < 0 ? "text-[#7C9A76]" : "text-[#AEB7B0]";
   const maxPurgeDeletedCount = Math.max(1, ...purgeLastSevenDays.map((day) => day.deletedCount));
 
   async function handleJourneyPdfExport(notes: string) {
@@ -540,6 +553,11 @@ export default function Admin() {
             </div>
             <div className="border border-[#3A4A42] bg-[#0F1613] p-4" aria-labelledby="purge-chart-title">
               <div className="flex items-center justify-between gap-2"><p id="purge-chart-title" className="font-mono text-[10px] uppercase tracking-wider text-[#AEB7B0]">Contacts purgés / 7 jours</p><BarChart3 className="h-4 w-4 text-[#C9A15A]" aria-hidden="true" /></div>
+              <div className="mt-3 border border-[#3A4A42] bg-[#16201C] p-3" aria-label="Tendance comparée aux sept jours précédents">
+                <p className="font-mono text-[10px] uppercase tracking-wider text-[#AEB7B0]">Tendance vs semaine précédente</p>
+                <p className={`mt-1 font-mono text-lg ${purgeTrendTone}`}>{purgeTrendDelta > 0 ? "↑" : purgeTrendDelta < 0 ? "↓" : "→"} {purgeTrendDelta > 0 ? "+" : ""}{purgeTrendDelta} contact{Math.abs(purgeTrendDelta) > 1 ? "s" : ""}{purgeTrendPercent === null ? " — base précédente indisponible" : ` — ${purgeTrendPercent > 0 ? "+" : ""}${purgeTrendPercent}%`}</p>
+                <p className="mt-1 text-[11px] text-[#AEB7B0]">Cette semaine : {currentPurgeTotal} · Semaine précédente : {previousPurgeTotal}</p>
+              </div>
               <div className="mt-4 flex h-36 items-end justify-between gap-2" aria-label="Graphique des contacts purgés au cours des sept derniers jours">
                 {purgeLastSevenDays.map((day) => <div key={day.key} className="flex h-full min-w-0 flex-1 flex-col items-center justify-end gap-1"><span className="font-mono text-[10px] text-[#C9A15A]">{day.deletedCount}</span><div className="w-full max-w-7 bg-[#C9A15A]" style={{ height: `${Math.max(6, (day.deletedCount / maxPurgeDeletedCount) * 100)}%` }} title={`${day.label} : ${day.deletedCount} contact${day.deletedCount > 1 ? "s" : ""}`} /><span className="font-mono text-[9px] text-[#AEB7B0]">{day.label}</span></div>)}
               </div>

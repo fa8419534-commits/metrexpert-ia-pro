@@ -312,3 +312,17 @@ describe("Admin panel UI", () => {
     fireEvent.change(screen.getByLabelText("Notes personnalisées"), { target: { value: "Test pilote à vérifier dans Excel Desktop." } });
     expect((screen.getByLabelText("Notes personnalisées") as HTMLTextAreaElement).value).toContain("Excel Desktop");
   });
+
+
+  it("compares the current seven-day purge volume with the previous week", () => {
+    testState.adminUnlocked = true;
+    const dateWithOffset = (days: number) => { const date = new Date(); date.setDate(date.getDate() + days); return date; };
+    testState.purgeRuns = [
+      { id: 10, runType: "automatic", status: "success", deletedCount: 3, retentionDays: 365, cutoff: dateWithOffset(-1), taskUid: "T_current", errorMessage: null, startedAt: dateWithOffset(-1), completedAt: dateWithOffset(-1) },
+      { id: 11, runType: "automatic", status: "success", deletedCount: 1, retentionDays: 365, cutoff: dateWithOffset(-8), taskUid: "T_previous", errorMessage: null, startedAt: dateWithOffset(-8), completedAt: dateWithOffset(-8) },
+    ];
+    render(React.createElement(Admin));
+    expect(screen.getByText("Tendance vs semaine précédente")).toBeTruthy();
+    expect(screen.getByText(/\+2 contacts — \+200%/)).toBeTruthy();
+    expect(screen.getByText("Cette semaine : 3 · Semaine précédente : 1")).toBeTruthy();
+  });
