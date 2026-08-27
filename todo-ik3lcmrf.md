@@ -476,3 +476,23 @@
 - [x] Gérer explicitement l’absence d’historique ou une période précédente à zéro.
 - [x] Ajouter les tests Vitest du calcul et de l’affichage de tendance.
 - [x] Exécuter TypeScript, tests, build et contrôle responsive avant checkpoint.
+
+
+## Session comptes de paiement — 27/08/2026
+
+- [ ] Centraliser les coordonnées publiques fournies pour Wave, Moov Money et MTN Money.
+- [ ] Afficher les comptes de réception avec le nom de chaque titulaire.
+- [ ] Ajouter un bouton Copier pour chaque numéro.
+- [ ] Afficher un récapitulatif dynamique du forfait et du montant choisi.
+- [ ] Ajouter l’avertissement de sécurité avant transfert.
+- [ ] Ajouter les tests Vitest des coordonnées, copies et montants.
+- [ ] Exécuter TypeScript, tests, build et contrôle responsive avant checkpoint.
+
+
+## Session audit global actualisé — 27/08/2026
+
+- [x] Vérifier l’état des comptes de paiement et des montants affichés aux clients.
+- [x] Vérifier les parcours publics, génération, quotas, essai gratuit et paiement manuel.
+- [x] Vérifier Admin, sauvegardes, purges, Excel/PDF, sécurité et configuration de production.
+- [x] Exécuter les validations automatisées et les contrôles responsive actualisés.
+- [x] Rédiger l’audit priorisé avec les éléments bloquants, risques et améliorations recommandées.
