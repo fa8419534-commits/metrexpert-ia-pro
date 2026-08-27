@@ -1,7 +1,7 @@
 import { PDFDocument, StandardFonts, rgb, type PDFImage } from "pdf-lib";
 import type { WorkbookPreviewData } from "@/components/WorkbookPreview";
 
-const colors = {
+const defaultColors = {
   dark: rgb(0.059, 0.086, 0.075),
   panel: rgb(0.086, 0.125, 0.11),
   gold: rgb(0.788, 0.631, 0.353),
@@ -9,6 +9,12 @@ const colors = {
   muted: rgb(0.56, 0.61, 0.58),
   ok: rgb(0.486, 0.604, 0.463),
 };
+
+function colorFromHex(value: string | undefined, fallback: ReturnType<typeof rgb>) {
+  if (!value || !/^#[0-9a-f]{6}$/i.test(value)) return fallback;
+  const number = Number.parseInt(value.slice(1), 16);
+  return rgb(((number >> 16) & 255) / 255, ((number >> 8) & 255) / 255, (number & 255) / 255);
+}
 
 function formatNumber(value: number) {
   return value.toLocaleString("fr-FR", { maximumFractionDigits: 2 });
@@ -60,6 +66,10 @@ export async function exportResultsPdf(input: {
   filename: string;
   signatureImageDataUrl?: string;
   stampImageDataUrl?: string;
+  logoImageDataUrl?: string;
+  accentColor?: string;
+  darkColor?: string;
+  detail?: "summary" | "detailed";
 }) {
   const pdf = await PDFDocument.create();
   const regular = await pdf.embedFont(StandardFonts.Helvetica);
@@ -69,6 +79,8 @@ export async function exportResultsPdf(input: {
   const margin = 42;
   let page = pdf.addPage([pageWidth, pageHeight]);
   let y = pageHeight - margin;
+  const colors = { ...defaultColors, dark: colorFromHex(input.darkColor, defaultColors.dark), gold: colorFromHex(input.accentColor, defaultColors.gold) };
+  const logo = await embedBrandImage(pdf, input.logoImageDataUrl);
   const signature = await embedBrandImage(pdf, input.signatureImageDataUrl);
   const stamp = await embedBrandImage(pdf, input.stampImageDataUrl);
 
@@ -93,7 +105,8 @@ export async function exportResultsPdf(input: {
   };
 
   page.drawRectangle({ x: 0, y: pageHeight - 124, width: pageWidth, height: 124, color: colors.dark });
-  text("MÉTREXPERT IA PRO", margin, 23, bold, colors.gold);
+  if (logo) page.drawImage(logo, { x: margin, y: pageHeight - 100, width: 48, height: 48 });
+  text("MÉTREXPERT IA PRO", margin + (logo ? 62 : 0), 23, bold, colors.gold);
   y -= 32;
   text("RÉSULTATS DU MÉTRÉ & DQE", margin, 10, bold, colors.paper);
   y -= 22;
@@ -123,7 +136,7 @@ export async function exportResultsPdf(input: {
   text("PÉRIMÈTRE & HYPOTHÈSES", margin, 11, bold, colors.gold);
   y -= 18;
   paragraph(input.preview.summary || "Aucun résumé fourni.", margin, 102);
-  for (const hypothesis of input.preview.hypotheses.slice(0, 6)) {
+  for (const hypothesis of input.preview.hypotheses.slice(0, input.detail === "detailed" ? 12 : 6)) {
     addPageIfNeeded(16);
     text(`• ${hypothesis}`, margin + 8, 8, regular, colors.muted);
     y -= 14;
@@ -141,7 +154,8 @@ export async function exportResultsPdf(input: {
   text("QTÉ", columns.quantity, 7, bold, colors.gold);
   text("MONTANT", columns.amount, 7, bold, colors.gold);
   y -= 14;
-  for (const measure of input.preview.measures) {
+  const measuresToRender = input.detail === "summary" ? input.preview.measures.slice(0, 8) : input.preview.measures;
+  for (const measure of measuresToRender) {
     addPageIfNeeded(26);
     const quantity = measure.quantity * (measure.factor ?? 1);
     const amount = quantity * (measure.unitPrice ?? 0);
@@ -152,6 +166,12 @@ export async function exportResultsPdf(input: {
     text(formatNumber(amount), columns.amount, 7, regular, colors.gold);
     y -= 15;
     page.drawLine({ start: { x: margin, y: y + 4 }, end: { x: pageWidth - margin, y: y + 4 }, thickness: 0.25, color: colors.panel });
+  }
+
+  if (measuresToRender.length < input.preview.measures.length) {
+    addPageIfNeeded(24);
+    text(`Résumé : ${measuresToRender.length} postes affichés sur ${input.preview.measures.length}.`, margin, 8, regular, colors.muted);
+    y -= 16;
   }
 
   addPageIfNeeded(80);

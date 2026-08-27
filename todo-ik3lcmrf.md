@@ -5608,4 +5608,12 @@ Décision provisoire : privilégier d’abord un guide interactif déterministe,
 - [x] Ajouter un export PDF récapitulatif des résultats générés, avec téléchargement depuis l’espace d’étude : génération côté navigateur avec résumé, montants, postes, hypothèses et validation.
 - [x] Ajouter un aperçu avant téléchargement du PDF récapitulatif des résultats : modale iframe avec bouton de téléchargement.
 - [x] Renforcer les animations et messages de chargement autour de la génération et de l’export, avec progression indicative, spinner, messages d’étape, estimation et respect de prefers-reduced-motion.
-- [x] Ajouter les tests Vitest de l’export PDF et des états de chargement, puis vérifier TypeScript, build et rendu responsive : 113 tests réussis, TypeScript, build et captures desktop/mobile validés.
+- [x] Ajouter les tests Vitest de l’export PDF et des états de chargement, puis vérifier TypeScript, build et rendu responsive : 114 tests réussis, TypeScript, build et captures desktop/mobile validés.
+
+
+## Nouvelle demande — personnalisation et impression PDF
+
+- [x] Ajouter un bouton d’impression directe depuis la fenêtre d’aperçu PDF : ouverture du PDF dans une fenêtre dédiée et lancement de l’impression du navigateur.
+- [x] Permettre la personnalisation du logo et d’une palette de couleurs du PDF exporté, avec valeurs sûres par défaut et conservation locale.
+- [x] Ajouter le choix entre export PDF résumé et détaillé, avec aperçu correspondant.
+- [x] Ajouter les tests des variantes, vérifier TypeScript, build et rendu responsive avant checkpoint : 114 tests, TypeScript, build et captures desktop/mobile validés.

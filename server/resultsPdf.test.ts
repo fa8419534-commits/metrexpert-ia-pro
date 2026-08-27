@@ -28,3 +28,18 @@ describe("results PDF export", () => {
     expect(header).toBe("%PDF-");
   });
 });
+
+it("supports summary mode and an embedded logo", async () => {
+  const logoImageDataUrl = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=";
+  const blob = await exportResultsPdf({
+    preview: { ...preview, measures: [...preview.measures, { code: "G-02", designation: "Mur", unit: "m²", quantity: 100, unitPrice: 3000 }] },
+    documentDate: "27/08/2026",
+    filename: "metrexpert-test.xlsx",
+    logoImageDataUrl,
+    accentColor: "#8B5E34",
+    darkColor: "#102018",
+    detail: "summary",
+  });
+  expect(blob.type).toBe("application/pdf");
+  expect(blob.size).toBeGreaterThan(1000);
+});

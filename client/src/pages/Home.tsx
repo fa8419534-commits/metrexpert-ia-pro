@@ -21,6 +21,8 @@ const MAX_BRAND_IMAGE_SIZE = 1.5 * 1024 * 1024;
 const BRAND_IMAGE_STORAGE_VERSION = 1;
 const SIGNATURE_STORAGE_KEY = "metrexpert:validation-image:signature";
 const STAMP_STORAGE_KEY = "metrexpert:validation-image:stamp";
+const PDF_LOGO_STORAGE_KEY = "metrexpert:pdf-logo";
+const PDF_STYLE_STORAGE_KEY = "metrexpert:pdf-style:v1";
 const FORM_DRAFT_STORAGE_KEY = "metrexpert:generation-draft:v1";
 const EXAMPLE_PROJECT_DESCRIPTION = "Construction d’une villa R+1 de 180 m² à Yopougon, avec fondations en béton armé, murs en agglos de 15 cm, dalle pleine, toiture-terrasse et peinture intérieure. Métrer séparément les fondations, le gros œuvre, les enduits, les menuiseries et la peinture. Les dimensions non précisées doivent être indiquées comme hypothèses à vérifier.";
 
@@ -175,7 +177,11 @@ export default function Home() {
   const [validationDate, setValidationDate] = useState("");
   const [signatureImage, setSignatureImage] = useState<BrandImage | null>(null);
   const [stampImage, setStampImage] = useState<BrandImage | null>(null);
-  const [pendingRemoval, setPendingRemoval] = useState<"signature" | "stamp" | "all" | null>(null);
+  const [logoImage, setLogoImage] = useState<BrandImage | null>(null);
+  const [pdfAccentColor, setPdfAccentColor] = useState("#C9A15A");
+  const [pdfDarkColor, setPdfDarkColor] = useState("#0F1613");
+  const [pdfDetail, setPdfDetail] = useState<"summary" | "detailed">("detailed");
+  const [pendingRemoval, setPendingRemoval] = useState<"signature" | "stamp" | "logo" | "all" | null>(null);
   const [pendingGeometryRegeneration, setPendingGeometryRegeneration] = useState<GeometryDraft[] | null>(null);
   const [geometryPdfUrl, setGeometryPdfUrl] = useState<string | null>(null);
   const [geometryPdfFilename, setGeometryPdfFilename] = useState("controle-geometrique.pdf");
@@ -235,6 +241,15 @@ export default function Home() {
   useEffect(() => {
     setSignatureImage(readStoredBrandImage(SIGNATURE_STORAGE_KEY));
     setStampImage(readStoredBrandImage(STAMP_STORAGE_KEY));
+    setLogoImage(readStoredBrandImage(PDF_LOGO_STORAGE_KEY));
+    try {
+      const savedPdfStyle = JSON.parse(window.localStorage.getItem(PDF_STYLE_STORAGE_KEY) || "null") as Partial<{ accentColor: string; darkColor: string; detail: "summary" | "detailed" }> | null;
+      if (savedPdfStyle?.accentColor) setPdfAccentColor(savedPdfStyle.accentColor);
+      if (savedPdfStyle?.darkColor) setPdfDarkColor(savedPdfStyle.darkColor);
+      if (savedPdfStyle?.detail === "summary" || savedPdfStyle?.detail === "detailed") setPdfDetail(savedPdfStyle.detail);
+    } catch {
+      // Les options PDF reprennent leurs valeurs sûres par défaut.
+    }
     const exampleRequested = new URLSearchParams(window.location.search).get("example") === "1";
     try {
       const rawDraft = window.localStorage.getItem(FORM_DRAFT_STORAGE_KEY);
@@ -285,6 +300,14 @@ export default function Home() {
   }, [description, clientPhone, clientEmail, trialPhone, trialEmail, trialConsent, verifiedBy, validationDate, onboardingStep]);
 
   useEffect(() => {
+    try {
+      window.localStorage.setItem(PDF_STYLE_STORAGE_KEY, JSON.stringify({ accentColor: pdfAccentColor, darkColor: pdfDarkColor, detail: pdfDetail }));
+    } catch {
+      // Les options restent actives pour la session même si le cache est indisponible.
+    }
+  }, [pdfAccentColor, pdfDarkColor, pdfDetail]);
+
+  useEffect(() => {
     if (!generate.isPending) {
       setProgressStage(0);
       setGenerationElapsedSeconds(0);
@@ -325,7 +348,7 @@ export default function Home() {
     setFile(candidate);
   };
 
-  const onBrandImageChange = async (kind: "signature" | "stamp", candidate?: File) => {
+  const onBrandImageChange = async (kind: "signature" | "stamp" | "logo", candidate?: File) => {
     setBrandImageError("");
     if (!candidate) return;
     if (!BRAND_IMAGE_TYPES.includes(candidate.type)) {
@@ -339,31 +362,35 @@ export default function Home() {
     try {
       const dataUrl = await readFileAsDataUrl(candidate);
       const image = { name: candidate.name, dataUrl };
-      const persisted = persistBrandImage(kind === "signature" ? SIGNATURE_STORAGE_KEY : STAMP_STORAGE_KEY, image);
+      const persisted = persistBrandImage(kind === "signature" ? SIGNATURE_STORAGE_KEY : kind === "stamp" ? STAMP_STORAGE_KEY : PDF_LOGO_STORAGE_KEY, image);
       if (!persisted) {
         setBrandImageError("L’image a été chargée pour cette génération, mais n’a pas pu être conservée dans le cache local du navigateur.");
       }
       if (kind === "signature") setSignatureImage(image);
-      else setStampImage(image);
+      else if (kind === "stamp") setStampImage(image);
+      else setLogoImage(image);
     } catch (error) {
       setBrandImageError(error instanceof Error ? error.message : "Impossible de lire cette image.");
     }
   };
 
-  const clearBrandImage = (kind: "signature" | "stamp") => {
-    const key = kind === "signature" ? SIGNATURE_STORAGE_KEY : STAMP_STORAGE_KEY;
+  const clearBrandImage = (kind: "signature" | "stamp" | "logo") => {
+    const key = kind === "signature" ? SIGNATURE_STORAGE_KEY : kind === "stamp" ? STAMP_STORAGE_KEY : PDF_LOGO_STORAGE_KEY;
     const cleared = persistBrandImage(key, null);
     if (kind === "signature") setSignatureImage(null);
-    else setStampImage(null);
+    else if (kind === "stamp") setStampImage(null);
+    else setLogoImage(null);
     if (!cleared) setBrandImageError("Le cache local n’a pas pu être modifié dans ce navigateur.");
   };
 
   const clearAllBrandImages = () => {
     const signatureCleared = persistBrandImage(SIGNATURE_STORAGE_KEY, null);
     const stampCleared = persistBrandImage(STAMP_STORAGE_KEY, null);
+    const logoCleared = persistBrandImage(PDF_LOGO_STORAGE_KEY, null);
     setSignatureImage(null);
     setStampImage(null);
-    if (!signatureCleared || !stampCleared) setBrandImageError("Le cache local n’a pas pu être entièrement effacé dans ce navigateur.");
+    setLogoImage(null);
+    if (!signatureCleared || !stampCleared || !logoCleared) setBrandImageError("Le cache local n’a pas pu être entièrement effacé dans ce navigateur.");
   };
 
   const confirmPendingRemoval = () => {
@@ -372,7 +399,7 @@ export default function Home() {
     setPendingRemoval(null);
   };
 
-  const clearBrandImageRequest = (kind: "signature" | "stamp") => setPendingRemoval(kind);
+  const clearBrandImageRequest = (kind: "signature" | "stamp" | "logo") => setPendingRemoval(kind);
 
 
   const handleVerifyAccess = (event: React.FormEvent<HTMLFormElement>) => {
@@ -487,6 +514,19 @@ export default function Home() {
     setGeometryPdfOpen(true);
   };
 
+  const handlePrintResultsPdf = () => {
+    if (!resultsPdfUrl) {
+      toast.error("Générez d’abord l’aperçu PDF des résultats.");
+      return;
+    }
+    const printWindow = window.open(resultsPdfUrl, "_blank", "noopener,noreferrer");
+    if (!printWindow) {
+      toast.error("Le navigateur a bloqué la fenêtre d’impression. Autorisez les fenêtres contextuelles puis réessayez.");
+      return;
+    }
+    printWindow.addEventListener("load", () => printWindow.print(), { once: true });
+  };
+
   const handleExportResultsPdf = async () => {
     if (!download) {
       toast.error("Générez d’abord un classeur avant d’exporter ses résultats en PDF.");
@@ -495,7 +535,7 @@ export default function Home() {
     setResultsPdfPending(true);
     try {
       const { exportResultsPdf } = await import("@/lib/resultsPdf");
-      const blob = await exportResultsPdf({ preview: download.preview, documentDate, filename: download.filename, signatureImageDataUrl: signatureImage?.dataUrl, stampImageDataUrl: stampImage?.dataUrl });
+      const blob = await exportResultsPdf({ preview: download.preview, documentDate, filename: download.filename, signatureImageDataUrl: signatureImage?.dataUrl, stampImageDataUrl: stampImage?.dataUrl, logoImageDataUrl: logoImage?.dataUrl, accentColor: pdfAccentColor, darkColor: pdfDarkColor, detail: pdfDetail });
       if (resultsPdfUrl) URL.revokeObjectURL(resultsPdfUrl);
       const url = URL.createObjectURL(blob);
       setResultsPdfUrl(url);
@@ -655,12 +695,21 @@ export default function Home() {
                 <div className="min-w-0"><label htmlFor="verified-by" className="field-label">Vérifié par <span>OPTIONNEL</span></label><input id="verified-by" type="text" autoComplete="name" value={verifiedBy} onChange={(event) => setVerifiedBy(event.target.value)} placeholder="À compléter" className="technical-input h-11 w-full min-w-0 px-3 text-sm" /></div>
                 <div className="min-w-0"><label htmlFor="validation-date" className="field-label">Date de validation <span>OPTIONNEL</span></label><input id="validation-date" type="text" inputMode="numeric" value={validationDate} onChange={(event) => setValidationDate(event.target.value)} placeholder="JJ/MM/AAAA" className="technical-input h-11 w-full min-w-0 px-3 text-sm" /></div>
               </div>
+              <div className="mt-5 border border-[#3A4A42] bg-[#16201C] p-4">
+                <div className="flex flex-wrap items-start justify-between gap-3"><div><p className="repere">REP. 01C <span>—</span> IDENTITÉ DU PDF</p><h3 className="mt-2 font-serif text-xl text-[#EDEAE2]">Personnaliser le document PDF</h3><p className="mt-1 text-xs leading-5 text-[#AEB7B0]">Le logo et les couleurs sont conservés localement dans ce navigateur. Les valeurs par défaut restent disponibles à tout moment.</p></div><span className="font-mono text-[10px] uppercase tracking-wide text-[#C9A15A]">PDF</span></div>
+                <div className="mt-4 grid min-w-0 gap-4 sm:grid-cols-2">
+                  <div className="min-w-0"><label htmlFor="pdf-logo-image" className="field-label">Logo du document <span>OPTIONNEL</span></label><input id="pdf-logo-image" type="file" accept="image/png,image/jpeg" className="sr-only" onChange={(event) => void onBrandImageChange("logo", event.target.files?.[0])} /><div className="flex min-w-0 gap-2"><button type="button" onClick={() => document.getElementById("pdf-logo-image")?.click()} className="upload-zone min-w-0 flex-1 justify-between"><span className="min-w-0 text-left text-sm text-[#AEB7B0]"><span className="block truncate">{logoImage?.name || "Importer un logo"}</span>{logoImage && <span className="mt-1 block text-[9px] uppercase tracking-wide text-[#7C9A76]">Enregistré localement</span>}</span><UploadCloud className="h-4 w-4 shrink-0 text-[#C9A15A]" /></button>{logoImage && <button type="button" onClick={() => clearBrandImageRequest("logo")} className="shrink-0 border border-[#3A4A42] px-2 font-mono text-[9px] uppercase tracking-wide text-[#C9A15A]" aria-label="Effacer le logo mémorisé">Effacer</button>}</div></div>
+                  <div className="min-w-0"><label htmlFor="pdf-detail" className="field-label">Niveau d’export <span>REQUIS</span></label><select id="pdf-detail" value={pdfDetail} onChange={(event) => setPdfDetail(event.target.value as "summary" | "detailed")} className="technical-input h-11 w-full px-3 text-sm"><option value="summary">Résumé — postes principaux</option><option value="detailed">Détaillé — tous les postes</option></select></div>
+                  <label className="flex min-w-0 items-center justify-between gap-3 border border-[#3A4A42] px-3 py-2 font-mono text-[10px] uppercase tracking-wide text-[#AEB7B0]">Couleur principale<input aria-label="Couleur principale du PDF" type="color" value={pdfAccentColor} onChange={(event) => setPdfAccentColor(event.target.value)} className="h-8 w-12 cursor-pointer border-0 bg-transparent p-0" /></label>
+                  <label className="flex min-w-0 items-center justify-between gap-3 border border-[#3A4A42] px-3 py-2 font-mono text-[10px] uppercase tracking-wide text-[#AEB7B0]">Fond du bandeau<input aria-label="Fond du bandeau PDF" type="color" value={pdfDarkColor} onChange={(event) => setPdfDarkColor(event.target.value)} className="h-8 w-12 cursor-pointer border-0 bg-transparent p-0" /></label>
+                </div>
+              </div>
               <div className="mt-5 grid min-w-0 gap-4 sm:grid-cols-2">
                 <div className="min-w-0"><label htmlFor="signature-image" className="field-label">Image de signature <span>OPTIONNEL</span></label><input ref={signatureInputRef} id="signature-image" type="file" accept="image/png,image/jpeg" className="sr-only" onChange={(event) => void onBrandImageChange("signature", event.target.files?.[0])} /><div className="flex min-w-0 gap-2"><button type="button" onClick={() => signatureInputRef.current?.click()} className="upload-zone min-w-0 flex-1 justify-between"><span className="min-w-0 text-left text-sm text-[#AEB7B0]"><span className="block truncate">{signatureImage?.name || "Importer une image"}</span>{signatureImage && <span className="mt-1 block text-[9px] uppercase tracking-wide text-[#7C9A76]">Enregistrée localement</span>}</span><UploadCloud className="h-4 w-4 shrink-0 text-[#C9A15A]" /></button>{signatureImage && <button type="button" onClick={() => clearBrandImageRequest("signature")} className="shrink-0 border border-[#3A4A42] px-2 font-mono text-[9px] uppercase tracking-wide text-[#C9A15A] hover:border-[#C9A15A]" aria-label="Effacer l’image de signature mémorisée">Effacer</button>}</div></div>
                 <div className="min-w-0"><label htmlFor="stamp-image" className="field-label">Image de tampon <span>OPTIONNEL</span></label><input ref={stampInputRef} id="stamp-image" type="file" accept="image/png,image/jpeg" className="sr-only" onChange={(event) => void onBrandImageChange("stamp", event.target.files?.[0])} /><div className="flex min-w-0 gap-2"><button type="button" onClick={() => stampInputRef.current?.click()} className="upload-zone min-w-0 flex-1 justify-between"><span className="min-w-0 text-left text-sm text-[#AEB7B0]"><span className="block truncate">{stampImage?.name || "Importer une image"}</span>{stampImage && <span className="mt-1 block text-[9px] uppercase tracking-wide text-[#7C9A76]">Enregistrée localement</span>}</span><UploadCloud className="h-4 w-4 shrink-0 text-[#C9A15A]" /></button>{stampImage && <button type="button" onClick={() => clearBrandImageRequest("stamp")} className="shrink-0 border border-[#3A4A42] px-2 font-mono text-[9px] uppercase tracking-wide text-[#C9A15A] hover:border-[#C9A15A]" aria-label="Effacer l’image de tampon mémorisée">Effacer</button>}</div></div>
               </div>
               {brandImageError && <p className="mt-2 flex items-center gap-2 text-xs font-medium text-[#d98472]" role="alert"><ImageIcon className="h-3.5 w-3.5" />{brandImageError}</p>}
-              {(signatureImage || stampImage) && <button type="button" onClick={() => setPendingRemoval("all")} className="mt-3 inline-flex items-center gap-2 border border-[#3A4A42] px-3 py-2 font-mono text-[9px] uppercase tracking-wide text-[#C9A15A] hover:border-[#C9A15A]" aria-label="Effacer toutes les données locales de signature et de tampon"><Trash2 className="h-3.5 w-3.5" />Effacer toutes les données locales</button>}
+              {(signatureImage || stampImage || logoImage) && <button type="button" onClick={() => setPendingRemoval("all")} className="mt-3 inline-flex items-center gap-2 border border-[#3A4A42] px-3 py-2 font-mono text-[9px] uppercase tracking-wide text-[#C9A15A] hover:border-[#C9A15A]" aria-label="Effacer toutes les données locales de signature et de tampon"><Trash2 className="h-3.5 w-3.5" />Effacer toutes les données locales</button>}
               <Dialog open={exampleWarningOpen} onOpenChange={(open) => { if (!open) cancelExampleDescription(); }}>
                 <DialogContent className="border-[#C9A15A] bg-[#16201C] text-[#EDEAE2]">
                   <DialogHeader><DialogTitle className="font-serif text-2xl text-[#EDEAE2]">Un brouillon est déjà présent</DialogTitle><DialogDescription className="text-[#AEB7B0]">Charger l’exemple remplacera le brouillon sauvegardé dans ce navigateur. Vous pouvez annuler pour continuer votre saisie actuelle.</DialogDescription></DialogHeader>
@@ -675,7 +724,7 @@ export default function Home() {
               </Dialog>
               <Dialog open={pendingRemoval !== null} onOpenChange={(open) => { if (!open) setPendingRemoval(null); }}>
                 <DialogContent className="border-[#C9A15A] bg-[#16201C] text-[#EDEAE2]">
-                  <DialogHeader><DialogTitle className="font-serif text-2xl text-[#EDEAE2]">Confirmer la suppression</DialogTitle><DialogDescription className="text-[#AEB7B0]">{pendingRemoval === "all" ? "Les images mémorisées de signature et de tampon seront supprimées de ce navigateur." : `L’image de ${pendingRemoval === "signature" ? "signature" : "tampon"} sera supprimée de ce navigateur.`}</DialogDescription></DialogHeader>
+                  <DialogHeader><DialogTitle className="font-serif text-2xl text-[#EDEAE2]">Confirmer la suppression</DialogTitle><DialogDescription className="text-[#AEB7B0]">{pendingRemoval === "all" ? "Les images mémorisées de signature et de tampon seront supprimées de ce navigateur." : `L’image de ${pendingRemoval === "signature" ? "signature" : pendingRemoval === "stamp" ? "tampon" : "logo"} sera supprimée de ce navigateur.`}</DialogDescription></DialogHeader>
                   <DialogFooter><button type="button" onClick={() => setPendingRemoval(null)} className="border border-[#3A4A42] px-4 py-2 font-mono text-[10px] uppercase tracking-wide text-[#AEB7B0]">Annuler</button><button type="button" onClick={confirmPendingRemoval} className="bg-[#C9A15A] px-4 py-2 font-mono text-[10px] uppercase tracking-wide text-[#0F1613]">Confirmer la suppression</button></DialogFooter>
                 </DialogContent>
               </Dialog>
@@ -696,7 +745,7 @@ export default function Home() {
                 <DialogContent className="flex h-[90vh] max-w-5xl flex-col border-[#C9A15A] bg-[#16201C] text-[#EDEAE2]">
                   <DialogHeader><DialogTitle className="font-serif text-2xl text-[#EDEAE2]">Aperçu PDF des résultats</DialogTitle><DialogDescription className="text-[#AEB7B0]">Relisez le résumé, les montants et les postes avant de télécharger le rapport PDF.</DialogDescription></DialogHeader>
                   <div className="min-h-0 flex-1 border border-[#3A4A42] bg-[#EDEAE2]">{resultsPdfUrl ? <iframe title="Aperçu PDF des résultats du métré et DQE" src={resultsPdfUrl} className="h-full min-h-[55vh] w-full" /> : <p className="p-6 text-[#0F1613]">Aperçu indisponible.</p>}</div>
-                  <DialogFooter><button type="button" onClick={() => setResultsPdfOpen(false)} className="border border-[#3A4A42] px-4 py-2 font-mono text-[10px] uppercase tracking-wide text-[#AEB7B0]">Fermer</button>{resultsPdfUrl && <a href={resultsPdfUrl} download={resultsPdfFilename} className="bg-[#C9A15A] px-4 py-2 font-mono text-[10px] uppercase tracking-wide text-[#0F1613]"><FileDown className="mr-2 inline h-4 w-4" aria-hidden="true" />Télécharger le PDF</a>}</DialogFooter>
+                  <DialogFooter><button type="button" onClick={() => setResultsPdfOpen(false)} className="border border-[#3A4A42] px-4 py-2 font-mono text-[10px] uppercase tracking-wide text-[#AEB7B0]">Fermer</button>{resultsPdfUrl && <><button type="button" onClick={handlePrintResultsPdf} className="border border-[#C9A15A] px-4 py-2 font-mono text-[10px] uppercase tracking-wide text-[#C9A15A]">Imprimer</button><a href={resultsPdfUrl} download={resultsPdfFilename} className="bg-[#C9A15A] px-4 py-2 font-mono text-[10px] uppercase tracking-wide text-[#0F1613]"><FileDown className="mr-2 inline h-4 w-4" aria-hidden="true" />Télécharger le PDF</a></>}</DialogFooter>
                 </DialogContent>
               </Dialog>
               <div className="mt-5">
