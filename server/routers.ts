@@ -263,6 +263,12 @@ export const appRouter = router({
     adminGetBackupStatus: adminProcedure.query(async () => ({ lastSuccessfulBackupAt: await getLastSuccessfulBackupAt() })),
     adminMarkBackupSuccessful: adminProcedure.mutation(async () => ({ lastSuccessfulBackupAt: await markSuccessfulBackupAt() })),
     adminListPurgeRuns: adminProcedure.query(async () => listPurgeRuns(100)),
+    adminRunHeartbeatCheck: adminProcedure.input(z.object({ id: z.number().int().positive() })).mutation(async ({ input }) => {
+      const code = (await listClientAccessCodes()).find((item) => item.id === input.id);
+      if (!code) throw new TRPCError({ code: "NOT_FOUND", message: "Utilisateur introuvable dans les accès clients." });
+      const expired = Boolean(code.disabledAt) || new Date(code.expiresAt).getTime() <= Date.now();
+      return { id: code.id, clientName: code.clientName, status: expired ? "inactive" as const : code.monthlyRemaining > 0 ? "active" as const : "quota" as const, checkedAt: new Date(), monthlyRemaining: code.monthlyRemaining, expiresAt: code.expiresAt };
+    }),
     adminPurgeExpiredFreeTrials: adminProcedure.mutation(async () => {
       const startedAt = new Date();
       try {

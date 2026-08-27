@@ -62,6 +62,7 @@ vi.mock("@/lib/trpc", () => ({
       adminGetBackupStatus: { useQuery: () => ({ data: { lastSuccessfulBackupAt: testState.lastSuccessfulBackupAt }, isLoading: false, isFetching: false, refetch: vi.fn() }) },
       adminMarkBackupSuccessful: { useMutation: (options?: { onSuccess?: (data: { lastSuccessfulBackupAt: Date }) => void; onError?: () => void }) => ({ isPending: false, mutate: () => { testState.lastSuccessfulBackupAt = new Date(); options?.onSuccess?.({ lastSuccessfulBackupAt: testState.lastSuccessfulBackupAt }); } }) },
       adminListPurgeRuns: { useQuery: () => ({ data: testState.purgeRuns, isLoading: false, isFetching: false, refetch: vi.fn() }) },
+      adminRunHeartbeatCheck: { useMutation: (options?: { onMutate?: (input: { id: number }) => void; onSuccess?: (data: { id: number; clientName: string }) => void; onError?: (error: Error, input: { id: number }) => void }) => ({ isPending: false, mutate: (input: { id: number }) => { options?.onMutate?.(input); options?.onSuccess?.({ id: input.id, clientName: "Client test" }); } }) },
       adminSetFreeTrialRetention: { useMutation: (options?: { onSuccess?: (data: { retentionDays: number }) => void }) => ({ isPending: false, mutate: (input: { retentionDays: number }) => { testState.saveRetention(input); testState.retentionDays = input.retentionDays; options?.onSuccess?.({ retentionDays: input.retentionDays }); } }) },
       adminPurgeExpiredFreeTrials: { useMutation: (options?: { onSuccess?: (data: { deletedCount: number; retentionDays: number; cutoff: Date }) => void; onError?: (error: Error) => void }) => ({ isPending: false, mutate: () => { testState.purgeRetention(); if (testState.purgeShouldFail) options?.onError?.(new Error("Session administrateur expirée.")); else options?.onSuccess?.({ deletedCount: 0, retentionDays: testState.retentionDays, cutoff: new Date() }); } }) },
       adminListPaymentRequests: { useQuery: () => ({ data: testState.paymentRequests, isLoading: false, refetch: vi.fn() }) },
@@ -78,7 +79,7 @@ vi.mock("@/lib/trpc", () => ({
   },
 }));
 
-import Admin, { buildCombinedTrialCsv, buildEmailTrialCsv, buildFreeTrialCsv } from "../client/src/pages/Admin";
+import Admin, { buildCombinedTrialCsv, buildEmailTrialCsv, buildFreeTrialCsv, buildHeartbeatCsv } from "../client/src/pages/Admin";
 
 describe("Admin panel UI", () => {
   it("builds a CSV with escaped prospect fields and follow-up status", () => {
@@ -148,6 +149,21 @@ describe("Admin panel UI", () => {
     expect(screen.getByRole("status").textContent).toContain("Aucune exécution Heartbeat");
   });
 
+  it("builds a Heartbeat CSV with escaped fields and UTF-8 BOM", () => {
+    const csv = buildHeartbeatCsv([{
+      completedAt: new Date("2026-08-27T12:00:00Z"),
+      runType: "automatic",
+      status: "success",
+      deletedCount: 5,
+      retentionDays: 365,
+      taskUid: "task-123",
+      errorMessage: "none",
+    }]);
+    expect(csv.startsWith("\uFEFF")).toBe(true);
+    expect(csv).toContain('"Date UTC";"Type";"Statut"');
+    expect(csv).toContain('"2026-08-27T12:00:00.000Z";"Automatique";"Succès";"5";"365";"task-123";"none"');
+  });
+
   it("filters Heartbeat executions by status without affecting protected access", () => {
     testState.adminUnlocked = true;
     testState.purgeRuns = [
@@ -160,6 +176,16 @@ describe("Admin panel UI", () => {
     fireEvent.click(failedFilter);
     expect(screen.getByRole("button", { name: "Heartbeat : Échecs" }).getAttribute("aria-pressed")).toBe("true");
     expect(screen.getByText("Échecs / 30 jours").parentElement?.textContent).toContain("1");
+  });
+
+  it("exposes the targeted Heartbeat check and CSV export actions", () => {
+    const source = readFileSync(resolve(process.cwd(), "client/src/pages/Admin.tsx"), "utf8");
+    expect(source).toContain("adminRunHeartbeatCheck");
+    expect(source).toContain("downloadHeartbeatHistory");
+    expect(source).toContain("Exporter CSV");
+    expect(source).toContain("Heartbeat");
+    expect(source).toContain("proofPan");
+    expect(source).toContain("onPointerDown={beginProofDrag}");
   });
 
   it("renders a protected administrator unlock screen before exposing client management", () => {

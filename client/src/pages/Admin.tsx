@@ -31,7 +31,7 @@ import {
   BarChart3,
   XCircle,
 } from "lucide-react";
-import React, { FormEvent, useEffect, useState } from "react";
+import React, { FormEvent, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { SUBSCRIPTION_PLANS, type SubscriptionQuota, formatXof, getSubscriptionPlan } from "@shared/plans";
 import ThemeToggle from "@/components/ThemeToggle";
@@ -65,6 +65,7 @@ function buildActivatedCodeWhatsAppUrl(phone: string, clientName: string, code: 
 }
 
 type CsvTrial = { clientName: string; phone: string; email?: string };
+type HeartbeatCsvRun = { completedAt: Date | string; runType: "manual" | "automatic"; status: "success" | "failed"; deletedCount: number; retentionDays: number; taskUid?: string | null; errorMessage?: string | null };
 
 export function buildFreeTrialCsv(trials: CsvTrial[]) {
   const escape = (value: string) => `"${value.replace(/"/g, '""')}"`;
@@ -100,7 +101,13 @@ export function buildEmailTrialCsv(trials: CsvTrial[]) {
   return [
     ["Full name", "Email"],
     ...trials.filter((trial) => trial.phone === "À compléter" && trial.email && trial.email !== "À compléter").map((trial) => [trial.clientName, trial.email as string]),
-  ].map((row) => row.map((value) => escape(String(value))).join(";")) .join("\r\n");
+  ].map((row) => row.map((value) => escape(String(value))).join(";")).join("\r\n");
+}
+
+export function buildHeartbeatCsv(runs: HeartbeatCsvRun[]) {
+  const escape = (value: string) => `"${value.replace(/"/g, '""')}"`;
+  const rows = runs.map((run) => [new Date(run.completedAt).toISOString(), run.runType === "automatic" ? "Automatique" : "Manuelle", run.status === "success" ? "Succès" : "Échec", String(run.deletedCount), String(run.retentionDays), run.taskUid ?? "", run.errorMessage ?? ""]);
+  return "\uFEFF" + [["Date UTC", "Type", "Statut", "Contacts supprimés", "Rétention (jours)", "Task UID", "Détail"], ...rows].map((row) => row.map((value) => escape(String(value))).join(";")).join("\r\n");
 }
 
 type CodeToRevoke = { id: number; clientName: string } | null;
@@ -117,6 +124,8 @@ export default function Admin() {
   const [proofPreviewId, setProofPreviewId] = useState<number | null>(null);
   const [proofPreview, setProofPreview] = useState<{ id: number; url: string; fileName: string | null } | null>(null);
   const [proofZoom, setProofZoom] = useState(1);
+  const [proofPan, setProofPan] = useState({ x: 0, y: 0 });
+  const proofDragRef = useRef<{ pointerId: number; x: number; y: number; originX: number; originY: number } | null>(null);
   const [codeFilter, setCodeFilter] = useState<"all" | "expiring" | "today" | "tomorrow" | "expired">("all");
   const [selectedExpiredCodeIds, setSelectedExpiredCodeIds] = useState<number[]>([]);
   const [bulkRelanceOpen, setBulkRelanceOpen] = useState(false);
@@ -140,6 +149,7 @@ export default function Admin() {
   const [purgeSearch, setPurgeSearch] = useState("");
   const [purgeStatusFilter, setPurgeStatusFilter] = useState<"all" | "success" | "failed">("all");
   const [heartbeatStatusFilter, setHeartbeatStatusFilter] = useState<"all" | "success" | "failed">("all");
+  const [heartbeatChecks, setHeartbeatChecks] = useState<Record<number, "pending" | "success" | "error">>({});
 
   useEffect(() => {
     if (trialStartDate) window.localStorage.setItem("metrexpert.trials.startDate", trialStartDate);
@@ -265,6 +275,11 @@ export default function Admin() {
       toast.success("Essai marqué comme converti.");
     },
     onError: (error) => toast.error(error.message),
+  });
+  const heartbeatCheck = trpc.security.adminRunHeartbeatCheck.useMutation({
+    onMutate: ({ id }) => setHeartbeatChecks((current) => ({ ...current, [id]: "pending" })),
+    onSuccess: (data) => { setHeartbeatChecks((current) => ({ ...current, [data.id]: "success" })); toast.success(`Contrôle Heartbeat terminé pour ${data.clientName}.`); },
+    onError: (error, input) => { setHeartbeatChecks((current) => ({ ...current, [input.id]: "error" })); toast.error(error.message); },
   });
   const markBackupSuccessful = trpc.security.adminMarkBackupSuccessful.useMutation({
     onSuccess: (data) => { setBackupFeedback("success"); void backupStatus.refetch(); toast.success(`Sauvegarde enregistrée : ${new Date(data.lastSuccessfulBackupAt).toLocaleString("fr-FR")}.`, { icon: <Check className="h-4 w-4" aria-hidden="true" />, className: "border-[#7C9A76] bg-[#E4E8DF] text-[#25402A]" }); },
@@ -452,6 +467,35 @@ export default function Admin() {
     toast.success(`${exportableTrials.length} prospect${exportableTrials.length > 1 ? "s" : ""} exporté${exportableTrials.length > 1 ? "s" : ""}.`);
   }
 
+  function beginProofDrag(event: React.PointerEvent<HTMLDivElement>) {
+    if (proofZoom <= 1) return;
+    event.currentTarget.setPointerCapture(event.pointerId);
+    proofDragRef.current = { pointerId: event.pointerId, x: event.clientX, y: event.clientY, originX: proofPan.x, originY: proofPan.y };
+  }
+
+  function moveProofDrag(event: React.PointerEvent<HTMLDivElement>) {
+    const drag = proofDragRef.current;
+    if (!drag || drag.pointerId !== event.pointerId) return;
+    setProofPan({ x: drag.originX + event.clientX - drag.x, y: drag.originY + event.clientY - drag.y });
+  }
+
+  function endProofDrag(event: React.PointerEvent<HTMLDivElement>) {
+    if (proofDragRef.current?.pointerId !== event.pointerId) return;
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
+    proofDragRef.current = null;
+  }
+
+  function downloadHeartbeatHistory() {
+    const csv = buildHeartbeatCsv(heartbeatRuns30d);
+    const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = `metrexpert-heartbeat-30-jours-${heartbeatStatusFilter}-${new Date().toISOString().slice(0, 10)}.csv`;
+    anchor.click();
+    URL.revokeObjectURL(url);
+    toast.success(`${heartbeatRuns30d.length} exécution${heartbeatRuns30d.length > 1 ? "s" : ""} Heartbeat exportée${heartbeatRuns30d.length > 1 ? "s" : ""}.`);
+  }
+
   const { theme } = useTheme();
 
   if (!isAdminUnlocked) {
@@ -611,6 +655,7 @@ export default function Admin() {
             </div>
             <div className="flex flex-wrap gap-2" role="group" aria-label="Filtrer les exécutions Heartbeat par statut">
               {([["all", "Tous"], ["success", "Succès"], ["failed", "Échecs"]] as const).map(([value, label]) => <Button key={value} type="button" size="sm" variant="outline" aria-pressed={heartbeatStatusFilter === value} aria-label={`Heartbeat : ${label}`} onClick={() => setHeartbeatStatusFilter(value)} className={heartbeatStatusFilter === value ? "border-[#C9A15A] bg-[#C9A15A] text-[#0F1613]" : "border-[#3A4A42] text-[#AEB7B0]"}>{label}</Button>)}
+              <Button type="button" size="sm" variant="outline" disabled={!heartbeatRuns30d.length} onClick={downloadHeartbeatHistory} className="border-[#7C9A76] text-[#7C9A76]"><Download className="mr-2 h-4 w-4" />Exporter CSV</Button>
             </div>
           </div>
           <div className="mt-5 grid gap-3 sm:grid-cols-3">
@@ -734,11 +779,11 @@ export default function Admin() {
           <Card className="border-[#3A4A42] bg-[#16201C] text-[#EDEAE2]">
             <CardHeader><div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><CardTitle className="font-serif text-2xl">Demandes de paiement</CardTitle><div className="flex flex-wrap gap-2" aria-label="Filtrer les paiements par statut">{([['all', 'Tous'], ['pending', 'En attente'], ['confirmed', 'Confirmés'], ['rejected', 'Refusés']] as const).map(([value, label]) => <Button key={value} type="button" size="sm" variant="outline" onClick={() => setPaymentFilter(value)} className={paymentFilter === value ? "border-[#C9A15A] bg-[#C9A15A] text-[#0F1613]" : "border-[#3A4A42] text-[#AEB7B0]"}>{label}</Button>)}</div></div><p className="mt-2 font-mono text-[10px] uppercase tracking-wider text-[#AEB7B0]">{filteredPaymentRequests.length} demande{filteredPaymentRequests.length > 1 ? "s" : ""} affichée{filteredPaymentRequests.length > 1 ? "s" : ""}</p></CardHeader>
             <CardContent>
-              {paymentRequests.isLoading ? <div className="flex items-center gap-2 text-sm text-[#AEB7B0]"><Loader2 className="h-4 w-4 animate-spin" />Chargement des paiements…</div> : filteredPaymentRequests.length ? <div className="overflow-x-auto"><table className="w-full min-w-[900px] text-left text-sm"><thead className="border-b border-[#3A4A42] font-mono text-[10px] uppercase tracking-wider text-[#C9A15A]"><tr><th className="px-3 py-3">Client</th><th className="px-3 py-3">Forfait / montant</th><th className="px-3 py-3">Moyen / référence</th><th className="px-3 py-3">Statut</th><th className="px-3 py-3">Preuve</th><th className="px-3 py-3 text-right">Décision</th></tr></thead><tbody>{filteredPaymentRequests.map((request) => <tr key={request.id} className="border-b border-[#3A4A42]/70"><td className="px-3 py-4"><span className="font-medium">{request.clientName}</span><br /><span className="text-xs text-[#AEB7B0]">{request.phone}</span></td><td className="px-3 py-4 font-mono text-xs">{getSubscriptionPlan(request.planQuota)?.name}<br /><span className="text-[#C9A15A]">{formatXof(request.amountXof)}</span></td><td className="px-3 py-4 font-mono text-xs">{request.paymentMethod.toUpperCase()}<br /><span className="text-[#AEB7B0]">{request.paymentReference}</span></td><td className={`px-3 py-4 font-mono text-xs uppercase ${request.status === "confirmed" ? "text-[#7C9A76]" : request.status === "rejected" ? "text-[#D98472]" : "text-[#C9A15A]"}`}>{request.status === "confirmed" ? "Confirmé" : request.status === "rejected" ? "Refusé" : "En attente"}</td><td className="px-3 py-4 font-mono text-xs">{request.hasProof ? <div className="flex flex-col items-start gap-2"><span className={request.proofStatus === "approved" ? "text-[#7C9A76]" : request.proofStatus === "rejected" ? "text-[#D98472]" : "text-[#C9A15A]"}>{request.proofStatus === "approved" ? "Validée" : request.proofStatus === "rejected" ? "Rejetée" : "À vérifier"}</span><Button type="button" size="sm" variant="outline" className="border-[#C9A15A] text-[#C9A15A]" onClick={() => { setProofPreview(null); setProofZoom(1); setProofPreviewId(request.id); }}>Voir</Button>{request.proofStatus !== "approved" && <Button type="button" size="sm" className="bg-[#7C9A76] text-[#0F1613]" disabled={reviewPaymentProof.isPending} onClick={() => reviewPaymentProof.mutate({ id: request.id, status: "approved" })}>Valider</Button>}{request.proofStatus !== "rejected" && <Button type="button" size="sm" variant="outline" className="border-[#D98472] text-[#D98472]" disabled={reviewPaymentProof.isPending} onClick={() => reviewPaymentProof.mutate({ id: request.id, status: "rejected" })}>Rejeter</Button>}</div> : <span className="text-[#56635B]">Aucune</span>}</td><td className="px-3 py-4 text-right">{request.status === "pending" && <div className="flex justify-end gap-2"><Button type="button" size="sm" className="bg-[#7C9A76] text-[#0F1613]" disabled={reviewPayment.isPending} onClick={() => reviewPayment.mutate({ id: request.id, status: "confirmed" })}>Confirmer</Button><Button type="button" size="sm" variant="outline" className="border-[#D98472] text-[#D98472]" disabled={reviewPayment.isPending} onClick={() => reviewPayment.mutate({ id: request.id, status: "rejected" })}>Refuser</Button></div>}</td></tr>)}</tbody></table></div> : <p className="py-8 text-sm text-[#AEB7B0]">{paymentRequests.data?.length ? "Aucune demande ne correspond à ce filtre." : "Aucune demande de paiement enregistrée."}</p>}
+              {paymentRequests.isLoading ? <div className="flex items-center gap-2 text-sm text-[#AEB7B0]"><Loader2 className="h-4 w-4 animate-spin" />Chargement des paiements…</div> : filteredPaymentRequests.length ? <div className="overflow-x-auto"><table className="w-full min-w-[900px] text-left text-sm"><thead className="border-b border-[#3A4A42] font-mono text-[10px] uppercase tracking-wider text-[#C9A15A]"><tr><th className="px-3 py-3">Client</th><th className="px-3 py-3">Forfait / montant</th><th className="px-3 py-3">Moyen / référence</th><th className="px-3 py-3">Statut</th><th className="px-3 py-3">Preuve</th><th className="px-3 py-3 text-right">Décision</th></tr></thead><tbody>{filteredPaymentRequests.map((request) => <tr key={request.id} className="border-b border-[#3A4A42]/70"><td className="px-3 py-4"><span className="font-medium">{request.clientName}</span><br /><span className="text-xs text-[#AEB7B0]">{request.phone}</span></td><td className="px-3 py-4 font-mono text-xs">{getSubscriptionPlan(request.planQuota)?.name}<br /><span className="text-[#C9A15A]">{formatXof(request.amountXof)}</span></td><td className="px-3 py-4 font-mono text-xs">{request.paymentMethod.toUpperCase()}<br /><span className="text-[#AEB7B0]">{request.paymentReference}</span></td><td className={`px-3 py-4 font-mono text-xs uppercase ${request.status === "confirmed" ? "text-[#7C9A76]" : request.status === "rejected" ? "text-[#D98472]" : "text-[#C9A15A]"}`}>{request.status === "confirmed" ? "Confirmé" : request.status === "rejected" ? "Refusé" : "En attente"}</td><td className="px-3 py-4 font-mono text-xs">{request.hasProof ? <div className="flex flex-col items-start gap-2"><span className={request.proofStatus === "approved" ? "text-[#7C9A76]" : request.proofStatus === "rejected" ? "text-[#D98472]" : "text-[#C9A15A]"}>{request.proofStatus === "approved" ? "Validée" : request.proofStatus === "rejected" ? "Rejetée" : "À vérifier"}</span><Button type="button" size="sm" variant="outline" className="border-[#C9A15A] text-[#C9A15A]" onClick={() => { setProofPreview(null); setProofZoom(1); setProofPan({ x: 0, y: 0 }); setProofPreviewId(request.id); }}>Voir</Button>{request.proofStatus !== "approved" && <Button type="button" size="sm" className="bg-[#7C9A76] text-[#0F1613]" disabled={reviewPaymentProof.isPending} onClick={() => reviewPaymentProof.mutate({ id: request.id, status: "approved" })}>Valider</Button>}{request.proofStatus !== "rejected" && <Button type="button" size="sm" variant="outline" className="border-[#D98472] text-[#D98472]" disabled={reviewPaymentProof.isPending} onClick={() => reviewPaymentProof.mutate({ id: request.id, status: "rejected" })}>Rejeter</Button>}</div> : <span className="text-[#56635B]">Aucune</span>}</td><td className="px-3 py-4 text-right">{request.status === "pending" && <div className="flex justify-end gap-2"><Button type="button" size="sm" className="bg-[#7C9A76] text-[#0F1613]" disabled={reviewPayment.isPending} onClick={() => reviewPayment.mutate({ id: request.id, status: "confirmed" })}>Confirmer</Button><Button type="button" size="sm" variant="outline" className="border-[#D98472] text-[#D98472]" disabled={reviewPayment.isPending} onClick={() => reviewPayment.mutate({ id: request.id, status: "rejected" })}>Refuser</Button></div>}</td></tr>)}</tbody></table></div> : <p className="py-8 text-sm text-[#AEB7B0]">{paymentRequests.data?.length ? "Aucune demande ne correspond à ce filtre." : "Aucune demande de paiement enregistrée."}</p>}
             </CardContent>
           </Card>
 
-          {proofPreview && <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#0F1613]/80 p-4" role="dialog" aria-modal="true" aria-label="Aperçu de la preuve de paiement" onKeyDown={(event) => { if (event.key === "Escape") { setProofPreview(null); setProofPreviewId(null); } }}><div className="max-h-[90vh] w-full max-w-4xl border border-[#C9A15A] bg-[#16201C] p-4"><div className="flex flex-wrap items-center justify-between gap-3"><div><p className="font-mono text-xs uppercase tracking-wider text-[#C9A15A]">Preuve de paiement</p><p className="mt-1 text-xs text-[#AEB7B0]">{proofPreview.fileName || "Capture protégée"}</p></div><div className="flex flex-wrap items-center gap-2"><Button type="button" size="sm" variant="outline" aria-label="Réduire le zoom" disabled={proofZoom <= 0.75} className="border-[#3A4A42] text-[#EDEAE2]" onClick={() => setProofZoom((zoom) => Math.max(0.75, Number((zoom - 0.25).toFixed(2))))}>−</Button><Button type="button" size="sm" variant="outline" aria-label="Réinitialiser le zoom" className="border-[#3A4A42] text-[#EDEAE2]" onClick={() => setProofZoom(1)}>{Math.round(proofZoom * 100)} %</Button><Button type="button" size="sm" variant="outline" aria-label="Agrandir le zoom" disabled={proofZoom >= 3} className="border-[#C9A15A] text-[#C9A15A]" onClick={() => setProofZoom((zoom) => Math.min(3, Number((zoom + 0.25).toFixed(2))))}>+</Button><Button type="button" variant="outline" className="border-[#AEB7B0] text-[#EDEAE2]" onClick={() => { setProofPreview(null); setProofPreviewId(null); setProofZoom(1); }}>Fermer</Button></div></div><div className="mt-4 max-h-[70vh] overflow-auto bg-[#0F1613] p-2 text-center" aria-label={`Image agrandie à ${Math.round(proofZoom * 100)} pour cent`}><img src={proofPreview.url} alt={proofPreview.fileName ? `Capture ${proofPreview.fileName}` : "Capture de preuve de paiement"} className="mx-auto w-auto max-w-none object-contain" style={{ maxHeight: "65vh", transform: `scale(${proofZoom})`, transformOrigin: "center top" }} /></div><p className="mt-2 text-[11px] text-[#AEB7B0]">Utilisez les boutons + et − pour inspecter la capture. Le zoom reste visuel et ne rend pas l’image publique.</p></div></div>}
+          {proofPreview && <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#0F1613]/80 p-4" role="dialog" aria-modal="true" aria-label="Aperçu de la preuve de paiement" tabIndex={-1} onKeyDown={(event) => { if (event.key === "Escape") { setProofPreview(null); setProofPreviewId(null); setProofZoom(1); setProofPan({ x: 0, y: 0 }); } }}><div className="max-h-[90vh] w-full max-w-4xl border border-[#C9A15A] bg-[#16201C] p-4"><div className="flex flex-wrap items-center justify-between gap-3"><div><p className="font-mono text-xs uppercase tracking-wider text-[#C9A15A]">Preuve de paiement</p><p className="mt-1 text-xs text-[#AEB7B0]">{proofPreview.fileName || "Capture protégée"}</p></div><div className="flex flex-wrap items-center gap-2"><Button type="button" size="sm" variant="outline" aria-label="Réduire le zoom" disabled={proofZoom <= 0.75} className="border-[#3A4A42] text-[#EDEAE2]" onClick={() => setProofZoom((zoom) => Math.max(0.75, Number((zoom - 0.25).toFixed(2))))}>−</Button><Button type="button" size="sm" variant="outline" aria-label="Réinitialiser le zoom" className="border-[#3A4A42] text-[#EDEAE2]" onClick={() => setProofZoom(1)}>{Math.round(proofZoom * 100)} %</Button><Button type="button" size="sm" variant="outline" aria-label="Agrandir le zoom" disabled={proofZoom >= 3} className="border-[#C9A15A] text-[#C9A15A]" onClick={() => setProofZoom((zoom) => Math.min(3, Number((zoom + 0.25).toFixed(2))))}>+</Button><Button type="button" variant="outline" className="border-[#AEB7B0] text-[#EDEAE2]" onClick={() => { setProofPreview(null); setProofPreviewId(null); setProofZoom(1); setProofPan({ x: 0, y: 0 }); }}>Fermer</Button></div></div><div className={`mt-4 max-h-[70vh] overflow-auto bg-[#0F1613] p-2 text-center ${proofZoom > 1 ? "cursor-grab touch-none" : ""}`} aria-label={`Image agrandie à ${Math.round(proofZoom * 100)} pour cent`} onPointerDown={beginProofDrag} onPointerMove={moveProofDrag} onPointerUp={endProofDrag} onPointerCancel={endProofDrag}><img src={proofPreview.url} alt={proofPreview.fileName ? `Capture ${proofPreview.fileName}` : "Capture de preuve de paiement"} className="mx-auto w-auto max-w-none object-contain" style={{ maxHeight: "65vh", transform: `translate(${proofPan.x}px, ${proofPan.y}px) scale(${proofZoom})`, transformOrigin: "center top" }} /></div><p className="mt-2 text-[11px] text-[#AEB7B0]">À plus de 100 %, maintenez le bouton de la souris ou le doigt sur l’image pour la déplacer. Le zoom reste visuel et ne rend pas l’image publique.</p></div></div>}
 
           <Card className="border-[#3A4A42] bg-[#16201C] text-[#EDEAE2]">
             <CardHeader>
@@ -798,22 +843,25 @@ export default function Admin() {
                               {disabled ? "Désactivé / expiré" : "Actif"}
                             </td>
                             <td className="px-3 py-4 text-right">
-                              {disabled && <a href={`/?plan=${code.monthlyQuota}#paiement`} className="mb-2 inline-flex items-center gap-1 border border-[#C9A15A] px-3 py-2 font-mono text-[10px] uppercase tracking-wider text-[#C9A15A] hover:bg-[#C9A15A] hover:text-[#0F1613]"><RefreshCw className="h-3.5 w-3.5" aria-hidden="true" />Renouveler</a>}
-                              {!disabled && (
-                                <Button
-                                  type="button"
-                                  variant="outline"
-                                  size="sm"
-                                  className="border-[#9d554b] text-[#d98472]"
-                                  onClick={() =>
-                                    requestRevoke(code.id, code.clientName)
-                                  }
-                                  disabled={disable.isPending}
-                                >
-                                  <XCircle className="mr-1 h-4 w-4" />
-                                  Révoquer
-                                </Button>
-                              )}
+                              <div className="flex flex-col items-end gap-2">
+                                <Button type="button" variant="outline" size="sm" className={`border-[#3A4A42] ${heartbeatChecks[code.id] === "success" ? "text-[#7C9A76]" : heartbeatChecks[code.id] === "error" ? "text-[#D98472]" : "text-[#AEB7B0]"}`} onClick={() => heartbeatCheck.mutate({ id: code.id })} disabled={heartbeatCheck.isPending && heartbeatChecks[code.id] === "pending"}>{heartbeatChecks[code.id] === "pending" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}<span className="ml-1">Heartbeat</span></Button>
+                                {disabled && <a href={`/?plan=${code.monthlyQuota}#paiement`} className="inline-flex items-center gap-1 border border-[#C9A15A] px-3 py-2 font-mono text-[10px] uppercase tracking-wider text-[#C9A15A] hover:bg-[#C9A15A] hover:text-[#0F1613]"><RefreshCw className="h-3.5 w-3.5" aria-hidden="true" />Renouveler</a>}
+                                {!disabled && (
+                                  <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    className="border-[#9d554b] text-[#d98472]"
+                                    onClick={() =>
+                                      requestRevoke(code.id, code.clientName)
+                                    }
+                                    disabled={disable.isPending}
+                                  >
+                                    <XCircle className="mr-1 h-4 w-4" />
+                                    Révoquer
+                                  </Button>
+                                )}
+                              </div>
                             </td>
                           </tr>
                         );
