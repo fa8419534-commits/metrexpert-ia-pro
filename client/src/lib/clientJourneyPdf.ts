@@ -32,7 +32,7 @@ const steps = [
   "Purge et vérification des logs",
 ];
 
-export async function exportClientJourneyReportPdf(input: { generatedAt?: Date; operator?: string }) {
+export async function exportClientJourneyReportPdf(input: { generatedAt?: Date; operator?: string; notes?: string }) {
   const pdf = await PDFDocument.create();
   const regular = await pdf.embedFont(StandardFonts.Helvetica);
   const bold = await pdf.embedFont(StandardFonts.HelveticaBold);
@@ -83,6 +83,13 @@ export async function exportClientJourneyReportPdf(input: { generatedAt?: Date; 
   y -= 13;
   text("et vérification des quotas, paiements, erreurs, notifications et logs.", margin + 10, 8, regular, colors.paper);
   y -= 35;
+  addPageIfNeeded(70);
+  page.drawRectangle({ x: margin, y: y - 48, width: width - margin * 2, height: 48, color: colors.panel, borderColor: colors.gold, borderWidth: 0.6 });
+  y -= 15;
+  text("NOTES DE L’OPÉRATEUR", margin + 10, 8, bold, colors.gold);
+  y -= 14;
+  text(input.notes?.trim() || "Aucune note personnalisée.", margin + 10, 8, regular, colors.paper);
+  y -= 28;
   text("Rapport de préparation — il ne constitue pas la preuve d’un test exécuté.", margin, 8, regular, colors.ok);
 
   const bytes = await pdf.save();

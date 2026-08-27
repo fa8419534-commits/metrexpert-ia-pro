@@ -456,3 +456,14 @@
 - [x] Ajouter dans Admin un tableau de bord visuel de l’historique et du statut des purges automatiques.
 - [x] Ajouter les tests Vitest des trois fonctionnalités.
 - [x] Exécuter TypeScript, tests, build et contrôle responsive avant checkpoint.
+
+
+## Session filtres, graphique et notes PDF — 27/08/2026
+
+- [x] Ajouter une recherche texte dans l’historique des purges.
+- [x] Ajouter des filtres par statut dans l’historique des purges.
+- [x] Ajouter un graphique exact des contacts purgés sur les 7 derniers jours.
+- [x] Ajouter une modale de confirmation avant export PDF avec notes personnalisées.
+- [x] Insérer les notes personnalisées dans le rapport PDF.
+- [x] Ajouter les tests Vitest des filtres, du graphique et de la modale PDF.
+- [x] Exécuter TypeScript, tests, build et contrôle responsive avant checkpoint.

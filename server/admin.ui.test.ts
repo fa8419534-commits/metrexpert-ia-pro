@@ -293,3 +293,22 @@ describe("Admin panel UI", () => {
     expect(screen.getAllByText("Succès").length).toBeGreaterThanOrEqual(1);
     expect(screen.getByRole("button", { name: "Rapport parcours client PDF" })).toBeTruthy();
   });
+
+
+  it("filters purge history and opens the annotated PDF confirmation", () => {
+    testState.adminUnlocked = true;
+    testState.purgeRuns = [
+      { id: 1, runType: "automatic", status: "success", deletedCount: 2, retentionDays: 365, cutoff: new Date(), taskUid: "T_success", errorMessage: null, startedAt: new Date(), completedAt: new Date() },
+      { id: 2, runType: "automatic", status: "failed", deletedCount: 0, retentionDays: 365, cutoff: new Date(), taskUid: "T_failed", errorMessage: "timeout réseau", startedAt: new Date(), completedAt: new Date() },
+    ];
+    render(React.createElement(Admin));
+    expect(screen.getByText("2 exécutions affichées")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Échecs" }));
+    expect(screen.getByText("1 exécution affichée")).toBeTruthy();
+    expect(screen.getByText("timeout réseau")).toBeTruthy();
+    expect(screen.queryByText("T_success")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Rapport parcours client PDF" }));
+    expect(screen.getByRole("alertdialog")).toBeTruthy();
+    fireEvent.change(screen.getByLabelText("Notes personnalisées"), { target: { value: "Test pilote à vérifier dans Excel Desktop." } });
+    expect((screen.getByLabelText("Notes personnalisées") as HTMLTextAreaElement).value).toContain("Excel Desktop");
+  });

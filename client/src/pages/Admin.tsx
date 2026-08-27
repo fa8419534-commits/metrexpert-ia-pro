@@ -27,6 +27,8 @@ import {
   RefreshCw,
   ShieldCheck,
   History,
+  Search,
+  BarChart3,
   XCircle,
 } from "lucide-react";
 import React, { FormEvent, useEffect, useState } from "react";
@@ -130,6 +132,10 @@ export default function Admin() {
   const [purgeFeedback, setPurgeFeedback] = useState<PurgeFeedback>(null);
   const [backupFeedback, setBackupFeedback] = useState<"success" | "error" | null>(null);
   const [journeyPdfPending, setJourneyPdfPending] = useState(false);
+  const [journeyPdfOpen, setJourneyPdfOpen] = useState(false);
+  const [journeyPdfNotes, setJourneyPdfNotes] = useState("");
+  const [purgeSearch, setPurgeSearch] = useState("");
+  const [purgeStatusFilter, setPurgeStatusFilter] = useState<"all" | "success" | "failed">("all");
 
   useEffect(() => {
     if (trialStartDate) window.localStorage.setItem("metrexpert.trials.startDate", trialStartDate);
@@ -278,11 +284,33 @@ export default function Admin() {
     },
   });
 
-  async function handleJourneyPdfExport() {
+  const purgeRunRows = purgeRuns.data ?? [];
+  const lastPurgeRun = purgeRunRows[0];
+  const successfulPurgeCount = purgeRunRows.filter((run) => run.status === "success").length;
+  const lastBackupLabel = backupStatus.data?.lastSuccessfulBackupAt ? new Date(backupStatus.data.lastSuccessfulBackupAt).toLocaleString("fr-FR") : "Aucune sauvegarde enregistrée";
+
+  const visiblePurgeRuns = purgeRunRows.filter((run) => {
+    const query = purgeSearch.trim().toLowerCase();
+    const searchable = `${run.runType} ${run.status} ${run.errorMessage ?? ""} ${run.taskUid ?? ""}`.toLowerCase();
+    return (purgeStatusFilter === "all" || run.status === purgeStatusFilter) && (!query || searchable.includes(query));
+  });
+  const purgeLastSevenDays = Array.from({ length: 7 }, (_, index) => {
+    const day = new Date();
+    day.setHours(0, 0, 0, 0);
+    day.setDate(day.getDate() - (6 - index));
+    const key = day.toISOString().slice(0, 10);
+    const deletedCount = purgeRunRows.filter((run) => new Date(run.completedAt).toISOString().slice(0, 10) === key).reduce((total, run) => total + run.deletedCount, 0);
+    return { key, label: day.toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit" }), deletedCount };
+  });
+  const maxPurgeDeletedCount = Math.max(1, ...purgeLastSevenDays.map((day) => day.deletedCount));
+
+  async function handleJourneyPdfExport(notes: string) {
     setJourneyPdfPending(true);
     try {
       const { exportClientJourneyReportPdf } = await import("@/lib/clientJourneyPdf");
-      const blob = await exportClientJourneyReportPdf({ operator: "Daouda" });
+      const blob = await exportClientJourneyReportPdf({ operator: "Daouda", notes });
+      setJourneyPdfOpen(false);
+      setJourneyPdfNotes("");
       const url = URL.createObjectURL(blob);
       const anchor = document.createElement("a");
       anchor.href = url;
@@ -294,11 +322,6 @@ export default function Admin() {
       toast.error(error instanceof Error ? error.message : "Le rapport PDF n’a pas pu être généré.");
     } finally { setJourneyPdfPending(false); }
   }
-
-  const purgeRunRows = purgeRuns.data ?? [];
-  const lastPurgeRun = purgeRunRows[0];
-  const successfulPurgeCount = purgeRunRows.filter((run) => run.status === "success").length;
-  const lastBackupLabel = backupStatus.data?.lastSuccessfulBackupAt ? new Date(backupStatus.data.lastSuccessfulBackupAt).toLocaleString("fr-FR") : "Aucune sauvegarde enregistrée";
 
   const activeCodesCount =
     codes.data?.filter(
@@ -478,7 +501,7 @@ export default function Admin() {
                 {markBackupSuccessful.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" /> : <DatabaseBackup className="mr-2 h-4 w-4" aria-hidden="true" />}
                 Enregistrer une sauvegarde réussie
               </Button>
-              <Button type="button" variant="outline" onClick={() => void handleJourneyPdfExport()} disabled={journeyPdfPending} className="border-[#C9A15A] text-[#C9A15A]">
+              <Button type="button" variant="outline" onClick={() => setJourneyPdfOpen(true)} disabled={journeyPdfPending} className="border-[#C9A15A] text-[#C9A15A]">
                 {journeyPdfPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" /> : <FileText className="mr-2 h-4 w-4" aria-hidden="true" />}
                 Rapport parcours client PDF
               </Button>
@@ -501,11 +524,27 @@ export default function Admin() {
               <p className={`mt-1 text-xs ${lastPurgeRun?.status === "failed" ? "text-[#D98472]" : "text-[#7C9A76]"}`}>{lastPurgeRun ? (lastPurgeRun.status === "success" ? "Succès" : "Échec") : "En attente"}</p>
             </div>
           </div>
-          <div className="mt-5 overflow-x-auto border border-[#3A4A42]">
+          <div className="mt-5 grid gap-5 lg:grid-cols-[1fr_280px]">
+            <div>
+              <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="relative min-w-0 flex-1"><Search className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-[#AEB7B0]" aria-hidden="true" /><Input aria-label="Rechercher dans l’historique des purges" value={purgeSearch} onChange={(event) => setPurgeSearch(event.target.value)} placeholder="Rechercher : erreur, tâche, automatique…" className="border-[#3A4A42] bg-[#0F1613] pl-9 text-[#EDEAE2]" /></div>
+                <div className="flex flex-wrap gap-2" role="group" aria-label="Filtrer les purges par statut"><Button type="button" size="sm" variant="outline" aria-pressed={purgeStatusFilter === "all"} onClick={() => setPurgeStatusFilter("all")} className={purgeStatusFilter === "all" ? "border-[#C9A15A] bg-[#C9A15A] text-[#0F1613]" : "border-[#3A4A42] text-[#AEB7B0]"}>Tous</Button><Button type="button" size="sm" variant="outline" aria-pressed={purgeStatusFilter === "success"} onClick={() => setPurgeStatusFilter("success")} className={purgeStatusFilter === "success" ? "border-[#7C9A76] bg-[#7C9A76] text-[#0F1613]" : "border-[#3A4A42] text-[#AEB7B0]"}>Succès</Button><Button type="button" size="sm" variant="outline" aria-pressed={purgeStatusFilter === "failed"} onClick={() => setPurgeStatusFilter("failed")} className={purgeStatusFilter === "failed" ? "border-[#D98472] bg-[#D98472] text-[#0F1613]" : "border-[#3A4A42] text-[#AEB7B0]"}>Échecs</Button></div>
+              </div>
+              <p className="mb-2 font-mono text-[10px] uppercase tracking-wider text-[#AEB7B0]">{visiblePurgeRuns.length} exécution{visiblePurgeRuns.length > 1 ? "s" : ""} affichée{visiblePurgeRuns.length > 1 ? "s" : ""}</p>
+              <div className="overflow-x-auto border border-[#3A4A42]">
             <table className="min-w-full text-left text-xs" aria-label="Historique des purges automatiques">
               <thead className="bg-[#0F1613] font-mono text-[10px] uppercase tracking-wider text-[#AEB7B0]"><tr><th className="px-3 py-3">Date</th><th className="px-3 py-3">Type</th><th className="px-3 py-3">Statut</th><th className="px-3 py-3">Contacts supprimés</th><th className="px-3 py-3">Détail</th></tr></thead>
-              <tbody>{purgeRunRows.length ? purgeRunRows.map((run) => <tr key={run.id} className="border-t border-[#3A4A42]"><td className="px-3 py-3 font-mono text-[#EDEAE2]">{new Date(run.completedAt).toLocaleString("fr-FR")}</td><td className="px-3 py-3 text-[#AEB7B0]">{run.runType === "automatic" ? "Automatique" : "Manuelle"}</td><td className={`px-3 py-3 font-semibold ${run.status === "success" ? "text-[#7C9A76]" : "text-[#D98472]"}`}>{run.status === "success" ? "Succès" : "Échec"}</td><td className="px-3 py-3 font-mono text-[#C9A15A]">{run.deletedCount}</td><td className="max-w-xs px-3 py-3 text-[#AEB7B0]">{run.errorMessage || `Rétention : ${run.retentionDays} jours`}</td></tr>) : <tr><td colSpan={5} className="px-3 py-5 text-center text-[#AEB7B0]">Aucune purge enregistrée pour le moment.</td></tr>}</tbody>
+              <tbody>{visiblePurgeRuns.length ? visiblePurgeRuns.map((run) => <tr key={run.id} className="border-t border-[#3A4A42]"><td className="px-3 py-3 font-mono text-[#EDEAE2]">{new Date(run.completedAt).toLocaleString("fr-FR")}</td><td className="px-3 py-3 text-[#AEB7B0]">{run.runType === "automatic" ? "Automatique" : "Manuelle"}</td><td className={`px-3 py-3 font-semibold ${run.status === "success" ? "text-[#7C9A76]" : "text-[#D98472]"}`}>{run.status === "success" ? "Succès" : "Échec"}</td><td className="px-3 py-3 font-mono text-[#C9A15A]">{run.deletedCount}</td><td className="max-w-xs px-3 py-3 text-[#AEB7B0]">{run.errorMessage || `Rétention : ${run.retentionDays} jours`}</td></tr>) : <tr><td colSpan={5} className="px-3 py-5 text-center text-[#AEB7B0]">Aucune purge enregistrée pour le moment.</td></tr>}</tbody>
             </table>
+              </div>
+            </div>
+            <div className="border border-[#3A4A42] bg-[#0F1613] p-4" aria-labelledby="purge-chart-title">
+              <div className="flex items-center justify-between gap-2"><p id="purge-chart-title" className="font-mono text-[10px] uppercase tracking-wider text-[#AEB7B0]">Contacts purgés / 7 jours</p><BarChart3 className="h-4 w-4 text-[#C9A15A]" aria-hidden="true" /></div>
+              <div className="mt-4 flex h-36 items-end justify-between gap-2" aria-label="Graphique des contacts purgés au cours des sept derniers jours">
+                {purgeLastSevenDays.map((day) => <div key={day.key} className="flex h-full min-w-0 flex-1 flex-col items-center justify-end gap-1"><span className="font-mono text-[10px] text-[#C9A15A]">{day.deletedCount}</span><div className="w-full max-w-7 bg-[#C9A15A]" style={{ height: `${Math.max(6, (day.deletedCount / maxPurgeDeletedCount) * 100)}%` }} title={`${day.label} : ${day.deletedCount} contact${day.deletedCount > 1 ? "s" : ""}`} /><span className="font-mono text-[9px] text-[#AEB7B0]">{day.label}</span></div>)}
+              </div>
+              <p className="mt-3 text-[11px] text-[#AEB7B0]">Données issues des exécutions de purge enregistrées. Aucun chiffre n’est simulé.</p>
+            </div>
           </div>
         </section>
 
@@ -745,6 +784,20 @@ export default function Admin() {
           </CardContent>
         </Card>
       </div>
+
+      <AlertDialog open={journeyPdfOpen} onOpenChange={setJourneyPdfOpen}>
+        <AlertDialogContent className="border-[#3A4A42] bg-[#16201C] text-[#EDEAE2]">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="font-serif text-2xl">Générer le rapport du parcours client ?</AlertDialogTitle>
+            <AlertDialogDescription className="text-[#AEB7B0]">Le document sera présenté comme une checklist de recette. Ajoutez une note pour préciser le contexte, le test effectué ou un point à revoir.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="space-y-2"><Label htmlFor="journey-pdf-notes">Notes personnalisées</Label><textarea id="journey-pdf-notes" value={journeyPdfNotes} onChange={(event) => setJourneyPdfNotes(event.target.value.slice(0, 500))} maxLength={500} rows={4} placeholder="Ex. Test pilote du 27/08/2026 — vérifier Excel Desktop avant validation finale." className="w-full border border-[#3A4A42] bg-[#0F1613] p-3 text-sm text-[#EDEAE2] outline-none focus:border-[#C9A15A]" /></div>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="border-[#3A4A42] text-[#EDEAE2]">Annuler</AlertDialogCancel>
+            <AlertDialogAction className="bg-[#C9A15A] text-[#0F1613] hover:bg-[#d8b574]" onClick={() => void handleJourneyPdfExport(journeyPdfNotes)} disabled={journeyPdfPending}>{journeyPdfPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />}Générer et télécharger</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <AlertDialog open={purgeRetentionOpen} onOpenChange={setPurgeRetentionOpen}>
         <AlertDialogContent className="border-[#3A4A42] bg-[#16201C] text-[#EDEAE2]">
