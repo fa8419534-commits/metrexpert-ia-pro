@@ -5674,15 +5674,15 @@ Décision provisoire : privilégier d’abord un guide interactif déterministe,
 ## Test pilote n°1 — scénario réel peu sensible
 - [x] Préparer un projet fictif réaliste sans données personnelles sensibles
 - [x] Vérifier l’accès client/essai et le parcours de saisie complet
-- [ ] Générer et contrôler le classeur Excel ainsi que le PDF
-- [ ] Vérifier les quotas, les messages d’erreur et le téléchargement
+- [x] Générer et contrôler le classeur Excel ainsi que le PDF
+- [x] Vérifier les quotas, les messages d’erreur et le téléchargement
 - [x] Documenter les anomalies et les corrections prioritaires
 
 ## Préparation du pilote n°2 — diagnostic JSON et quota
 - [x] Inspecter le handler tRPC de génération, le prompt, le response_format et la validation finale
 - [x] Vérifier la chaîne réponse brute → nettoyage → JSON.parse → validation métier
 - [x] Ajouter ou confirmer des logs redacted de diagnostic sans exposer de secret ni de données sensibles
-- [ ] Vérifier la réservation, la consommation et le remboursement du quota d’essai en cas d’échec
+- [x] Vérifier la réservation, la consommation et le remboursement du quota d’essai en cas d’échec
 - [x] Ajouter des tests d’échec IA prouvant qu’un essai échoué ne consomme pas de quota
 - [x] Rédiger les critères de sortie et le plan d’exécution du pilote n°2
 
@@ -5695,4 +5695,4 @@ Décision provisoire : privilégier d’abord un guide interactif déterministe,
 - [x] Publier le correctif puis relancer le pilote n°2 contrôlé
 
 - [x] Corriger l’erreur d’encodage PDF WinAnsi provoquée par les symboles emoji dans les observations générées
-- [ ] Rejouer l’aperçu PDF et vérifier le téléchargement XLSX après correction
+- [x] Rejouer l’aperçu PDF et vérifier le téléchargement XLSX après correction
