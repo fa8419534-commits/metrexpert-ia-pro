@@ -101,6 +101,14 @@ describe("Admin panel UI", () => {
     expect(source).toContain("retry: false");
   });
 
+  it("exposes manual reload and cookie verification states", () => {
+    const source = readFileSync(resolve(process.cwd(), "client/src/pages/Admin.tsx"), "utf8");
+    expect(source).toContain("Recharger les données");
+    expect(source).toContain("Vérification de l’accès administrateur");
+    expect(source).toContain("isRefreshingAdminData");
+    expect(source).toContain("Promise.all([codes.refetch(), trials.refetch(), paymentRequests.refetch()])");
+  });
+
   it("renders a protected administrator unlock screen before exposing client management", () => {
     render(React.createElement(Admin));
     expect(screen.getByRole("heading", { name: "Accès administration" })).toBeTruthy();

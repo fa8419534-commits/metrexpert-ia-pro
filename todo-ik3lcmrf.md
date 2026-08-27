@@ -395,3 +395,10 @@
 - [x] Corriger chaque cause identifiée et conserver un état d’erreur explicite
 - [x] Ajouter ou compléter les tests de régression Admin
 - [x] Valider TypeScript, tests, build et responsive puis sauvegarder un checkpoint
+
+- [x] Ajouter un bouton « Recharger les données » dans Admin
+- [x] Afficher un indicateur de chargement pendant la vérification du cookie administrateur
+- [x] Empêcher les nouvelles requêtes protégées avant la confirmation serveur
+- [x] Vérifier et documenter la limite de nettoyage du badge historique de l’aperçu
+- [x] Ajouter les tests Admin et valider TypeScript, tests, build et responsive
+- [x] Sauvegarder un checkpoint de la correction

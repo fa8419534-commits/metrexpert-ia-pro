@@ -160,6 +160,16 @@ export default function Admin() {
     retry: false,
     refetchOnWindowFocus: false,
   });
+  const isRefreshingAdminData = Boolean(codes.isFetching || trials.isFetching || paymentRequests.isFetching);
+
+  async function refreshAdminData() {
+    if (!canLoadAdminData) {
+      await adminStatus.refetch();
+      return;
+    }
+    await Promise.all([codes.refetch(), trials.refetch(), paymentRequests.refetch()]);
+    toast.success("Données administratives actualisées.");
+  }
 
   const reviewPayment = trpc.security.adminReviewPaymentRequest.useMutation({
     onSuccess: (data) => {
@@ -316,6 +326,7 @@ export default function Admin() {
             <p className="mt-2 text-sm text-[#AEB7B0]">
               Gestion manuelle des abonnements et des quotas clients.
             </p>
+            {adminStatus.isLoading && <p role="status" className="mt-4 flex items-center gap-2 border border-[#C9A15A]/60 bg-[#211d14] px-3 py-2 font-mono text-[10px] uppercase tracking-wider text-[#C9A15A]"><Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />Vérification de l’accès administrateur…</p>}
           </div>
           <form onSubmit={submitLogin} className="space-y-4">
             <Label htmlFor="admin-code">Code administrateur</Label>
@@ -375,6 +386,7 @@ export default function Admin() {
               <span className="border border-[#7C9A76] px-3 py-2 font-mono text-[10px] uppercase tracking-wider text-[#7C9A76]">
                 Session protégée
               </span>
+              <Button type="button" variant="outline" size="sm" onClick={() => void refreshAdminData()} disabled={isRefreshingAdminData} className="border-[#3A4A42] text-[#AEB7B0]">{isRefreshingAdminData ? <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" /> : <RefreshCw className="mr-2 h-4 w-4" aria-hidden="true" />}Recharger les données</Button>
             </div>
           </div>
         </header>
