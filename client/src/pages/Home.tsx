@@ -192,6 +192,7 @@ export default function Home() {
   const [draftRestored, setDraftRestored] = useState(false);
   const [draftSaveNotice, setDraftSaveNotice] = useState(false);
   const [resetFormOpen, setResetFormOpen] = useState(false);
+  const [exampleWarningOpen, setExampleWarningOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
   const [previewGeometryDrafts, setPreviewGeometryDrafts] = useState<GeometryDraft[]>([]);
   const [previewQuery, setPreviewQuery] = useState("");
@@ -231,31 +232,33 @@ export default function Home() {
     setSignatureImage(readStoredBrandImage(SIGNATURE_STORAGE_KEY));
     setStampImage(readStoredBrandImage(STAMP_STORAGE_KEY));
     const exampleRequested = new URLSearchParams(window.location.search).get("example") === "1";
-    if (exampleRequested) {
-      setDescription(EXAMPLE_PROJECT_DESCRIPTION);
-      setOnboardingStep(2);
-      setDraftRestored(false);
-      trackOnboardingEvent("example_started", 2);
-      window.history.replaceState({}, "", window.location.pathname);
-    }
     try {
-      const rawDraft = exampleRequested ? null : window.localStorage.getItem(FORM_DRAFT_STORAGE_KEY);
+      const rawDraft = window.localStorage.getItem(FORM_DRAFT_STORAGE_KEY);
       if (rawDraft) {
         const draft = JSON.parse(rawDraft) as Partial<{ description: string; clientPhone: string; clientEmail: string; trialPhone: string; trialEmail: string; trialConsent: boolean; verifiedBy: string; validationDate: string; onboardingStep: number }>;
-        if (typeof draft.description === "string") setDescription(draft.description);
-        if (typeof draft.clientPhone === "string") setClientPhone(draft.clientPhone);
-        if (typeof draft.clientEmail === "string") setClientEmail(draft.clientEmail);
-        if (typeof draft.trialPhone === "string") setTrialPhone(draft.trialPhone);
-        if (typeof draft.trialEmail === "string") setTrialEmail(draft.trialEmail);
-        if (draft.trialConsent === true) setTrialConsent(true);
-        if (typeof draft.verifiedBy === "string") setVerifiedBy(draft.verifiedBy);
-        if (typeof draft.validationDate === "string") setValidationDate(draft.validationDate);
-        if (typeof draft.onboardingStep === "number" && draft.onboardingStep >= 1 && draft.onboardingStep <= 4) setOnboardingStep(draft.onboardingStep);
         const hasMeaningfulDraft = Boolean(draft.description?.trim() || draft.clientPhone?.trim() || draft.clientEmail?.trim() || draft.trialPhone?.trim() || draft.trialEmail?.trim() || draft.verifiedBy?.trim() || draft.validationDate?.trim() || draft.trialConsent || (draft.onboardingStep && draft.onboardingStep > 1));
-        setDraftRestored(hasMeaningfulDraft);
+        if (exampleRequested && hasMeaningfulDraft) {
+          setExampleWarningOpen(true);
+          setDraftRestored(true);
+        } else {
+          if (typeof draft.description === "string") setDescription(draft.description);
+          if (typeof draft.clientPhone === "string") setClientPhone(draft.clientPhone);
+          if (typeof draft.clientEmail === "string") setClientEmail(draft.clientEmail);
+          if (typeof draft.trialPhone === "string") setTrialPhone(draft.trialPhone);
+          if (typeof draft.trialEmail === "string") setTrialEmail(draft.trialEmail);
+          if (draft.trialConsent === true) setTrialConsent(true);
+          if (typeof draft.verifiedBy === "string") setVerifiedBy(draft.verifiedBy);
+          if (typeof draft.validationDate === "string") setValidationDate(draft.validationDate);
+          if (typeof draft.onboardingStep === "number" && draft.onboardingStep >= 1 && draft.onboardingStep <= 4) setOnboardingStep(draft.onboardingStep);
+          setDraftRestored(hasMeaningfulDraft);
+          if (exampleRequested) applyExampleDescription();
+        }
+      } else if (exampleRequested) {
+        applyExampleDescription();
       }
     } catch {
       window.localStorage.removeItem(FORM_DRAFT_STORAGE_KEY);
+      if (exampleRequested) applyExampleDescription();
     } finally {
       draftHydratedRef.current = true;
     }
@@ -435,6 +438,7 @@ export default function Home() {
       });
       setPreviewGeometryDrafts(result.preview.geometry.map(toGeometryDraft));
       await accessStatus.refetch();
+      trackOnboardingEvent("form_completed", 4);
       toast.success(`Classeur généré avec ${result.lineCount} poste${result.lineCount > 1 ? "s" : ""}.`);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Une erreur est survenue.");
@@ -535,8 +539,24 @@ export default function Home() {
     setPreviewQuery("");
     setWorkbookPreviewTab("cover");
     setOnboardingStep(1);
+    setExampleWarningOpen(false);
     setResetFormOpen(false);
     toast.success("Formulaire et brouillon local réinitialisés.");
+  };
+
+  const applyExampleDescription = () => {
+    setDescription(EXAMPLE_PROJECT_DESCRIPTION);
+    setOnboardingStep(2);
+    setDraftRestored(false);
+    setExampleWarningOpen(false);
+    window.localStorage.removeItem(FORM_DRAFT_STORAGE_KEY);
+    trackOnboardingEvent("example_started", 2);
+    window.history.replaceState({}, "", window.location.pathname);
+  };
+
+  const cancelExampleDescription = () => {
+    setExampleWarningOpen(false);
+    window.history.replaceState({}, "", window.location.pathname);
   };
 
   const useExampleDescription = () => {
@@ -592,6 +612,7 @@ export default function Home() {
                 <div className="flex flex-wrap items-start justify-between gap-3"><div><p className="repere">REP. 01B <span>—</span> CONTRÔLE AVANT LANCEMENT</p><h3 id="generation-checklist-title" className="mt-2 font-serif text-xl text-[#EDEAE2]">Checklist de génération</h3></div><span className={`font-mono text-[10px] uppercase tracking-wider ${checklistComplete ? "text-[#7C9A76]" : "text-[#C9A15A]"}`}>{checklistItems.filter((item) => item.complete).length}/{checklistItems.length} validés</span></div>
                 <ul className="mt-4 grid gap-2 sm:grid-cols-2" aria-label="Vérifications requises avant génération">{checklistItems.map((item) => <li key={item.id} className={`flex items-center gap-2 border px-3 py-2 text-xs ${item.complete ? "border-[#7C9A76]/60 text-[#7C9A76]" : "border-[#3A4A42] text-[#AEB7B0]"}`}><span aria-hidden="true" className={`inline-flex h-4 w-4 items-center justify-center border font-mono text-[10px] ${item.complete ? "border-[#7C9A76]" : "border-[#C9A15A]"}`}>{item.complete ? "✓" : "·"}</span>{item.label}</li>)}</ul>
                 {!checklistComplete && <p className="mt-3 border-l-2 border-[#C9A15A] pl-3 text-xs text-[#C9A15A]" role="status">Complétez les éléments signalés avant de générer le fichier.</p>}
+                <button type="button" onClick={() => setResetFormOpen(true)} className="mt-4 border border-[#9d554b] px-3 py-2 font-mono text-[10px] uppercase tracking-wide text-[#d98472]">Réinitialiser et recommencer</button>
               </section>
               <div className="mb-3 flex flex-wrap items-center justify-between gap-3"><label htmlFor="description" className="field-label">Description du projet <span>REQUIS</span></label><div className="flex items-center gap-2">{draftRestored && <span className="font-mono text-[10px] uppercase tracking-wide text-[#7C9A76]" role="status">Brouillon restauré</span>}<button type="button" onClick={() => setHelpOpen((open) => !open)} aria-expanded={helpOpen} aria-controls="description-help" className="border border-[#C9A15A] px-3 py-2 font-mono text-[10px] uppercase tracking-wide text-[#C9A15A]">Aide — exemple</button>{draftRestored && <button type="button" onClick={() => setResetFormOpen(true)} className="border border-[#3A4A42] px-3 py-2 font-mono text-[10px] uppercase tracking-wide text-[#AEB7B0]">Effacer le brouillon</button>}<button type="button" onClick={() => setResetFormOpen(true)} className="border border-[#9d554b] px-3 py-2 font-mono text-[10px] uppercase tracking-wide text-[#d98472]">Réinitialiser le formulaire</button></div></div>
               {draftSaveNotice && <p className="mb-2 font-mono text-[10px] uppercase tracking-wider text-[#7C9A76]" role="status" aria-live="polite">Brouillon sauvegardé automatiquement</p>}
@@ -613,6 +634,12 @@ export default function Home() {
               </div>
               {brandImageError && <p className="mt-2 flex items-center gap-2 text-xs font-medium text-[#d98472]" role="alert"><ImageIcon className="h-3.5 w-3.5" />{brandImageError}</p>}
               {(signatureImage || stampImage) && <button type="button" onClick={() => setPendingRemoval("all")} className="mt-3 inline-flex items-center gap-2 border border-[#3A4A42] px-3 py-2 font-mono text-[9px] uppercase tracking-wide text-[#C9A15A] hover:border-[#C9A15A]" aria-label="Effacer toutes les données locales de signature et de tampon"><Trash2 className="h-3.5 w-3.5" />Effacer toutes les données locales</button>}
+              <Dialog open={exampleWarningOpen} onOpenChange={(open) => { if (!open) cancelExampleDescription(); }}>
+                <DialogContent className="border-[#C9A15A] bg-[#16201C] text-[#EDEAE2]">
+                  <DialogHeader><DialogTitle className="font-serif text-2xl text-[#EDEAE2]">Un brouillon est déjà présent</DialogTitle><DialogDescription className="text-[#AEB7B0]">Charger l’exemple remplacera le brouillon sauvegardé dans ce navigateur. Vous pouvez annuler pour continuer votre saisie actuelle.</DialogDescription></DialogHeader>
+                  <DialogFooter><button type="button" onClick={cancelExampleDescription} className="border border-[#3A4A42] px-4 py-2 font-mono text-[10px] uppercase tracking-wide text-[#AEB7B0]">Conserver mon brouillon</button><button type="button" onClick={applyExampleDescription} className="bg-[#C9A15A] px-4 py-2 font-mono text-[10px] uppercase tracking-wide text-[#0F1613]">Charger l’exemple</button></DialogFooter>
+                </DialogContent>
+              </Dialog>
               <Dialog open={resetFormOpen} onOpenChange={setResetFormOpen}>
                 <DialogContent className="border-[#9d554b] bg-[#16201C] text-[#EDEAE2]">
                   <DialogHeader><DialogTitle className="font-serif text-2xl text-[#EDEAE2]">Réinitialiser le formulaire ?</DialogTitle><DialogDescription className="text-[#AEB7B0]">Tous les champs du formulaire, les dimensions saisies, le fichier sélectionné, l’aperçu et le brouillon local seront effacés. Les images de signature et de tampon mémorisées séparément ne seront pas supprimées.</DialogDescription></DialogHeader>

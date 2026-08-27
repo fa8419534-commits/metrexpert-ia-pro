@@ -5541,3 +5541,17 @@ Décision provisoire : privilégier d’abord un guide interactif déterministe,
 - [x] Relire le suivi et sauvegarder un checkpoint avant remise.
 - [x] Ne pas modifier quotas, paiements, preuves, secrets ou Heartbeat.
 - [x] Ne pas envoyer de communication externe ni publier automatiquement.
+
+
+## Session checklist rapide, avertissement exemple et comparaison onboarding — 27/08/2026
+
+- [x] Ajouter un bouton de réinitialisation rapide dans la checklist finale.
+- [x] Afficher une confirmation avant de charger l’exemple lorsqu’un brouillon significatif existe.
+- [x] Conserver le chargement direct de l’exemple lorsqu’aucun brouillon n’est présent.
+- [x] Ajouter dans Admin une comparaison graphique entre clics CTA exemple et complétions du formulaire.
+- [x] Calculer les métriques uniquement à partir des événements réellement enregistrés.
+- [x] Indiquer clairement si un taux ne peut pas être calculé faute de dénominateur fiable.
+- [x] Ajouter les tests UI et d’agrégation des trois fonctionnalités.
+- [x] Vérifier accessibilité, confidentialité, responsive, TypeScript, tests et build.
+- [x] Relire le suivi avant checkpoint et ne pas publier automatiquement.
+- [x] Ne pas modifier quotas, paiements, preuves, secrets ou Heartbeat.

@@ -21,6 +21,7 @@ import { resolve } from "node:path";
 import Home, { GenerationErrorAlert, GuidedOnboarding, HourlyQuotaIndicator, MonthlyQuotaProgress, persistBrandImage, readStoredBrandImage } from "../client/src/pages/Home";
 import { trackOnboardingEvent } from "../client/src/lib/onboardingTelemetry";
 import { isValidTrialEmail, isValidTrialPhone } from "../client/src/lib/trialValidation";
+import { aggregateOnboardingEvents } from "../client/src/pages/Admin";
 
 describe("generation quota UI errors", () => {
   it("validates trial contact formats without accepting partial values", () => {
@@ -131,9 +132,24 @@ describe("generation quota UI errors", () => {
     expect(homeSource).toContain("Formulaire et brouillon local réinitialisés.");
     expect(homeSource).toContain("setGeometry([])");
     expect(homeSource).toContain("setDownload(null)");
+    expect(homeSource).toContain("Réinitialiser et recommencer");
+    expect(homeSource).toContain("Un brouillon est déjà présent");
+    expect(homeSource).toContain("form_completed");
     expect(landingSource).toContain('href="/etude?example=1"');
     expect(landingSource).toContain('trackOnboardingEvent("example_cta_clicked", 1)');
     expect(landingSource).toContain("Commencer avec l’exemple");
+  });
+
+  it("aggregates example CTA clicks and completed forms without sensitive fields", () => {
+    const now = Date.now();
+    const result = aggregateOnboardingEvents([
+      { event: "example_cta_clicked", step: 1, at: now },
+      { event: "form_completed", step: 4, at: now },
+      { event: "example_cta_clicked", step: 1, at: now - 31 * 86_400_000 },
+    ], now);
+    expect(result.exampleCtaClicks).toBe(1);
+    expect(result.formCompleted).toBe(1);
+    expect(result.trackedActionEvents).toBe(2);
   });
 
   it("renders the aggregated onboarding analytics section behind the Admin page", () => {
@@ -143,6 +159,8 @@ describe("generation quota UI errors", () => {
     expect(source).toContain("Abandons par repère");
     expect(source).toContain("30 derniers jours");
     expect(source).toContain("metrexpert:onboarding-event");
+    expect(source).toContain("Clics sur l’exemple");
+    expect(source).toContain("Formulaires complétés");
   });
 
   it("renders client contact fields and forwards them during generation", () => {
