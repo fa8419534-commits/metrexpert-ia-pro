@@ -1,0 +1,80 @@
+{
+  "Couverture": {
+    "formula_cells": {
+      "B15": "='DQE'!F13"
+    },
+    "cached_values": {},
+    "tab_color": null,
+    "print_title_rows": null,
+    "sheet_view_show_grid_lines": null
+  },
+  "Hypothèses": {
+    "formula_cells": {},
+    "cached_values": {},
+    "tab_color": null,
+    "print_title_rows": null,
+    "sheet_view_show_grid_lines": null
+  },
+  "Contrôles": {
+    "formula_cells": {},
+    "cached_values": {},
+    "tab_color": null,
+    "print_title_rows": null,
+    "sheet_view_show_grid_lines": null
+  },
+  "Métré": {
+    "formula_cells": {
+      "F2": "=D2*E2",
+      "F3": "=D3*E3",
+      "F4": "=D4*E4",
+      "F5": "=D5*E5",
+      "F6": "=D6*E6",
+      "F7": "=D7*E7",
+      "F8": "=D8*E8",
+      "F9": "=D9*E9",
+      "F10": "=D10*E10",
+      "F11": "=D11*E11",
+      "F12": "=D12*E12"
+    },
+    "cached_values": {},
+    "tab_color": null,
+    "print_title_rows": null,
+    "sheet_view_show_grid_lines": null
+  },
+  "DQE": {
+    "formula_cells": {
+      "D2": "=IFERROR('Métré'!F2,0)",
+      "F2": "=D2*E2",
+      "D3": "=IFERROR('Métré'!F3,0)",
+      "F3": "=D3*E3",
+      "D4": "=IFERROR('Métré'!F4,0)",
+      "F4": "=D4*E4",
+      "D5": "=IFERROR('Métré'!F5,0)",
+      "F5": "=D5*E5",
+      "D6": "=IFERROR('Métré'!F6,0)",
+      "F6": "=D6*E6",
+      "D7": "=IFERROR('Métré'!F7,0)",
+      "F7": "=D7*E7",
+      "D8": "=IFERROR('Métré'!F8,0)",
+      "F8": "=D8*E8",
+      "D9": "=IFERROR('Métré'!F9,0)",
+      "F9": "=D9*E9",
+      "D10": "=IFERROR('Métré'!F10,0)",
+      "F10": "=D10*E10",
+      "D11": "=IFERROR('Métré'!F11,0)",
+      "F11": "=D11*E11",
+      "D12": "=IFERROR('Métré'!F12,0)",
+      "F12": "=D12*E12",
+      "F13": "=SUM(F2:F12)"
+    },
+    "cached_values": {},
+    "tab_color": null,
+    "print_title_rows": null,
+    "sheet_view_show_grid_lines": null
+  },
+  "workbook_calc": {
+    "fullCalcOnLoad": true,
+    "forceFullCalc": null,
+    "calcMode": null
+  }
+}

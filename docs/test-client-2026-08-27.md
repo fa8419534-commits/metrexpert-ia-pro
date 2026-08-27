@@ -115,3 +115,16 @@ Le parcours neuf a été vérifié jusqu’à la checklist complète : contact e
 La génération gratuite a finalement abouti après validation de la checklist : l’interface affiche « LIVRABLE PRÊT », « Classeur généré avec 6 postes » et le fichier `metrexpert-1787853333957.xlsx`. L’aperçu contient les onglets Couverture, Métré, DQE, Hypothèses, Géométrie et Contrôles. La mention « VERSION D’ESSAI GRATUIT — ABONNEMENT REQUIS POUR UN USAGE RÉGULIER » est visible sur la couverture. Le total est de 0 FCFA car aucun prix unitaire n’a été fourni, et les données manquantes sont explicitement signalées au lieu d’être inventées.
 
 Le parcours confirme aussi le fonctionnement de la validation visuelle de l’e-mail, de la checklist 4/4, de la progression de génération et de la sauvegarde automatique du brouillon. Le fichier a été généré dans le navigateur réel ; son inspection OOXML locale et son ouverture effective dans Microsoft Excel Desktop restent à faire lorsque le téléchargement sera récupérable dans l’environnement de fichiers.
+
+
+Après réouverture de l’URL, le brouillon est restauré avec la checklist 4/4, mais le livrable n’est pas conservé dans l’état local ; le panneau revient à « Aperçu en attente ». Le compteur global du jour affiche 2/50, cohérent avec les deux générations de test observées. La récupération du XLSX doit donc se faire immédiatement après génération, sans compter sur une restauration de page.
+
+
+La page rechargée ne conserve pas le livrable généré dans l’état local : elle revient à l’aperçu en attente malgré le brouillon restauré. Le contrôle du fichier doit donc être effectué depuis l’historique des téléchargements du navigateur ou via un téléversement manuel du XLSX.
+
+
+## Inspection du classeur fourni
+
+Le fichier `metrexpert-1787850043858.xlsx` a été inspecté localement avec `openpyxl` et par lecture directe de l’archive OOXML. Il contient cinq feuilles : Couverture, Hypothèses, Contrôles, Métré et DQE. Les formules sont présentes dans Couverture (B15), Métré (11 formules) et DQE (23 formules), soit 35 balises `<f>` au total. Aucune balise `<f>` ne contient de signe égal interne : les formules XML sont conformes, par exemple `D2*E2` et `SUM(F2:F12)`.
+
+Les feuilles Métré et DQE utilisent des formats numériques explicites et le classeur demande un recalcul complet à l’ouverture (`fullCalcOnLoad: true`). Les valeurs calculées ne sont pas stockées comme caches dans ce fichier, ce qui signifie qu’Excel Desktop doit recalculer à l’ouverture ; cela est cohérent avec un classeur généré dynamiquement mais doit être vérifié à l’ouverture par l’utilisateur. La couverture est configurée en portrait, ajustée sur une page en largeur et en hauteur, avec les cellules fusionnées attendues. Aucun média n’est incorporé, ce qui est normal puisque le test n’a fourni ni signature ni tampon.

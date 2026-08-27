@@ -5563,9 +5563,9 @@ Décision provisoire : privilégier d’abord un guide interactif déterministe,
 - [x] Tester l’accès à l’espace d’étude et le parcours guidé.
 - [x] Tester la checklist, le brouillon, l’exemple et la réinitialisation.
 - [x] Exécuter une génération de test uniquement avec autorisation et données fictives.
-- [ ] Télécharger le classeur généré et vérifier toutes ses feuilles.
-- [ ] Contrôler les formules OOXML, les formats numériques, les totaux et les hypothèses.
-- [ ] Contrôler la lisibilité et les défauts visibles sur le fichier.
+- [x] Télécharger le classeur généré et vérifier toutes ses feuilles.
+- [x] Contrôler les formules OOXML, les formats numériques, les totaux et les hypothèses.
+- [x] Contrôler la lisibilité et les défauts visibles sur le fichier.
 - [x] Documenter les défauts avec priorité et reproduction.
 - [x] Ne pas envoyer de communication, ne pas publier et ne pas modifier les données de production.
 
@@ -5574,7 +5574,7 @@ Décision provisoire : privilégier d’abord un guide interactif déterministe,
 
 - [x] P0 — Corriger le schéma JSON structuré `btp_estimate` : `geometry.items.required` ne contient pas `height`, ce qui provoque HTTP 400 côté fournisseur avant toute génération.
 - [x] P1 — Reproduire et diagnostiquer le premier clic de génération sans requête visible : le clic initial ciblait en réalité « Réinitialiser le formulaire », pas le bouton de génération.
-- [ ] P1 — Après correction P0, générer puis télécharger un classeur et inspecter toutes ses feuilles, formules, totaux, hypothèses et formats.
+- [x] P1 — Après correction P0, générer puis télécharger un classeur et inspecter toutes ses feuilles, formules, totaux, hypothèses et formats : classeur fourni inspecté localement ; absence de signe égal interne confirmée dans les 35 balises OOXML.
 - [x] P1 — Tester séparément le parcours avec fichier joint PDF/image : test serveur avec PDF valide, contrôle du MIME et transmission en part `file_url` validés.
 - [x] P2 — Tester l’essai gratuit dans une session navigateur neuve, distincte de l’accès partagé persistant : formulaire verrouillé, e-mail validé, consentement accepté, checklist 4/4 et génération réussie avec mention d’essai visible.
 - [x] Documenter le parcours client et la réponse fournisseur sans exposer de secret.

@@ -1,0 +1,444 @@
+{
+  "file": "/home/ubuntu/upload/metrexpert-1787850043858.xlsx",
+  "size_bytes": 15123,
+  "sheets": [
+    {
+      "title": "Couverture",
+      "max_row": 27,
+      "max_column": 4,
+      "freeze_panes": null,
+      "print_area": null,
+      "page_orientation": "portrait",
+      "fit_to_width": 1,
+      "fit_to_height": 1,
+      "formula_count": 1,
+      "formulas": [
+        {
+          "cell": "B15",
+          "formula": "='DQE'!F13",
+          "number_format": "General"
+        }
+      ],
+      "merged_ranges": [
+        "A1:D1",
+        "A18:D18",
+        "A27:D27",
+        "A22:D22",
+        "A3:D3",
+        "A26:D26",
+        "A7:D7",
+        "A25:D25",
+        "A2:D2",
+        "A10:D10",
+        "A14:D14"
+      ]
+    },
+    {
+      "title": "Hypothèses",
+      "max_row": 14,
+      "max_column": 3,
+      "freeze_panes": "A2",
+      "print_area": null,
+      "page_orientation": "portrait",
+      "fit_to_width": 1,
+      "fit_to_height": 1,
+      "formula_count": 0,
+      "formulas": [],
+      "merged_ranges": []
+    },
+    {
+      "title": "Contrôles",
+      "max_row": 12,
+      "max_column": 6,
+      "freeze_panes": "A2",
+      "print_area": null,
+      "page_orientation": "portrait",
+      "fit_to_width": 1,
+      "fit_to_height": 1,
+      "formula_count": 0,
+      "formulas": [],
+      "merged_ranges": []
+    },
+    {
+      "title": "Métré",
+      "max_row": 12,
+      "max_column": 7,
+      "freeze_panes": "A2",
+      "print_area": null,
+      "page_orientation": "portrait",
+      "fit_to_width": 1,
+      "fit_to_height": 1,
+      "formula_count": 11,
+      "formulas": [
+        {
+          "cell": "F2",
+          "formula": "=D2*E2",
+          "number_format": "#,##0.00"
+        },
+        {
+          "cell": "F3",
+          "formula": "=D3*E3",
+          "number_format": "#,##0.00"
+        },
+        {
+          "cell": "F4",
+          "formula": "=D4*E4",
+          "number_format": "#,##0.00"
+        },
+        {
+          "cell": "F5",
+          "formula": "=D5*E5",
+          "number_format": "#,##0.00"
+        },
+        {
+          "cell": "F6",
+          "formula": "=D6*E6",
+          "number_format": "#,##0.00"
+        },
+        {
+          "cell": "F7",
+          "formula": "=D7*E7",
+          "number_format": "#,##0.00"
+        },
+        {
+          "cell": "F8",
+          "formula": "=D8*E8",
+          "number_format": "#,##0.00"
+        },
+        {
+          "cell": "F9",
+          "formula": "=D9*E9",
+          "number_format": "#,##0.00"
+        },
+        {
+          "cell": "F10",
+          "formula": "=D10*E10",
+          "number_format": "#,##0.00"
+        },
+        {
+          "cell": "F11",
+          "formula": "=D11*E11",
+          "number_format": "#,##0.00"
+        },
+        {
+          "cell": "F12",
+          "formula": "=D12*E12",
+          "number_format": "#,##0.00"
+        }
+      ],
+      "merged_ranges": []
+    },
+    {
+      "title": "DQE",
+      "max_row": 13,
+      "max_column": 6,
+      "freeze_panes": "A2",
+      "print_area": null,
+      "page_orientation": "portrait",
+      "fit_to_width": 1,
+      "fit_to_height": 1,
+      "formula_count": 23,
+      "formulas": [
+        {
+          "cell": "D2",
+          "formula": "=IFERROR('Métré'!F2,0)",
+          "number_format": "#,##0.00"
+        },
+        {
+          "cell": "F2",
+          "formula": "=D2*E2",
+          "number_format": "#,##0"
+        },
+        {
+          "cell": "D3",
+          "formula": "=IFERROR('Métré'!F3,0)",
+          "number_format": "#,##0.00"
+        },
+        {
+          "cell": "F3",
+          "formula": "=D3*E3",
+          "number_format": "#,##0"
+        },
+        {
+          "cell": "D4",
+          "formula": "=IFERROR('Métré'!F4,0)",
+          "number_format": "#,##0.00"
+        },
+        {
+          "cell": "F4",
+          "formula": "=D4*E4",
+          "number_format": "#,##0"
+        },
+        {
+          "cell": "D5",
+          "formula": "=IFERROR('Métré'!F5,0)",
+          "number_format": "#,##0.00"
+        },
+        {
+          "cell": "F5",
+          "formula": "=D5*E5",
+          "number_format": "#,##0"
+        },
+        {
+          "cell": "D6",
+          "formula": "=IFERROR('Métré'!F6,0)",
+          "number_format": "#,##0.00"
+        },
+        {
+          "cell": "F6",
+          "formula": "=D6*E6",
+          "number_format": "#,##0"
+        },
+        {
+          "cell": "D7",
+          "formula": "=IFERROR('Métré'!F7,0)",
+          "number_format": "#,##0.00"
+        },
+        {
+          "cell": "F7",
+          "formula": "=D7*E7",
+          "number_format": "#,##0"
+        },
+        {
+          "cell": "D8",
+          "formula": "=IFERROR('Métré'!F8,0)",
+          "number_format": "#,##0.00"
+        },
+        {
+          "cell": "F8",
+          "formula": "=D8*E8",
+          "number_format": "#,##0"
+        },
+        {
+          "cell": "D9",
+          "formula": "=IFERROR('Métré'!F9,0)",
+          "number_format": "#,##0.00"
+        },
+        {
+          "cell": "F9",
+          "formula": "=D9*E9",
+          "number_format": "#,##0"
+        },
+        {
+          "cell": "D10",
+          "formula": "=IFERROR('Métré'!F10,0)",
+          "number_format": "#,##0.00"
+        },
+        {
+          "cell": "F10",
+          "formula": "=D10*E10",
+          "number_format": "#,##0"
+        },
+        {
+          "cell": "D11",
+          "formula": "=IFERROR('Métré'!F11,0)",
+          "number_format": "#,##0.00"
+        },
+        {
+          "cell": "F11",
+          "formula": "=D11*E11",
+          "number_format": "#,##0"
+        },
+        {
+          "cell": "D12",
+          "formula": "=IFERROR('Métré'!F12,0)",
+          "number_format": "#,##0.00"
+        },
+        {
+          "cell": "F12",
+          "formula": "=D12*E12",
+          "number_format": "#,##0"
+        },
+        {
+          "cell": "F13",
+          "formula": "=SUM(F2:F12)",
+          "number_format": "#,##0"
+        }
+      ],
+      "merged_ranges": []
+    }
+  ],
+  "formula_xml": [
+    {
+      "xml_file": "xl/worksheets/sheet1.xml",
+      "formula_text": "'DQE'!F13",
+      "has_internal_equals": false
+    },
+    {
+      "xml_file": "xl/worksheets/sheet4.xml",
+      "formula_text": "D2*E2",
+      "has_internal_equals": false
+    },
+    {
+      "xml_file": "xl/worksheets/sheet4.xml",
+      "formula_text": "D3*E3",
+      "has_internal_equals": false
+    },
+    {
+      "xml_file": "xl/worksheets/sheet4.xml",
+      "formula_text": "D4*E4",
+      "has_internal_equals": false
+    },
+    {
+      "xml_file": "xl/worksheets/sheet4.xml",
+      "formula_text": "D5*E5",
+      "has_internal_equals": false
+    },
+    {
+      "xml_file": "xl/worksheets/sheet4.xml",
+      "formula_text": "D6*E6",
+      "has_internal_equals": false
+    },
+    {
+      "xml_file": "xl/worksheets/sheet4.xml",
+      "formula_text": "D7*E7",
+      "has_internal_equals": false
+    },
+    {
+      "xml_file": "xl/worksheets/sheet4.xml",
+      "formula_text": "D8*E8",
+      "has_internal_equals": false
+    },
+    {
+      "xml_file": "xl/worksheets/sheet4.xml",
+      "formula_text": "D9*E9",
+      "has_internal_equals": false
+    },
+    {
+      "xml_file": "xl/worksheets/sheet4.xml",
+      "formula_text": "D10*E10",
+      "has_internal_equals": false
+    },
+    {
+      "xml_file": "xl/worksheets/sheet4.xml",
+      "formula_text": "D11*E11",
+      "has_internal_equals": false
+    },
+    {
+      "xml_file": "xl/worksheets/sheet4.xml",
+      "formula_text": "D12*E12",
+      "has_internal_equals": false
+    },
+    {
+      "xml_file": "xl/worksheets/sheet5.xml",
+      "formula_text": "IFERROR('Métré'!F2,0)",
+      "has_internal_equals": false
+    },
+    {
+      "xml_file": "xl/worksheets/sheet5.xml",
+      "formula_text": "D2*E2",
+      "has_internal_equals": false
+    },
+    {
+      "xml_file": "xl/worksheets/sheet5.xml",
+      "formula_text": "IFERROR('Métré'!F3,0)",
+      "has_internal_equals": false
+    },
+    {
+      "xml_file": "xl/worksheets/sheet5.xml",
+      "formula_text": "D3*E3",
+      "has_internal_equals": false
+    },
+    {
+      "xml_file": "xl/worksheets/sheet5.xml",
+      "formula_text": "IFERROR('Métré'!F4,0)",
+      "has_internal_equals": false
+    },
+    {
+      "xml_file": "xl/worksheets/sheet5.xml",
+      "formula_text": "D4*E4",
+      "has_internal_equals": false
+    },
+    {
+      "xml_file": "xl/worksheets/sheet5.xml",
+      "formula_text": "IFERROR('Métré'!F5,0)",
+      "has_internal_equals": false
+    },
+    {
+      "xml_file": "xl/worksheets/sheet5.xml",
+      "formula_text": "D5*E5",
+      "has_internal_equals": false
+    },
+    {
+      "xml_file": "xl/worksheets/sheet5.xml",
+      "formula_text": "IFERROR('Métré'!F6,0)",
+      "has_internal_equals": false
+    },
+    {
+      "xml_file": "xl/worksheets/sheet5.xml",
+      "formula_text": "D6*E6",
+      "has_internal_equals": false
+    },
+    {
+      "xml_file": "xl/worksheets/sheet5.xml",
+      "formula_text": "IFERROR('Métré'!F7,0)",
+      "has_internal_equals": false
+    },
+    {
+      "xml_file": "xl/worksheets/sheet5.xml",
+      "formula_text": "D7*E7",
+      "has_internal_equals": false
+    },
+    {
+      "xml_file": "xl/worksheets/sheet5.xml",
+      "formula_text": "IFERROR('Métré'!F8,0)",
+      "has_internal_equals": false
+    },
+    {
+      "xml_file": "xl/worksheets/sheet5.xml",
+      "formula_text": "D8*E8",
+      "has_internal_equals": false
+    },
+    {
+      "xml_file": "xl/worksheets/sheet5.xml",
+      "formula_text": "IFERROR('Métré'!F9,0)",
+      "has_internal_equals": false
+    },
+    {
+      "xml_file": "xl/worksheets/sheet5.xml",
+      "formula_text": "D9*E9",
+      "has_internal_equals": false
+    },
+    {
+      "xml_file": "xl/worksheets/sheet5.xml",
+      "formula_text": "IFERROR('Métré'!F10,0)",
+      "has_internal_equals": false
+    },
+    {
+      "xml_file": "xl/worksheets/sheet5.xml",
+      "formula_text": "D10*E10",
+      "has_internal_equals": false
+    },
+    {
+      "xml_file": "xl/worksheets/sheet5.xml",
+      "formula_text": "IFERROR('Métré'!F11,0)",
+      "has_internal_equals": false
+    },
+    {
+      "xml_file": "xl/worksheets/sheet5.xml",
+      "formula_text": "D11*E11",
+      "has_internal_equals": false
+    },
+    {
+      "xml_file": "xl/worksheets/sheet5.xml",
+      "formula_text": "IFERROR('Métré'!F12,0)",
+      "has_internal_equals": false
+    },
+    {
+      "xml_file": "xl/worksheets/sheet5.xml",
+      "formula_text": "D12*E12",
+      "has_internal_equals": false
+    },
+    {
+      "xml_file": "xl/worksheets/sheet5.xml",
+      "formula_text": "SUM(F2:F12)",
+      "has_internal_equals": false
+    }
+  ],
+  "warnings": [
+    "Aucun média incorporé ; attendu si aucune signature/tampon n’a été fourni."
+  ],
+  "zip_entries": 20,
+  "formula_internal_equals": [],
+  "media_entries": []
+}
