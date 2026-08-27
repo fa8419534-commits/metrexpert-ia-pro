@@ -11,7 +11,6 @@ import { toast } from "sonner";
 import ThemeToggle from "@/components/ThemeToggle";
 import ClientSubscriptionPanel from "@/components/ClientSubscriptionPanel";
 import { useTheme } from "@/contexts/ThemeContext";
-import { exportGeometryReportPdf } from "@/lib/geometryPdf";
 
 const MAX_FILE_SIZE = 8 * 1024 * 1024;
 const ACCEPTED_TYPES = ["application/pdf", "image/png", "image/jpeg", "image/webp"];
@@ -393,6 +392,7 @@ export default function Home() {
       toast.error("Aucun contrôle géométrique disponible à exporter.");
       return;
     }
+    const { exportGeometryReportPdf } = await import("@/lib/geometryPdf");
     const blob = await exportGeometryReportPdf({ projectTitle: download.preview.projectTitle, documentDate, dimensions: download.preview.geometry, checks: download.preview.geometryChecks });
     if (geometryPdfUrl) URL.revokeObjectURL(geometryPdfUrl);
     const url = URL.createObjectURL(blob);

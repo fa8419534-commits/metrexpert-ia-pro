@@ -410,7 +410,7 @@
 - [x] Rédiger la procédure de publication sans publier à la place de l’utilisateur
 
 - [x] Corriger la vulnérabilité transitive uuid sans casser ExcelJS
-- [ ] Optimiser le bundle frontend par découpage des routes et modules lourds
+- [x] Optimiser le bundle frontend par découpage des routes et modules lourds — Home réduit de 570,70 kB à 138,53 kB ; pdf-lib isolé dans un chunk chargé à la demande
 - [x] Générer un classeur d’exemple avec données fictives clairement signalées pour Excel Desktop
 - [x] Ajouter dans Admin une durée de conservation configurable pour les contacts
 - [x] Ajouter la suppression automatique idempotente des contacts arrivés à échéance

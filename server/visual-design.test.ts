@@ -43,6 +43,8 @@ describe("technical visual system", () => {
     expect(home).toContain("Confirmer et régénérer");
     expect(home).toContain("Aperçu du rapport PDF");
     expect(home).toContain("Télécharger le PDF");
+    expect(home).toContain('await import("@/lib/geometryPdf")');
+    expect(home).not.toContain('import { exportGeometryReportPdf } from "@/lib/geometryPdf"');
     expect(home).toContain("geometryStatusFilter");
     expect(home).toContain("dimensions affichées");
     expect(home).toContain("Progression indicative");
