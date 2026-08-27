@@ -6,10 +6,11 @@ vi.mock("./_core/llm", () => ({ invokeLLM: invokeLLMMock }));
 import { appRouter } from "./routers";
 import { BTP_JSON_OUTPUT_ENFORCEMENT, BTP_SYSTEM_PROMPT } from "./btpPrompt";
 import type { TrpcContext } from "./_core/context";
-import { setAccessCookie } from "./security";
+import { getHourlyQuotaStatus, hasUsedFreeTrial, resetSecurityStateForTests, setAccessCookie } from "./security";
 
 describe("estimate.generate prompt transmission", () => {
   beforeEach(() => {
+    resetSecurityStateForTests();
     invokeLLMMock.mockReset();
     invokeLLMMock.mockResolvedValue({
       choices: [{ message: { content: JSON.stringify({
@@ -17,6 +18,24 @@ describe("estimate.generate prompt transmission", () => {
         measures: [{ code: "01", designation: "Béton", unit: "m³", quantity: 2 }],
       }) } }],
     });
+  });
+
+  it("restores the global and trial quota after a malformed provider response", async () => {
+    invokeLLMMock.mockResolvedValue({ choices: [{ message: { content: "Réponse non JSON" } }] });
+    const req = { ip: "198.51.100.77", cookies: {} } as TrpcContext["req"];
+    const ctx: TrpcContext = { user: null, req, res: { cookie: () => undefined } as unknown as TrpcContext["res"] };
+    const caller = appRouter.createCaller(ctx);
+
+    await expect(caller.estimate.generate({
+      idempotencyKey: "44444444-4444-4444-8444-444444444444",
+      description: "Construction d’une maison pilote de 90 m² à Yopougon.",
+      trialPhone: "+225 0700000000",
+      trialEmail: "pilote-json@example.ci",
+      trialConsent: true,
+    })).rejects.toMatchObject({ code: "BAD_REQUEST" });
+
+    await expect(getHourlyQuotaStatus(ctx)).resolves.toMatchObject({ hourlyUsed: 0, hourlyRemaining: 5 });
+    await expect(hasUsedFreeTrial("+225 0700000000", "pilote-json@example.ci")).resolves.toBe(false);
   });
 
   it("sends the exact adapted system prompt to Claude", async () => {
@@ -38,5 +57,8 @@ describe("estimate.generate prompt transmission", () => {
     expect(request.messages[0].content).toContain("CONVENTION DÉTERMINISTE — PRIX DE PEINTURE AMBIGU");
     expect(request.messages[0].content).toContain("180 m², pas 360 m²-couche");
     expect(request.messages[0].content).toContain("HYPOTHÈSE NON DÉFINITIVE");
+    expect(request.response_format.json_schema.schema.required).toEqual(["projectTitle", "geometry", "measures"]);
+    expect(request.response_format.json_schema.schema.properties.measures.items.required).toEqual(["code", "designation", "unit", "quantity"]);
+    expect(request.response_format.json_schema.schema.properties.geometry.items.required).toEqual(["code", "designation", "formula", "unit"]);
   });
 });

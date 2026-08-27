@@ -1,4 +1,5 @@
 import { TRPCError } from "@trpc/server";
+import { createHash, randomUUID } from "node:crypto";
 import { z } from "zod";
 import { COOKIE_NAME } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
@@ -48,7 +49,7 @@ const estimateSchema = {
           code: { type: "string" }, designation: { type: "string" }, formula: { type: "string", enum: ["linear", "surface", "volume", "count"] }, unit: { type: "string" },
           length: { type: ["number", "null"] }, width: { type: ["number", "null"] }, height: { type: ["number", "null"] }, openingArea: { type: ["number", "null"] }, quantity: { type: ["number", "null"] }, notes: { type: ["string", "null"] },
         },
-        required: ["code", "designation", "formula", "unit", "length", "width", "height", "openingArea", "quantity", "notes"], additionalProperties: false,
+        required: ["code", "designation", "formula", "unit"], additionalProperties: false,
       },
     },
     measures: {
@@ -64,12 +65,12 @@ const estimateSchema = {
           factor: { type: "number" },
           notes: { type: "string" },
         },
-        required: ["code", "designation", "unit", "quantity", "unitPrice", "factor", "notes"],
+        required: ["code", "designation", "unit", "quantity"],
         additionalProperties: false,
       },
     },
   },
-  required: ["projectTitle", "client", "location", "summary", "currency", "geometry", "measures"],
+  required: ["projectTitle", "geometry", "measures"],
   additionalProperties: false,
 } as const;
 
@@ -178,13 +179,23 @@ function extractText(response: Awaited<ReturnType<typeof invokeLLM>>): string {
   return "";
 }
 
+function redactDiagnosticText(value: string) {
+  return value
+    .replace(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi, "[email-redacted]")
+    .replace(/\+?\d[\d\s().-]{7,}/g, "[phone-redacted]");
+}
+
+function diagnosticFingerprint(value: string) {
+  return createHash("sha256").update(value).digest("hex").slice(0, 16);
+}
+
 export type EstimateRequestMetadata = Pick<ProjectEstimate, "clientPhone" | "clientEmail" | "verifiedBy" | "validationDate" | "signatureImageDataUrl" | "stampImageDataUrl" | "trialVersion">;
 
 export async function buildEstimateWorkbookFromRequest(estimate: ProjectEstimate, metadata: EstimateRequestMetadata) {
   return buildEstimateWorkbook({ ...estimate, ...metadata });
 }
 
-export function validateEstimate(value: unknown): ProjectEstimate {
+export function validateEstimate(value: unknown, requestId?: string): ProjectEstimate {
   const optionalText = (max: number) => z.string().max(max).nullish().transform((entry) => entry ?? undefined);
   const optionalNumber = (positive = false) => (positive ? z.number().finite().positive() : z.number().finite().nonnegative()).nullish().transform((entry) => entry ?? undefined);
   const parsed = z.object({
@@ -210,9 +221,10 @@ export function validateEstimate(value: unknown): ProjectEstimate {
 
   if (!parsed.success) {
     console.error("[Estimate] Structured result validation failed", {
+      requestId,
       issues: parsed.error.issues.map((issue) => ({ path: issue.path, code: issue.code, message: issue.message })),
     });
-    throw new TRPCError({ code: "BAD_REQUEST", message: "Le JSON renvoyé par l’IA ne respecte pas le format attendu." });
+    throw new TRPCError({ code: "BAD_REQUEST", message: `La réponse de l’IA est incomplète. Référence : ${requestId || "non disponible"}.` });
   }
   return parsed.data;
 }
@@ -303,6 +315,7 @@ export const appRouter = router({
   }),
   estimate: router({
     generate: publicProcedure.input(requestSchema).mutation(async ({ ctx, input }) => {
+      const requestId = randomUUID();
       if (!claimGenerationRequest(input.idempotencyKey)) {
         throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Cette génération est déjà en cours. Patientez avant de réessayer." });
       }
@@ -327,7 +340,7 @@ export const appRouter = router({
           throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: quota.reason === "hourly" ? `Limite atteinte : ${HOURLY_LIMIT} générations par heure.` : `Quota global atteint : ${DAILY_LIMIT} générations pour aujourd’hui.` });
         }
         quotaReservation = quota.reservation;
-        console.info("[Security] Generation reserved", { remaining: quota.remaining, identity: ctx.user?.openId ? "user" : "ip" });
+        console.info("[Security] Generation reserved", { requestId, remaining: quota.remaining, identity: ctx.user?.openId ? "user" : "ip" });
         if (!sharedUnlocked && !clientStatus.unlocked) {
           if (!input.trialPhone?.trim() && !input.trialEmail?.trim()) throw new TRPCError({ code: "BAD_REQUEST", message: "Renseignez votre téléphone ou votre e-mail pour utiliser l’essai gratuit." });
           if (input.trialConsent !== true) throw new TRPCError({ code: "BAD_REQUEST", message: "Votre consentement est requis pour enregistrer vos coordonnées d’essai gratuit." });
@@ -361,18 +374,28 @@ export const appRouter = router({
           },
         });
         const raw = extractText(response);
+        console.info("[Estimate] Provider text received", {
+          requestId,
+          contentType: typeof response.choices?.[0]?.message?.content,
+          finishReason: response.choices?.[0]?.finish_reason,
+          length: raw.length,
+          fingerprint: diagnosticFingerprint(raw),
+          preview: redactDiagnosticText(raw).slice(0, 4_000),
+        });
         let json: unknown;
         try {
           json = parseJsonObjectFromLLM(raw);
         } catch (parseError) {
           console.error("[Estimate] Claude response could not be parsed", {
+            requestId,
             length: raw.length,
-            preview: raw.slice(0, 4_000),
+            fingerprint: diagnosticFingerprint(raw),
+            preview: redactDiagnosticText(raw).slice(0, 4_000),
             parseError: parseError instanceof Error ? parseError.message : String(parseError),
           });
-          throw new TRPCError({ code: "BAD_REQUEST", message: "La réponse de l’IA n’est pas un JSON valide." });
+          throw new TRPCError({ code: "BAD_REQUEST", message: `La réponse de l’IA n’est pas lisible. Référence : ${requestId}.` });
         }
-        const validatedEstimate = validateEstimate(json);
+        const validatedEstimate = validateEstimate(json, requestId);
         const estimate = normalizeEstimateAmbiguities({ ...validatedEstimate, geometry: input.geometry ?? validatedEstimate.geometry });
         const geometryChecks = runQuantityChecks(estimate).filter((check) => (estimate.geometry ?? []).some((dimension) => dimension.code === check.code));
         const workbook = await buildEstimateWorkbookFromRequest(estimate, {
@@ -412,7 +435,7 @@ export const appRouter = router({
         if (monthlyClientId !== undefined) await releaseClientMonthlyQuota(monthlyClientId);
         if (quotaReservation) await releaseGenerationQuota(quotaReservation);
         if (error instanceof TRPCError) throw error;
-        console.error("[Estimate] Generation failed", error);
+        console.error("[Estimate] Generation failed", { requestId, error: error instanceof Error ? error.message : String(error) });
         throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "La génération a échoué. Votre droit a été restauré ; vous pouvez réessayer." });
       } finally {
         releaseGenerationRequest(input.idempotencyKey);

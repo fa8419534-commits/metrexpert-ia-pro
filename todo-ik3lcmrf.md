@@ -5670,3 +5670,26 @@ Décision provisoire : privilégier d’abord un guide interactif déterministe,
 - [x] Couvrir le rendu et la persistance des modèles e-mail par des tests Vitest
 - [x] Vérifier le parcours responsive de la gestion des modèles e-mail sur mobile
 - [x] Exécuter la suite complète, le build et sauvegarder un checkpoint publiable
+
+## Test pilote n°1 — scénario réel peu sensible
+- [x] Préparer un projet fictif réaliste sans données personnelles sensibles
+- [x] Vérifier l’accès client/essai et le parcours de saisie complet
+- [ ] Générer et contrôler le classeur Excel ainsi que le PDF
+- [ ] Vérifier les quotas, les messages d’erreur et le téléchargement
+- [x] Documenter les anomalies et les corrections prioritaires
+
+## Préparation du pilote n°2 — diagnostic JSON et quota
+- [x] Inspecter le handler tRPC de génération, le prompt, le response_format et la validation finale
+- [x] Vérifier la chaîne réponse brute → nettoyage → JSON.parse → validation métier
+- [x] Ajouter ou confirmer des logs redacted de diagnostic sans exposer de secret ni de données sensibles
+- [ ] Vérifier la réservation, la consommation et le remboursement du quota d’essai en cas d’échec
+- [x] Ajouter des tests d’échec IA prouvant qu’un essai échoué ne consomme pas de quota
+- [x] Rédiger les critères de sortie et le plan d’exécution du pilote n°2
+
+## Correctif pilote n°2 — implémentation
+- [x] Ajouter un requestId corrélé et des logs redacted de réponse IA
+- [x] Distinguer les erreurs fournisseur, parsing et validation dans le handler
+- [x] Harmoniser le schéma JSON strict avec la validation et la normalisation
+- [x] Ajouter un test d’intégration de génération échouée avec restitution globale, client et essai
+- [x] Vérifier les tests, TypeScript et le build sans consommer un nouvel essai
+- [x] Publier le correctif puis relancer le pilote n°2 contrôlé
