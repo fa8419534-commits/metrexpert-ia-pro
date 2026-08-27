@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { FileSpreadsheet, FileText, Image as ImageIcon, Loader2, Paperclip, Ruler, Trash2, UploadCloud } from "lucide-react";
+import { FileDown, FileSpreadsheet, FileText, Image as ImageIcon, Loader2, Paperclip, Ruler, Trash2, UploadCloud } from "lucide-react";
 import { toast } from "sonner";
 import ThemeToggle from "@/components/ThemeToggle";
 import ClientSubscriptionPanel from "@/components/ClientSubscriptionPanel";
@@ -180,6 +180,10 @@ export default function Home() {
   const [geometryPdfUrl, setGeometryPdfUrl] = useState<string | null>(null);
   const [geometryPdfFilename, setGeometryPdfFilename] = useState("controle-geometrique.pdf");
   const [geometryPdfOpen, setGeometryPdfOpen] = useState(false);
+  const [resultsPdfUrl, setResultsPdfUrl] = useState<string | null>(null);
+  const [resultsPdfFilename, setResultsPdfFilename] = useState("metrexpert-resultats.pdf");
+  const [resultsPdfOpen, setResultsPdfOpen] = useState(false);
+  const [resultsPdfPending, setResultsPdfPending] = useState(false);
   const [geometryQuery, setGeometryQuery] = useState("");
   const [geometryStatusFilter, setGeometryStatusFilter] = useState<"ALL" | "OK" | "À VÉRIFIER" | "BLOQUANT">("ALL");
   const [geometrySort, setGeometrySort] = useState<"code" | "designation" | "formula" | "status">("code");
@@ -483,6 +487,28 @@ export default function Home() {
     setGeometryPdfOpen(true);
   };
 
+  const handleExportResultsPdf = async () => {
+    if (!download) {
+      toast.error("Générez d’abord un classeur avant d’exporter ses résultats en PDF.");
+      return;
+    }
+    setResultsPdfPending(true);
+    try {
+      const { exportResultsPdf } = await import("@/lib/resultsPdf");
+      const blob = await exportResultsPdf({ preview: download.preview, documentDate, filename: download.filename, signatureImageDataUrl: signatureImage?.dataUrl, stampImageDataUrl: stampImage?.dataUrl });
+      if (resultsPdfUrl) URL.revokeObjectURL(resultsPdfUrl);
+      const url = URL.createObjectURL(blob);
+      setResultsPdfUrl(url);
+      setResultsPdfFilename(`${download.filename.replace(/\\.xlsx$/i, "")}-resultats.pdf`);
+      setResultsPdfOpen(true);
+      toast.success("Aperçu PDF des résultats prêt.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Le PDF des résultats n’a pas pu être généré.");
+    } finally {
+      setResultsPdfPending(false);
+    }
+  };
+
   const visibleMeasures = download?.preview.measures.filter((measure) => {
     const query = previewQuery.trim().toLocaleLowerCase("fr-FR");
     if (!query) return true;
@@ -666,6 +692,13 @@ export default function Home() {
                   <DialogFooter><button type="button" onClick={() => setGeometryPdfOpen(false)} className="border border-[#3A4A42] px-4 py-2 font-mono text-[10px] uppercase tracking-wide text-[#AEB7B0]">Fermer</button>{geometryPdfUrl && <a href={geometryPdfUrl} download={geometryPdfFilename} className="bg-[#C9A15A] px-4 py-2 font-mono text-[10px] uppercase tracking-wide text-[#0F1613]">Télécharger le PDF</a>}</DialogFooter>
                 </DialogContent>
               </Dialog>
+              <Dialog open={resultsPdfOpen} onOpenChange={setResultsPdfOpen}>
+                <DialogContent className="flex h-[90vh] max-w-5xl flex-col border-[#C9A15A] bg-[#16201C] text-[#EDEAE2]">
+                  <DialogHeader><DialogTitle className="font-serif text-2xl text-[#EDEAE2]">Aperçu PDF des résultats</DialogTitle><DialogDescription className="text-[#AEB7B0]">Relisez le résumé, les montants et les postes avant de télécharger le rapport PDF.</DialogDescription></DialogHeader>
+                  <div className="min-h-0 flex-1 border border-[#3A4A42] bg-[#EDEAE2]">{resultsPdfUrl ? <iframe title="Aperçu PDF des résultats du métré et DQE" src={resultsPdfUrl} className="h-full min-h-[55vh] w-full" /> : <p className="p-6 text-[#0F1613]">Aperçu indisponible.</p>}</div>
+                  <DialogFooter><button type="button" onClick={() => setResultsPdfOpen(false)} className="border border-[#3A4A42] px-4 py-2 font-mono text-[10px] uppercase tracking-wide text-[#AEB7B0]">Fermer</button>{resultsPdfUrl && <a href={resultsPdfUrl} download={resultsPdfFilename} className="bg-[#C9A15A] px-4 py-2 font-mono text-[10px] uppercase tracking-wide text-[#0F1613]"><FileDown className="mr-2 inline h-4 w-4" aria-hidden="true" />Télécharger le PDF</a>}</DialogFooter>
+                </DialogContent>
+              </Dialog>
               <div className="mt-5">
                 <input ref={fileInputRef} type="file" accept=".pdf,image/png,image/jpeg,image/webp" className="sr-only" onChange={(event) => onFileChange(event.target.files?.[0])} />
                 <button type="button" onClick={() => fileInputRef.current?.click()} className="upload-zone group">
@@ -680,7 +713,7 @@ export default function Home() {
                 {generate.isPending ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" /> <span>Génération du classeur en cours…</span></> : <><FileSpreadsheet className="mr-2 h-4 w-4" aria-hidden="true" /> <span>Générer mon métré & DQE</span></>}
               </Button>
               {generate.isPending && <div className="result-download mt-4" role="status" aria-live="polite"><span className="flex min-w-0 items-center gap-2 text-xs font-semibold text-[#C9A15A]"><Loader2 className="h-4 w-4 shrink-0 animate-spin motion-reduce:animate-none" aria-hidden="true" /><span className="truncate">Le fichier est presque prêt — ne fermez pas cette page.</span></span><button type="button" className="download-button" disabled aria-busy="true">Génération…</button></div>}
-              {download && !generate.isPending && <><div className="excel-compatibility-notice" role="note"><strong>Compatibilité Microsoft Excel Desktop.</strong> Format XLSX standard, formules natives et recalcul prévu à l’ouverture. Si Excel affiche un avertissement, utilisez « Activer la modification », puis relisez les hypothèses et contrôles.</div><div className="result-download mt-4" role="status" aria-live="polite"><span className="flex min-w-0 items-center gap-2 text-xs font-semibold text-[#7C9A76]"><FileSpreadsheet className="h-4 w-4 shrink-0" /><span className="truncate">Classeur prêt — {download.filename} · {download.lineCount} postes</span></span><a href={download.url} download={download.filename} className="download-button">Télécharger</a></div></>}
+              {download && !generate.isPending && <><div className="excel-compatibility-notice" role="note"><strong>Compatibilité Microsoft Excel Desktop.</strong> Format XLSX standard, formules natives et recalcul prévu à l’ouverture. Si Excel affiche un avertissement, utilisez « Activer la modification », puis relisez les hypothèses et contrôles.</div><div className="result-download mt-4" role="status" aria-live="polite"><span className="flex min-w-0 items-center gap-2 text-xs font-semibold text-[#7C9A76]"><FileSpreadsheet className="h-4 w-4 shrink-0" /><span className="truncate">Classeur prêt — {download.filename} · {download.lineCount} postes</span></span><div className="flex shrink-0 flex-wrap gap-2"><button type="button" onClick={() => void handleExportResultsPdf()} disabled={resultsPdfPending} className="download-button border border-[#C9A15A] text-[#C9A15A]" aria-busy={resultsPdfPending}>{resultsPdfPending ? <><Loader2 className="mr-2 inline h-4 w-4 animate-spin" aria-hidden="true" />Préparation PDF…</> : <><FileDown className="mr-2 inline h-4 w-4" aria-hidden="true" />Aperçu PDF</>}</button><a href={download.url} download={download.filename} className="download-button">Télécharger XLSX</a></div></div></>}
               <p className="mt-4 text-center font-mono text-[10px] leading-5 text-[#718078]">BASE DE TRAVAIL À CONTRÔLER PAR UN PROFESSIONNEL AVANT USAGE CONTRACTUEL.</p>
             </section>
 

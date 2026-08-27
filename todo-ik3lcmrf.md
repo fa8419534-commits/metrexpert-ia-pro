@@ -5601,3 +5601,11 @@ Décision provisoire : privilégier d’abord un guide interactif déterministe,
 
 - [x] Créer le dépôt privé `metrexpert-ia-pro` et pousser le code sans secrets : dépôt `fa8419534-commits/metrexpert-ia-pro` créé et synchronisé via l’intégration Manus.
 - [x] Vérifier la confidentialité du dépôt, les fichiers présents et l’absence de secrets exposés : dépôt affiché `Private`, branche `main`, code présent, aucun `.env` visible à la racine.
+
+
+## Nouvelle demande — export PDF des résultats et chargement
+
+- [x] Ajouter un export PDF récapitulatif des résultats générés, avec téléchargement depuis l’espace d’étude : génération côté navigateur avec résumé, montants, postes, hypothèses et validation.
+- [x] Ajouter un aperçu avant téléchargement du PDF récapitulatif des résultats : modale iframe avec bouton de téléchargement.
+- [x] Renforcer les animations et messages de chargement autour de la génération et de l’export, avec progression indicative, spinner, messages d’étape, estimation et respect de prefers-reduced-motion.
+- [x] Ajouter les tests Vitest de l’export PDF et des états de chargement, puis vérifier TypeScript, build et rendu responsive : 113 tests réussis, TypeScript, build et captures desktop/mobile validés.
