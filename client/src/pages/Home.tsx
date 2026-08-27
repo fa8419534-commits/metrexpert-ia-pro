@@ -190,6 +190,7 @@ export default function Home() {
   const [pdfFooter, setPdfFooter] = useState("");
   const [pdfWatermark, setPdfWatermark] = useState("");
   const [pdfPalette, setPdfPalette] = useState<keyof typeof PDF_PALETTES>("metrexpert");
+  const [pdfFont, setPdfFont] = useState<"helvetica" | "times" | "courier">("helvetica");
   const [pendingRemoval, setPendingRemoval] = useState<"signature" | "stamp" | "logo" | "all" | null>(null);
   const [pendingGeometryRegeneration, setPendingGeometryRegeneration] = useState<GeometryDraft[] | null>(null);
   const [geometryPdfUrl, setGeometryPdfUrl] = useState<string | null>(null);
@@ -252,13 +253,14 @@ export default function Home() {
     setStampImage(readStoredBrandImage(STAMP_STORAGE_KEY));
     setLogoImage(readStoredBrandImage(PDF_LOGO_STORAGE_KEY));
     try {
-      const savedPdfStyle = JSON.parse(window.localStorage.getItem(PDF_STYLE_STORAGE_KEY) || window.localStorage.getItem("metrexpert:pdf-style:v1") || "null") as Partial<{ accentColor: string; darkColor: string; detail: "summary" | "detailed"; footer: string; watermark: string; palette: keyof typeof PDF_PALETTES }> | null;
+      const savedPdfStyle = JSON.parse(window.localStorage.getItem(PDF_STYLE_STORAGE_KEY) || window.localStorage.getItem("metrexpert:pdf-style:v1") || "null") as Partial<{ accentColor: string; darkColor: string; detail: "summary" | "detailed"; footer: string; watermark: string; palette: keyof typeof PDF_PALETTES; font: "helvetica" | "times" | "courier" }> | null;
       if (savedPdfStyle?.accentColor) setPdfAccentColor(savedPdfStyle.accentColor);
       if (savedPdfStyle?.darkColor) setPdfDarkColor(savedPdfStyle.darkColor);
       if (savedPdfStyle?.detail === "summary" || savedPdfStyle?.detail === "detailed") setPdfDetail(savedPdfStyle.detail);
       if (typeof savedPdfStyle?.footer === "string") setPdfFooter(savedPdfStyle.footer);
       if (typeof savedPdfStyle?.watermark === "string") setPdfWatermark(savedPdfStyle.watermark);
       if (savedPdfStyle?.palette && savedPdfStyle.palette in PDF_PALETTES) setPdfPalette(savedPdfStyle.palette);
+      if (savedPdfStyle?.font === "helvetica" || savedPdfStyle?.font === "times" || savedPdfStyle?.font === "courier") setPdfFont(savedPdfStyle.font);
     } catch {
       // Les options PDF reprennent leurs valeurs sûres par défaut.
     }
@@ -313,11 +315,11 @@ export default function Home() {
 
   useEffect(() => {
     try {
-      window.localStorage.setItem(PDF_STYLE_STORAGE_KEY, JSON.stringify({ accentColor: pdfAccentColor, darkColor: pdfDarkColor, detail: pdfDetail, footer: pdfFooter, watermark: pdfWatermark, palette: pdfPalette }));
+      window.localStorage.setItem(PDF_STYLE_STORAGE_KEY, JSON.stringify({ accentColor: pdfAccentColor, darkColor: pdfDarkColor, detail: pdfDetail, footer: pdfFooter, watermark: pdfWatermark, palette: pdfPalette, font: pdfFont }));
     } catch {
       // Les options restent actives pour la session même si le cache est indisponible.
     }
-  }, [pdfAccentColor, pdfDarkColor, pdfDetail, pdfFooter, pdfWatermark, pdfPalette]);
+  }, [pdfAccentColor, pdfDarkColor, pdfDetail, pdfFooter, pdfWatermark, pdfPalette, pdfFont]);
 
   useEffect(() => {
     if (!generate.isPending) {
@@ -547,7 +549,7 @@ export default function Home() {
     setResultsPdfPending(true);
     try {
       const { exportResultsPdf } = await import("@/lib/resultsPdf");
-      const blob = await exportResultsPdf({ preview: download.preview, documentDate, filename: download.filename, signatureImageDataUrl: signatureImage?.dataUrl, stampImageDataUrl: stampImage?.dataUrl, logoImageDataUrl: logoImage?.dataUrl, accentColor: pdfAccentColor, darkColor: pdfDarkColor, detail: pdfDetail, customFooter: pdfFooter, watermark: pdfWatermark });
+      const blob = await exportResultsPdf({ preview: download.preview, documentDate, filename: download.filename, signatureImageDataUrl: signatureImage?.dataUrl, stampImageDataUrl: stampImage?.dataUrl, logoImageDataUrl: logoImage?.dataUrl, accentColor: pdfAccentColor, darkColor: pdfDarkColor, detail: pdfDetail, customFooter: pdfFooter, watermark: pdfWatermark, fontFamily: pdfFont });
       if (resultsPdfUrl) URL.revokeObjectURL(resultsPdfUrl);
       const url = URL.createObjectURL(blob);
       setResultsPdfUrl(url);
@@ -714,10 +716,12 @@ export default function Home() {
                   <div className="min-w-0"><label htmlFor="pdf-detail" className="field-label">Niveau d’export <span>REQUIS</span></label><select id="pdf-detail" value={pdfDetail} onChange={(event) => setPdfDetail(event.target.value as "summary" | "detailed")} className="technical-input h-11 w-full px-3 text-sm"><option value="summary">Résumé — postes principaux</option><option value="detailed">Détaillé — tous les postes</option></select></div>
                   <label className="flex min-w-0 items-center justify-between gap-3 border border-[#3A4A42] px-3 py-2 font-mono text-[10px] uppercase tracking-wide text-[#AEB7B0]">Couleur principale<input aria-label="Couleur principale du PDF" type="color" value={pdfAccentColor} onChange={(event) => { setPdfPalette("metrexpert"); setPdfAccentColor(event.target.value); }} className="h-8 w-12 cursor-pointer border-0 bg-transparent p-0" /></label>
                   <label className="flex min-w-0 items-center justify-between gap-3 border border-[#3A4A42] px-3 py-2 font-mono text-[10px] uppercase tracking-wide text-[#AEB7B0]">Fond du bandeau<input aria-label="Fond du bandeau PDF" type="color" value={pdfDarkColor} onChange={(event) => { setPdfPalette("metrexpert"); setPdfDarkColor(event.target.value); }} className="h-8 w-12 cursor-pointer border-0 bg-transparent p-0" /></label>
+                  <div className="min-w-0"><label htmlFor="pdf-font" className="field-label">Police du PDF <span>OPTIONNEL</span></label><select id="pdf-font" value={pdfFont} onChange={(event) => setPdfFont(event.target.value as "helvetica" | "times" | "courier")} className="technical-input h-11 w-full px-3 text-sm"><option value="helvetica">Helvetica — neutre</option><option value="times">Times — éditoriale</option><option value="courier">Courier — technique</option></select></div>
                   <div className="sm:col-span-2"><label htmlFor="pdf-palette" className="field-label">Palette du rapport <span>OPTIONNEL</span></label><select id="pdf-palette" value={pdfPalette} onChange={(event) => { const selected = event.target.value as keyof typeof PDF_PALETTES; setPdfPalette(selected); setPdfAccentColor(PDF_PALETTES[selected].accent); setPdfDarkColor(PDF_PALETTES[selected].dark); }} className="technical-input h-11 w-full px-3 text-sm">{Object.entries(PDF_PALETTES).map(([key, palette]) => <option key={key} value={key}>{palette.label}</option>)}</select></div>
                   <div className="sm:col-span-2"><label htmlFor="pdf-watermark" className="field-label">Filigrane personnalisé <span>OPTIONNEL</span></label><input id="pdf-watermark" type="text" maxLength={60} value={pdfWatermark} onChange={(event) => setPdfWatermark(event.target.value)} placeholder="Ex. DOCUMENT DE TRAVAIL" className="technical-input h-11 w-full px-3 text-sm" /><p className="mt-1 text-[10px] text-[#87938B]">Appliqué discrètement sur toutes les pages du PDF.</p></div>
                   <div className="sm:col-span-2"><label htmlFor="pdf-footer" className="field-label">Pied de page personnalisé <span>OPTIONNEL</span></label><input id="pdf-footer" type="text" maxLength={130} value={pdfFooter} onChange={(event) => setPdfFooter(event.target.value)} placeholder="Ex. MÉTREXPERT IA PRO · Document de travail" className="technical-input h-11 w-full px-3 text-sm" /></div>
                   <button type="button" onClick={() => { setPdfPalette("metrexpert"); setPdfAccentColor(PDF_PALETTES.metrexpert.accent); setPdfDarkColor(PDF_PALETTES.metrexpert.dark); }} className="justify-self-start border border-[#C9A15A] px-3 py-2 font-mono text-[9px] uppercase tracking-wide text-[#C9A15A]">Réinitialiser palette MÉTREXPERT</button>
+                  <div className="sm:col-span-2 border border-[#3A4A42] bg-[#0F1613] p-4" aria-live="polite"><div className="flex items-center justify-between gap-3 font-mono text-[9px] uppercase tracking-[0.16em] text-[#AEB7B0]"><span>Aperçu en direct</span><span style={{ color: pdfAccentColor }}>● {pdfPalette}</span></div><div className="relative mt-3 min-h-[136px] overflow-hidden border border-[#3A4A42] p-4" style={{ backgroundColor: pdfDarkColor, fontFamily: pdfFont === "times" ? "Georgia, serif" : pdfFont === "courier" ? "Courier New, monospace" : "Arial, sans-serif" }}><span className="pointer-events-none absolute inset-0 flex items-center justify-center select-none text-3xl font-bold uppercase tracking-[0.18em]" style={{ color: pdfAccentColor, opacity: 0.15, transform: "rotate(-24deg)" }}>{pdfWatermark || "Aucun filigrane"}</span><p className="relative text-[9px] uppercase tracking-[0.2em]" style={{ color: pdfAccentColor }}>MÉTREXPERT IA PRO</p><p className="relative mt-4 text-lg" style={{ color: "#EDEAE2" }}>Rapport de métré & DQE</p><p className="relative mt-2 text-xs" style={{ color: "#AEB7B0" }}>La palette, la police et le filigrane sont prévisualisés ici.</p></div></div>
                 </div>
               </div>
               <div className="mt-5 grid min-w-0 gap-4 sm:grid-cols-2">

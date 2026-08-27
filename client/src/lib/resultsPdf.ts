@@ -72,10 +72,14 @@ export async function exportResultsPdf(input: {
   detail?: "summary" | "detailed";
   customFooter?: string;
   watermark?: string;
+  fontFamily?: "helvetica" | "times" | "courier";
 }) {
   const pdf = await PDFDocument.create();
-  const regular = await pdf.embedFont(StandardFonts.Helvetica);
-  const bold = await pdf.embedFont(StandardFonts.HelveticaBold);
+  const fontFamily = input.fontFamily || "helvetica";
+  const regularFont = fontFamily === "times" ? StandardFonts.TimesRoman : fontFamily === "courier" ? StandardFonts.Courier : StandardFonts.Helvetica;
+  const boldFont = fontFamily === "times" ? StandardFonts.TimesRomanBold : fontFamily === "courier" ? StandardFonts.CourierBold : StandardFonts.HelveticaBold;
+  const regular = await pdf.embedFont(regularFont);
+  const bold = await pdf.embedFont(boldFont);
   const pageWidth = 595.28;
   const pageHeight = 841.89;
   const margin = 42;

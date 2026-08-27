@@ -52,6 +52,7 @@ it("adds a custom watermark and footer to the exported document", async () => {
     watermark: "CONFIDENTIEL",
     customFooter: "MÉTREXPERT IA PRO · Rapport de travail",
     detail: "detailed",
+    fontFamily: "courier",
   });
   expect(blob.type).toBe("application/pdf");
   expect(blob.size).toBeGreaterThan(1000);

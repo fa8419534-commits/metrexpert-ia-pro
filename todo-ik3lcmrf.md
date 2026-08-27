@@ -5633,3 +5633,10 @@ Décision provisoire : privilégier d’abord un guide interactif déterministe,
 - [x] Ajouter un champ de filigrane personnalisé avec option d’activation/désactivation et transmission au PDF : champ vide = désactivé.
 - [x] Appliquer le filigrane de façon lisible et discrète sur toutes les pages du PDF exporté, avec opacité réduite et texte limité à 60 caractères.
 - [x] Ajouter les tests des palettes et du filigrane, puis vérifier TypeScript, build et rendu responsive avant checkpoint : 115 tests Vitest réussis, TypeScript, build et contrôle visuel validés.
+
+
+## Nouvelle demande — aperçu direct et police PDF
+
+- [x] Ajouter un aperçu en direct de la palette et du filigrane dans l’interface, avec adaptation visuelle à la police choisie.
+- [x] Ajouter le choix de police PDF avec transmission réelle au générateur et sauvegarde locale : Helvetica, Times et Courier.
+- [x] Ajouter les tests d’aperçu et de police, puis vérifier TypeScript, build et rendu responsive avant checkpoint : 115 tests Vitest réussis, TypeScript, build et captures desktop/mobile validés.
