@@ -191,6 +191,8 @@ export default function Home() {
   const [pdfWatermark, setPdfWatermark] = useState("");
   const [pdfPalette, setPdfPalette] = useState<keyof typeof PDF_PALETTES>("metrexpert");
   const [pdfFont, setPdfFont] = useState<"helvetica" | "times" | "courier" | "montserrat" | "plex-mono">("helvetica");
+  const [pdfEmailSubject, setPdfEmailSubject] = useState("Rapport de métré et DQE — MÉTREXPERT IA PRO");
+  const [pdfEmailBody, setPdfEmailBody] = useState("Bonjour,\n\nVeuillez trouver le rapport PDF de métré et DQE en pièce jointe.\n\nCordialement,\nMÉTREXPERT IA PRO");
   const [pendingRemoval, setPendingRemoval] = useState<"signature" | "stamp" | "logo" | "all" | null>(null);
   const [pendingGeometryRegeneration, setPendingGeometryRegeneration] = useState<GeometryDraft[] | null>(null);
   const [geometryPdfUrl, setGeometryPdfUrl] = useState<string | null>(null);
@@ -253,7 +255,7 @@ export default function Home() {
     setStampImage(readStoredBrandImage(STAMP_STORAGE_KEY));
     setLogoImage(readStoredBrandImage(PDF_LOGO_STORAGE_KEY));
     try {
-      const savedPdfStyle = JSON.parse(window.localStorage.getItem(PDF_STYLE_STORAGE_KEY) || window.localStorage.getItem("metrexpert:pdf-style:v1") || "null") as Partial<{ accentColor: string; darkColor: string; detail: "summary" | "detailed"; footer: string; watermark: string; palette: keyof typeof PDF_PALETTES; font: "helvetica" | "times" | "courier" | "montserrat" | "plex-mono" }> | null;
+      const savedPdfStyle = JSON.parse(window.localStorage.getItem(PDF_STYLE_STORAGE_KEY) || window.localStorage.getItem("metrexpert:pdf-style:v1") || "null") as Partial<{ accentColor: string; darkColor: string; detail: "summary" | "detailed"; footer: string; watermark: string; palette: keyof typeof PDF_PALETTES; font: "helvetica" | "times" | "courier" | "montserrat" | "plex-mono"; emailSubject: string; emailBody: string }> | null;
       if (savedPdfStyle?.accentColor) setPdfAccentColor(savedPdfStyle.accentColor);
       if (savedPdfStyle?.darkColor) setPdfDarkColor(savedPdfStyle.darkColor);
       if (savedPdfStyle?.detail === "summary" || savedPdfStyle?.detail === "detailed") setPdfDetail(savedPdfStyle.detail);
@@ -261,6 +263,8 @@ export default function Home() {
       if (typeof savedPdfStyle?.watermark === "string") setPdfWatermark(savedPdfStyle.watermark);
       if (savedPdfStyle?.palette && savedPdfStyle.palette in PDF_PALETTES) setPdfPalette(savedPdfStyle.palette);
       if (savedPdfStyle?.font === "helvetica" || savedPdfStyle?.font === "times" || savedPdfStyle?.font === "courier" || savedPdfStyle?.font === "montserrat" || savedPdfStyle?.font === "plex-mono") setPdfFont(savedPdfStyle.font);
+      if (typeof savedPdfStyle?.emailSubject === "string") setPdfEmailSubject(savedPdfStyle.emailSubject);
+      if (typeof savedPdfStyle?.emailBody === "string") setPdfEmailBody(savedPdfStyle.emailBody);
     } catch {
       // Les options PDF reprennent leurs valeurs sûres par défaut.
     }
@@ -315,11 +319,11 @@ export default function Home() {
 
   useEffect(() => {
     try {
-      window.localStorage.setItem(PDF_STYLE_STORAGE_KEY, JSON.stringify({ accentColor: pdfAccentColor, darkColor: pdfDarkColor, detail: pdfDetail, footer: pdfFooter, watermark: pdfWatermark, palette: pdfPalette, font: pdfFont }));
+      window.localStorage.setItem(PDF_STYLE_STORAGE_KEY, JSON.stringify({ accentColor: pdfAccentColor, darkColor: pdfDarkColor, detail: pdfDetail, footer: pdfFooter, watermark: pdfWatermark, palette: pdfPalette, font: pdfFont, emailSubject: pdfEmailSubject, emailBody: pdfEmailBody }));
     } catch {
       // Les options restent actives pour la session même si le cache est indisponible.
     }
-  }, [pdfAccentColor, pdfDarkColor, pdfDetail, pdfFooter, pdfWatermark, pdfPalette, pdfFont]);
+  }, [pdfAccentColor, pdfDarkColor, pdfDetail, pdfFooter, pdfWatermark, pdfPalette, pdfFont, pdfEmailSubject, pdfEmailBody]);
 
   useEffect(() => {
     if (!generate.isPending) {
@@ -550,13 +554,13 @@ export default function Home() {
       const blob = await fetch(resultsPdfUrl).then((response) => response.blob());
       const file = new File([blob], resultsPdfFilename, { type: "application/pdf" });
       if (navigator.share && navigator.canShare?.({ files: [file] })) {
-        await navigator.share({ title: `Rapport MÉTREXPERT IA PRO — ${download?.preview.projectTitle || "résultats"}`, text: "Veuillez trouver le rapport PDF de métré et DQE en pièce jointe.", files: [file] });
+        await navigator.share({ title: pdfEmailSubject || `Rapport MÉTREXPERT IA PRO — ${download?.preview.projectTitle || "résultats"}`, text: pdfEmailBody, files: [file] });
         toast.success("Menu de partage ouvert.");
         return;
       }
       const recipient = clientEmail.trim();
-      const subject = encodeURIComponent(`Rapport de métré et DQE — ${download?.preview.projectTitle || "MÉTREXPERT IA PRO"}`);
-      const body = encodeURIComponent(`Bonjour,\n\nVeuillez trouver le rapport PDF de métré et DQE. Le fichier a été téléchargé séparément pour être joint à cet e-mail.\n\nCordialement,\nMÉTREXPERT IA PRO`);
+      const subject = encodeURIComponent(pdfEmailSubject || `Rapport de métré et DQE — ${download?.preview.projectTitle || "MÉTREXPERT IA PRO"}`);
+      const body = encodeURIComponent(pdfEmailBody);
       const link = `mailto:${encodeURIComponent(recipient)}?subject=${subject}&body=${body}`;
       const anchor = document.createElement("a");
       anchor.href = resultsPdfUrl;
@@ -749,6 +753,7 @@ export default function Home() {
                   <div className="sm:col-span-2"><label htmlFor="pdf-palette" className="field-label">Palette du rapport <span>OPTIONNEL</span></label><select id="pdf-palette" value={pdfPalette} onChange={(event) => { const selected = event.target.value as keyof typeof PDF_PALETTES; setPdfPalette(selected); setPdfAccentColor(PDF_PALETTES[selected].accent); setPdfDarkColor(PDF_PALETTES[selected].dark); }} className="technical-input h-11 w-full px-3 text-sm">{Object.entries(PDF_PALETTES).map(([key, palette]) => <option key={key} value={key}>{palette.label}</option>)}</select></div>
                   <div className="sm:col-span-2"><label htmlFor="pdf-watermark" className="field-label">Filigrane personnalisé <span>OPTIONNEL</span></label><input id="pdf-watermark" type="text" maxLength={60} value={pdfWatermark} onChange={(event) => setPdfWatermark(event.target.value)} placeholder="Ex. DOCUMENT DE TRAVAIL" className="technical-input h-11 w-full px-3 text-sm" /><p className="mt-1 text-[10px] text-[#87938B]">Appliqué discrètement sur toutes les pages du PDF.</p></div>
                   <div className="sm:col-span-2"><label htmlFor="pdf-footer" className="field-label">Pied de page personnalisé <span>OPTIONNEL</span></label><input id="pdf-footer" type="text" maxLength={130} value={pdfFooter} onChange={(event) => setPdfFooter(event.target.value)} placeholder="Ex. MÉTREXPERT IA PRO · Document de travail" className="technical-input h-11 w-full px-3 text-sm" /></div>
+                  <div className="sm:col-span-2 border-t border-[#3A4A42] pt-4"><p className="field-label">Modèle d’e-mail de partage <span>SAUVEGARDÉ LOCALEMENT</span></p><label htmlFor="pdf-email-subject" className="mt-3 block text-xs text-[#AEB7B0]">Objet par défaut</label><input id="pdf-email-subject" type="text" maxLength={160} value={pdfEmailSubject} onChange={(event) => setPdfEmailSubject(event.target.value)} className="technical-input mt-1 h-11 w-full px-3 text-sm" placeholder="Rapport de métré et DQE — MÉTREXPERT IA PRO" /><label htmlFor="pdf-email-body" className="mt-3 block text-xs text-[#AEB7B0]">Corps du message par défaut</label><textarea id="pdf-email-body" maxLength={2000} value={pdfEmailBody} onChange={(event) => setPdfEmailBody(event.target.value)} rows={5} className="technical-input mt-1 min-h-[120px] w-full resize-y px-3 py-3 text-sm" placeholder="Bonjour,\n\nVeuillez trouver le rapport PDF en pièce jointe." /><p className="mt-1 text-[10px] text-[#87938B]">Le modèle prépare le partage ; aucun e-mail n’est envoyé automatiquement.</p></div>
                   <button type="button" onClick={() => { setPdfPalette("metrexpert"); setPdfAccentColor(PDF_PALETTES.metrexpert.accent); setPdfDarkColor(PDF_PALETTES.metrexpert.dark); }} className="justify-self-start border border-[#C9A15A] px-3 py-2 font-mono text-[9px] uppercase tracking-wide text-[#C9A15A]">Réinitialiser palette MÉTREXPERT</button>
                   <div className="sm:col-span-2 border border-[#3A4A42] bg-[#0F1613] p-4" aria-live="polite"><div className="flex items-center justify-between gap-3 font-mono text-[9px] uppercase tracking-[0.16em] text-[#AEB7B0]"><span>Aperçu en direct</span><span style={{ color: pdfAccentColor }}>● {pdfPalette}</span></div><div className="relative mt-3 min-h-[136px] overflow-hidden border border-[#3A4A42] p-4" style={{ backgroundColor: pdfDarkColor, fontFamily: pdfFont === "times" ? "Georgia, serif" : pdfFont === "courier" || pdfFont === "plex-mono" ? "Courier New, monospace" : pdfFont === "montserrat" ? "Montserrat, Arial, sans-serif" : "Arial, sans-serif" }}><span className="pointer-events-none absolute inset-0 flex items-center justify-center select-none text-3xl font-bold uppercase tracking-[0.18em]" style={{ color: pdfAccentColor, opacity: 0.15, transform: "rotate(-24deg)" }}>{pdfWatermark || "Aucun filigrane"}</span><p className="relative text-[9px] uppercase tracking-[0.2em]" style={{ color: pdfAccentColor }}>MÉTREXPERT IA PRO</p><p className="relative mt-4 text-lg" style={{ color: "#EDEAE2" }}>Rapport de métré & DQE</p><p className="relative mt-2 text-xs" style={{ color: "#AEB7B0" }}>La palette, la police et le filigrane sont prévisualisés ici.</p></div></div>
                 </div>

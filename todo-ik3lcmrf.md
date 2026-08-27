@@ -5647,3 +5647,11 @@ Décision provisoire : privilégier d’abord un guide interactif déterministe,
 - [x] Ajouter des polices PDF modernes et professionnelles supplémentaires, avec persistance locale et aperçu adapté : Montserrat et IBM Plex Mono en plus des polices standard.
 - [x] Ajouter un bouton de partage e-mail du PDF généré, sans envoi automatique non autorisé : partage natif avec pièce jointe lorsque disponible, sinon téléchargement et brouillon `mailto:`.
 - [x] Ajouter les tests des polices et du partage, puis vérifier TypeScript, build et rendu responsive avant checkpoint : 117 tests Vitest réussis, TypeScript, build et captures desktop/mobile validés.
+
+
+## Nouvelle demande — modèle e-mail personnalisable
+
+- [x] Ajouter les champs persistants d’objet et de corps du message e-mail, avec sauvegarde locale automatique.
+- [x] Utiliser le modèle personnalisé dans le partage PDF sans envoi automatique : partage natif ou brouillon mailto avec téléchargement séparé.
+- [x] Vérifier et tester la sauvegarde automatique de la police PDF pour les prochaines sessions, en conservant les cinq options disponibles.
+- [x] Ajouter les tests, vérifier TypeScript, build et rendu responsive avant checkpoint : 117 tests Vitest, TypeScript, build et contrôle mobile validés.
