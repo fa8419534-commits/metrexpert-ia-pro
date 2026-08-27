@@ -58,3 +58,21 @@ La navigation publiée a restauré la checklist 4/4 et le contact du retest, mai
 
 ## Retest PDF publié — résultat
 Une nouvelle génération a été lancée une seule fois avec le contact fictif `+225 0700000002` / `pilote3@example.ci`. La génération échoue désormais avant la création du livrable avec le message : « La réponse de l’IA n’est pas lisible. Référence : ec28b972-def1-460a-a023-8597ae8f27a6. » Aucun aperçu PDF ni classeur XLSX n’est disponible. Le correctif WinAnsi n’a pas encore pu être exercé sur un nouveau livrable ; il faut diagnostiquer cette réponse IA et vérifier la restitution du quota associée.
+
+Après publication du correctif du schéma JSON strict, la version publiée est à nouveau accessible. Le navigateur a été réinitialisé sur l’espace d’étude ; le nouveau contact fictif du retest doit être saisi avant toute génération. Aucun résultat publié post-correctif n’est encore disponible à ce moment précis.
+
+La version publiée post-correctif est accessible et affiche toujours la checklist 4/4. Le navigateur a été repositionné dans la zone des paramètres PDF ; aucune génération supplémentaire n’a été lancée depuis le dernier échec corrélé ec28b972.
+
+Le scénario restauré reste la maison plain-pied de 90 m² à Yopougon, avec checklist 4/4 validée. Le contact d’essai visible doit encore être remplacé par une identité fictive inédite avant le nouveau lancement post-correctif.
+
+Le contact d’essai du retest post-correctif a été remplacé par le téléphone fictif `+225 0700000003`. Le formulaire indique toujours 4/4 éléments validés et conserve la description du projet. L’e-mail associé doit encore être vérifié ou remplacé avant génération.
+
+Le téléphone inédit `+225 0700000003` est maintenant reconnu par la version publiée post-correctif. Le brouillon de description et la checklist 4/4 sont conservés. L’e-mail du retest doit être remplacé par une adresse fictive distincte avant lancement.
+
+Le retest post-correctif utilise désormais le téléphone fictif `+225 0700000003` et l’e-mail fictif `pilote4@example.ci`. La version publiée affiche la checklist 4/4 et la description du projet restaurée. Aucun appel de génération n’a encore été lancé depuis le correctif du schéma JSON.
+
+Retest post-correctif réussi en production avec le téléphone fictif `+225 0700000003` et l’e-mail `pilote4@example.ci`. Le JSON a été validé, le classeur est prêt et l’interface affiche les actions `APERÇU PDF` et `TÉLÉCHARGER XLSX`. La génération a progressé jusqu’à 92 % avant finalisation, sans erreur visible.
+
+Pilote n°2 terminé avec succès après publication du correctif : classeur généré avec 5 postes, validation JSON réussie, aperçu interactif disponible et aperçu PDF ouvert en production. Le PDF affiche 2 pages et ne reproduit plus l’erreur WinAnsi malgré les observations contenant des symboles de données manquantes. Le bouton de téléchargement PDF et le bouton Excel sont disponibles. Le total affiché est 0 XOF, car aucun prix unitaire n’a été fourni — comportement cohérent et explicitement signalé.
+
+Le bouton `TÉLÉCHARGER XLSX` a été déclenché depuis l’interface. La vérification du gestionnaire de téléchargements local n’a pas pu être terminée car la connexion au navigateur My Browser s’est interrompue immédiatement après l’action. Le livrable a toutefois été vérifié dans l’aperçu web et le PDF a été ouvert avec succès. L’ouverture réelle dans Excel Desktop reste à faire par l’utilisateur sur le fichier téléchargé.
