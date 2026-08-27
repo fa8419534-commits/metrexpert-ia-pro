@@ -110,6 +110,24 @@ describe("generation quota UI errors", () => {
     expect(source).toContain('trackOnboardingEvent("step_viewed", nextStep)');
   });
 
+  it("exposes draft recovery and a concrete description example", () => {
+    const source = readFileSync(resolve(process.cwd(), "client/src/pages/Home.tsx"), "utf8");
+    expect(source).toContain("FORM_DRAFT_STORAGE_KEY");
+    expect(source).toContain("Brouillon restauré");
+    expect(source).toContain("Effacer le brouillon");
+    expect(source).toContain("Exemple de description bien remplie");
+    expect(source).toContain("help_example_used");
+  });
+
+  it("renders the aggregated onboarding analytics section behind the Admin page", () => {
+    const source = readFileSync(resolve(process.cwd(), "client/src/pages/Admin.tsx"), "utf8");
+    expect(source).toContain("aggregateOnboardingEvents");
+    expect(source).toContain('id="onboarding-analytics"');
+    expect(source).toContain("Abandons par repère");
+    expect(source).toContain("30 derniers jours");
+    expect(source).toContain("metrexpert:onboarding-event");
+  });
+
   it("renders client contact fields and forwards them during generation", () => {
     const source = readFileSync(resolve(process.cwd(), "client/src/pages/Home.tsx"), "utf8");
     expect(source).toContain('id="client-phone"');

@@ -5491,3 +5491,22 @@ Décision provisoire : privilégier d’abord un guide interactif déterministe,
 - [x] Ne pas envoyer de communications externes.
 - [x] Produire le résumé final avec les limites restantes.
 - [x] Fin de session.
+
+
+## Session statistiques d’abandon, reprise et aide de saisie — 27/08/2026
+
+- [x] Ajouter une page ou section Admin dédiée aux statistiques agrégées d’abandon.
+- [x] Afficher des graphiques fondés uniquement sur les événements anonymisés réellement enregistrés.
+- [x] Protéger les statistiques par le garde Admin et ne jamais exposer le contenu des formulaires.
+- [x] Ajouter la sauvegarde automatique locale des champs utiles du formulaire.
+- [x] Restaurer le brouillon avec indication claire et possibilité de l’effacer.
+- [x] Ne pas sauvegarder les secrets ni les preuves sensibles dans le brouillon.
+- [x] Ajouter un bouton d’aide avec un exemple concret de description complète, fictive et non commerciale.
+- [x] Ajouter les tests Vitest de statistiques, reprise, suppression du brouillon et aide de saisie.
+- [x] Exécuter TypeScript, tests, build et contrôle responsive avant checkpoint.
+- [x] Relire le suivi et sauvegarder un checkpoint avant remise.
+- [x] Ne pas modifier quotas, paiements, preuves Mobile Money ni Heartbeat.
+- [x] Ne pas publier automatiquement ni envoyer de communication externe.
+- [x] Garder les événements agrégés et minimisés.
+- [x] Documenter les limites du stockage local et des statistiques historiques.
+- [x] Fin de session.

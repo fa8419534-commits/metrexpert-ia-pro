@@ -20,6 +20,8 @@ const MAX_BRAND_IMAGE_SIZE = 1.5 * 1024 * 1024;
 const BRAND_IMAGE_STORAGE_VERSION = 1;
 const SIGNATURE_STORAGE_KEY = "metrexpert:validation-image:signature";
 const STAMP_STORAGE_KEY = "metrexpert:validation-image:stamp";
+const FORM_DRAFT_STORAGE_KEY = "metrexpert:generation-draft:v1";
+const EXAMPLE_PROJECT_DESCRIPTION = "Construction d’une villa R+1 de 180 m² à Yopougon, avec fondations en béton armé, murs en agglos de 15 cm, dalle pleine, toiture-terrasse et peinture intérieure. Métrer séparément les fondations, le gros œuvre, les enduits, les menuiseries et la peinture. Les dimensions non précisées doivent être indiquées comme hypothèses à vérifier.";
 
 function readFileAsDataUrl(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -198,11 +200,14 @@ export default function Home() {
   const [fileError, setFileError] = useState("");
   const [download, setDownload] = useState<GeneratedDownload | null>(null);
   const [onboardingStep, setOnboardingStep] = useState(1);
+  const [draftRestored, setDraftRestored] = useState(false);
+  const [helpOpen, setHelpOpen] = useState(false);
   const [previewGeometryDrafts, setPreviewGeometryDrafts] = useState<GeometryDraft[]>([]);
   const [previewQuery, setPreviewQuery] = useState("");
   const [workbookPreviewTab, setWorkbookPreviewTab] = useState<WorkbookPreviewTab>("cover");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const generationRequestKeyRef = useRef<string | null>(null);
+  const draftHydratedRef = useRef(false);
   const signatureInputRef = useRef<HTMLInputElement>(null);
   const stampInputRef = useRef<HTMLInputElement>(null);
   const accessStatus = trpc.security.status.useQuery();
@@ -234,7 +239,39 @@ export default function Home() {
   useEffect(() => {
     setSignatureImage(readStoredBrandImage(SIGNATURE_STORAGE_KEY));
     setStampImage(readStoredBrandImage(STAMP_STORAGE_KEY));
+    try {
+      const rawDraft = window.localStorage.getItem(FORM_DRAFT_STORAGE_KEY);
+      if (rawDraft) {
+        const draft = JSON.parse(rawDraft) as Partial<{ description: string; clientPhone: string; clientEmail: string; trialPhone: string; trialEmail: string; trialConsent: boolean; verifiedBy: string; validationDate: string; onboardingStep: number }>;
+        if (typeof draft.description === "string") setDescription(draft.description);
+        if (typeof draft.clientPhone === "string") setClientPhone(draft.clientPhone);
+        if (typeof draft.clientEmail === "string") setClientEmail(draft.clientEmail);
+        if (typeof draft.trialPhone === "string") setTrialPhone(draft.trialPhone);
+        if (typeof draft.trialEmail === "string") setTrialEmail(draft.trialEmail);
+        if (draft.trialConsent === true) setTrialConsent(true);
+        if (typeof draft.verifiedBy === "string") setVerifiedBy(draft.verifiedBy);
+        if (typeof draft.validationDate === "string") setValidationDate(draft.validationDate);
+        if (typeof draft.onboardingStep === "number" && draft.onboardingStep >= 1 && draft.onboardingStep <= 4) setOnboardingStep(draft.onboardingStep);
+        const hasMeaningfulDraft = Boolean(draft.description?.trim() || draft.clientPhone?.trim() || draft.clientEmail?.trim() || draft.trialPhone?.trim() || draft.trialEmail?.trim() || draft.verifiedBy?.trim() || draft.validationDate?.trim() || draft.trialConsent || (draft.onboardingStep && draft.onboardingStep > 1));
+        setDraftRestored(hasMeaningfulDraft);
+      }
+    } catch {
+      window.localStorage.removeItem(FORM_DRAFT_STORAGE_KEY);
+    } finally {
+      draftHydratedRef.current = true;
+    }
   }, []);
+
+  useEffect(() => {
+    if (!draftHydratedRef.current) return;
+    try {
+      const hasMeaningfulDraft = Boolean(description.trim() || clientPhone.trim() || clientEmail.trim() || trialPhone.trim() || trialEmail.trim() || trialConsent || verifiedBy.trim() || validationDate.trim() || onboardingStep > 1);
+      if (hasMeaningfulDraft) window.localStorage.setItem(FORM_DRAFT_STORAGE_KEY, JSON.stringify({ description, clientPhone, clientEmail, trialPhone, trialEmail, trialConsent, verifiedBy, validationDate, onboardingStep }));
+      else window.localStorage.removeItem(FORM_DRAFT_STORAGE_KEY);
+    } catch {
+      // Le formulaire reste utilisable même si le stockage local est indisponible.
+    }
+  }, [description, clientPhone, clientEmail, trialPhone, trialEmail, trialConsent, verifiedBy, validationDate, onboardingStep]);
 
   useEffect(() => {
     if (!generate.isPending) {
@@ -473,6 +510,27 @@ export default function Home() {
   ];
   const checklistComplete = checklistItems.every((item) => item.complete);
 
+  const clearSavedDraft = () => {
+    window.localStorage.removeItem(FORM_DRAFT_STORAGE_KEY);
+    setDraftRestored(false);
+    setDescription("");
+    setClientPhone("");
+    setClientEmail("");
+    setTrialPhone("");
+    setTrialEmail("");
+    setTrialConsent(false);
+    setVerifiedBy("");
+    setValidationDate("");
+    setOnboardingStep(1);
+    toast.success("Brouillon local effacé.");
+  };
+
+  const useExampleDescription = () => {
+    setDescription(EXAMPLE_PROJECT_DESCRIPTION);
+    setHelpOpen(false);
+    trackOnboardingEvent("help_example_used", onboardingStep);
+  };
+
   return (
     <main className={`internal-page internal-page--${theme} min-h-screen overflow-hidden bg-[#0F1613] text-[#EDEAE2]`}><div className="internal-theme-toolbar"><ThemeToggle /></div>
       <div className="technical-grid pointer-events-none fixed inset-0 opacity-60" />
@@ -521,7 +579,8 @@ export default function Home() {
                 <ul className="mt-4 grid gap-2 sm:grid-cols-2" aria-label="Vérifications requises avant génération">{checklistItems.map((item) => <li key={item.id} className={`flex items-center gap-2 border px-3 py-2 text-xs ${item.complete ? "border-[#7C9A76]/60 text-[#7C9A76]" : "border-[#3A4A42] text-[#AEB7B0]"}`}><span aria-hidden="true" className={`inline-flex h-4 w-4 items-center justify-center border font-mono text-[10px] ${item.complete ? "border-[#7C9A76]" : "border-[#C9A15A]"}`}>{item.complete ? "✓" : "·"}</span>{item.label}</li>)}</ul>
                 {!checklistComplete && <p className="mt-3 border-l-2 border-[#C9A15A] pl-3 text-xs text-[#C9A15A]" role="status">Complétez les éléments signalés avant de générer le fichier.</p>}
               </section>
-              <label htmlFor="description" className="field-label">Description du projet <span>REQUIS</span></label>
+              <div className="mb-3 flex flex-wrap items-center justify-between gap-3"><label htmlFor="description" className="field-label">Description du projet <span>REQUIS</span></label><div className="flex items-center gap-2">{draftRestored && <span className="font-mono text-[10px] uppercase tracking-wide text-[#7C9A76]" role="status">Brouillon restauré</span>}<button type="button" onClick={() => setHelpOpen((open) => !open)} aria-expanded={helpOpen} aria-controls="description-help" className="border border-[#C9A15A] px-3 py-2 font-mono text-[10px] uppercase tracking-wide text-[#C9A15A]">Aide — exemple</button>{draftRestored && <button type="button" onClick={clearSavedDraft} className="border border-[#3A4A42] px-3 py-2 font-mono text-[10px] uppercase tracking-wide text-[#AEB7B0]">Effacer le brouillon</button>}</div></div>
+              {helpOpen && <aside id="description-help" className="mb-3 border border-[#C9A15A]/70 bg-[#16201C] p-4 text-xs leading-5 text-[#AEB7B0]" role="note"><p className="font-mono text-[10px] uppercase tracking-wider text-[#C9A15A]">Exemple de description bien remplie</p><p className="mt-2">{EXAMPLE_PROJECT_DESCRIPTION}</p><button type="button" onClick={useExampleDescription} className="mt-3 border border-[#7C9A76] px-3 py-2 font-mono text-[10px] uppercase tracking-wide text-[#7C9A76]">Utiliser cet exemple</button></aside>}
               <Textarea id="description" value={description} onChange={(event) => setDescription(event.target.value)} placeholder="Ex. Construction d’une villa R+1 de 180 m² à Abidjan, avec fondations en béton armé, murs en agglos..." className="technical-input min-h-40 resize-none" />
               <section className="mt-5 border border-[#3A4A42] bg-[#16201C] p-4" aria-labelledby="geometry-title">
                 <div className="flex flex-wrap items-start justify-between gap-3"><div><p className="repere">REP. 01A <span>—</span> DIMENSIONS EXPLICITES</p><h3 id="geometry-title" className="mt-2 font-serif text-xl text-[#EDEAE2]">Contrôle géométrique</h3><p className="mt-1 max-w-xl text-xs leading-5 text-[#AEB7B0]">Saisissez les dimensions connues. Elles seront comparées indépendamment aux quantités générées, sans correction silencieuse.</p></div><button type="button" onClick={addGeometry} className="border border-[#C9A15A] px-3 py-2 font-mono text-[10px] uppercase tracking-wide text-[#C9A15A]">+ Ajouter une ligne</button></div>

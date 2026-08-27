@@ -104,6 +104,15 @@ export function buildEmailTrialCsv(trials: CsvTrial[]) {
   ].map((row) => row.map((value) => escape(String(value))).join(";")).join("\r\n");
 }
 
+export type OnboardingEvent = { event: string; step: number; at: number };
+
+export function aggregateOnboardingEvents(events: OnboardingEvent[], now = Date.now()) {
+  const recent = events.filter((event) => Number.isFinite(event.at) && event.at >= now - 30 * 86_400_000);
+  const stepViewed = [1, 2, 3, 4].map((step) => recent.filter((event) => event.event === "step_viewed" && event.step === step).length);
+  const stepAbandoned = [1, 2, 3, 4].map((step) => recent.filter((event) => event.event === "form_abandoned" && event.step === step).length);
+  return { totalEvents: recent.length, stepViewed, stepAbandoned, generationStarted: recent.filter((event) => event.event === "generation_started").length, checklistBlocked: recent.filter((event) => event.event === "generation_blocked_checklist").length, helpUsed: recent.filter((event) => event.event === "help_example_used").length };
+}
+
 export function buildHeartbeatCsv(runs: HeartbeatCsvRun[]) {
   const escape = (value: string) => `"${value.replace(/"/g, '""')}"`;
   const rows = runs.map((run) => [new Date(run.completedAt).toISOString(), run.runType === "automatic" ? "Automatique" : "Manuelle", run.status === "success" ? "Succès" : "Échec", String(run.deletedCount), String(run.retentionDays), run.taskUid ?? "", run.errorMessage ?? ""]);
@@ -151,6 +160,27 @@ export default function Admin() {
   const [heartbeatStatusFilter, setHeartbeatStatusFilter] = useState<"all" | "success" | "failed">("all");
   const [heartbeatChecks, setHeartbeatChecks] = useState<Record<number, "pending" | "success" | "error">>({});
   const [heartbeatTarget, setHeartbeatTarget] = useState<{ id: number; clientName: string; monthlyRemaining: number; expiresAt: Date | string } | null>(null);
+  const [onboardingAnalytics, setOnboardingAnalytics] = useState(() => aggregateOnboardingEvents([]));
+
+  useEffect(() => {
+    const ONBOARDING_EVENT_KEY = "metrexpert:onboarding-events:v1";
+    const refreshAnalytics = () => {
+      try {
+        const raw = window.localStorage.getItem(ONBOARDING_EVENT_KEY);
+        const events = raw ? JSON.parse(raw) as OnboardingEvent[] : [];
+        setOnboardingAnalytics(aggregateOnboardingEvents(Array.isArray(events) ? events : []));
+      } catch {
+        setOnboardingAnalytics(aggregateOnboardingEvents([]));
+      }
+    };
+    refreshAnalytics();
+    window.addEventListener("metrexpert:onboarding-event", refreshAnalytics);
+    window.addEventListener("storage", refreshAnalytics);
+    return () => {
+      window.removeEventListener("metrexpert:onboarding-event", refreshAnalytics);
+      window.removeEventListener("storage", refreshAnalytics);
+    };
+  }, []);
 
   useEffect(() => {
     if (trialStartDate) window.localStorage.setItem("metrexpert.trials.startDate", trialStartDate);
@@ -577,6 +607,14 @@ export default function Admin() {
             </div>
           </div>
         </header>
+
+        <section id="onboarding-analytics" className="mb-6 border border-[#3A4A42] bg-[#16201C] p-5" aria-labelledby="onboarding-analytics-title">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between"><div><p className="font-mono text-[10px] uppercase tracking-[0.2em] text-[#C9A15A]">REP. ANA-01</p><h2 id="onboarding-analytics-title" className="mt-1 font-serif text-2xl">Abandons du formulaire</h2><p className="mt-1 max-w-2xl text-xs text-[#AEB7B0]">Vue agrégée des événements des 30 derniers jours présents dans ce navigateur Admin. Aucun contenu de projet ni contact n’est affiché.</p></div><span className="border border-[#3A4A42] px-3 py-2 font-mono text-[10px] uppercase tracking-wider text-[#7C9A76]">{onboardingAnalytics.totalEvents} événements</span></div>
+          <div className="mt-5 grid gap-5 lg:grid-cols-[1.4fr_0.8fr]">
+            <div className="border border-[#3A4A42] bg-[#0F1613] p-4" aria-label="Abandons par étape"><p className="font-mono text-[10px] uppercase tracking-wider text-[#C9A15A]">Abandons par repère</p><div className="mt-4 grid gap-3">{[1, 2, 3, 4].map((step, index) => { const value = onboardingAnalytics.stepAbandoned[index]; const max = Math.max(...onboardingAnalytics.stepAbandoned, 1); return <div key={step} className="grid grid-cols-[72px_1fr_36px] items-center gap-3 text-xs"><span className="font-mono text-[#AEB7B0]">REP. 0{step}</span><div className="h-3 border border-[#3A4A42]" role="progressbar" aria-label={`Abandons à l’étape ${step}`} aria-valuemin={0} aria-valuemax={max} aria-valuenow={value}><div className="h-full bg-[#C9A15A]" style={{ width: `${(value / max) * 100}%` }} /></div><strong className="text-right font-mono text-[#C9A15A]">{value}</strong></div>; })}</div></div>
+            <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-1"><div className="border border-[#3A4A42] p-3"><span className="font-mono text-[10px] uppercase text-[#87938B]">Générations lancées</span><strong className="mt-1 block font-mono text-2xl text-[#7C9A76]">{onboardingAnalytics.generationStarted}</strong></div><div className="border border-[#3A4A42] p-3"><span className="font-mono text-[10px] uppercase text-[#87938B]">Checklist bloquante</span><strong className="mt-1 block font-mono text-2xl text-[#C9A15A]">{onboardingAnalytics.checklistBlocked}</strong></div><div className="border border-[#3A4A42] p-3"><span className="font-mono text-[10px] uppercase text-[#87938B]">Aide utilisée</span><strong className="mt-1 block font-mono text-2xl text-[#EDEAE2]">{onboardingAnalytics.helpUsed}</strong></div></div>
+          </div>
+        </section>
 
         <section className="mb-6 border border-[#3A4A42] bg-[#16201C] p-5" aria-labelledby="operations-title">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
