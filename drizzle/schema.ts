@@ -105,3 +105,19 @@ export const adminSettings = mysqlTable("admin_settings", {
 
 export type AdminSetting = typeof adminSettings.$inferSelect;
 export type InsertAdminSetting = typeof adminSettings.$inferInsert;
+
+export const purgeRuns = mysqlTable("purge_runs", {
+  id: int("id").autoincrement().primaryKey(),
+  runType: mysqlEnum("runType", ["manual", "automatic"]).notNull(),
+  status: mysqlEnum("status", ["success", "failed"]).notNull(),
+  deletedCount: int("deletedCount").default(0).notNull(),
+  retentionDays: int("retentionDays").notNull(),
+  cutoff: timestamp("cutoff").notNull(),
+  taskUid: varchar("taskUid", { length: 120 }),
+  errorMessage: varchar("errorMessage", { length: 500 }),
+  startedAt: timestamp("startedAt").defaultNow().notNull(),
+  completedAt: timestamp("completedAt").defaultNow().notNull(),
+});
+
+export type PurgeRun = typeof purgeRuns.$inferSelect;
+export type InsertPurgeRun = typeof purgeRuns.$inferInsert;

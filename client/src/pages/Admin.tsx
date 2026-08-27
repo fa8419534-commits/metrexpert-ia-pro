@@ -17,13 +17,16 @@ import { trpc } from "@/lib/trpc";
 import {
   Check,
   Clipboard,
+  DatabaseBackup,
   Download,
+  FileText,
+  UserPlus,
   KeyRound,
   Loader2,
   MessageCircle,
   RefreshCw,
   ShieldCheck,
-  UserPlus,
+  History,
   XCircle,
 } from "lucide-react";
 import React, { FormEvent, useEffect, useState } from "react";
@@ -125,6 +128,8 @@ export default function Admin() {
   const [retentionDraft, setRetentionDraft] = useState("365");
   const [purgeRetentionOpen, setPurgeRetentionOpen] = useState(false);
   const [purgeFeedback, setPurgeFeedback] = useState<PurgeFeedback>(null);
+  const [backupFeedback, setBackupFeedback] = useState<"success" | "error" | null>(null);
+  const [journeyPdfPending, setJourneyPdfPending] = useState(false);
 
   useEffect(() => {
     if (trialStartDate) window.localStorage.setItem("metrexpert.trials.startDate", trialStartDate);
@@ -165,6 +170,8 @@ export default function Admin() {
     retry: false,
     refetchOnWindowFocus: false,
   });
+  const backupStatus = trpc.security.adminGetBackupStatus.useQuery(undefined, { enabled: canLoadAdminData, retry: false, refetchOnWindowFocus: false });
+  const purgeRuns = trpc.security.adminListPurgeRuns.useQuery(undefined, { enabled: canLoadAdminData, retry: false, refetchOnWindowFocus: false });
   useEffect(() => {
     if (retention.data?.retentionDays) {
       setRetentionDays(retention.data.retentionDays);
@@ -176,14 +183,14 @@ export default function Admin() {
     retry: false,
     refetchOnWindowFocus: false,
   });
-  const isRefreshingAdminData = Boolean(codes.isFetching || trials.isFetching || paymentRequests.isFetching || retention.isFetching);
+  const isRefreshingAdminData = Boolean(codes.isFetching || trials.isFetching || paymentRequests.isFetching || retention.isFetching || backupStatus.isFetching || purgeRuns.isFetching);
 
   async function refreshAdminData() {
     if (!canLoadAdminData) {
       await adminStatus.refetch();
       return;
     }
-    await Promise.all([codes.refetch(), trials.refetch(), paymentRequests.refetch(), retention.refetch()]);
+    await Promise.all([codes.refetch(), trials.refetch(), paymentRequests.refetch(), retention.refetch(), backupStatus.refetch(), purgeRuns.refetch()]);
     toast.success("Données administratives actualisées.");
   }
 
@@ -240,6 +247,10 @@ export default function Admin() {
     },
     onError: (error) => toast.error(error.message),
   });
+  const markBackupSuccessful = trpc.security.adminMarkBackupSuccessful.useMutation({
+    onSuccess: (data) => { setBackupFeedback("success"); void backupStatus.refetch(); toast.success(`Sauvegarde enregistrée : ${new Date(data.lastSuccessfulBackupAt).toLocaleString("fr-FR")}.`); },
+    onError: () => { setBackupFeedback("error"); toast.error("Impossible d’enregistrer la sauvegarde."); },
+  });
   const saveRetention = trpc.security.adminSetFreeTrialRetention.useMutation({
     onSuccess: (data) => {
       setRetentionDays(data.retentionDays);
@@ -266,6 +277,28 @@ export default function Admin() {
       toast.error(message);
     },
   });
+
+  async function handleJourneyPdfExport() {
+    setJourneyPdfPending(true);
+    try {
+      const { exportClientJourneyReportPdf } = await import("@/lib/clientJourneyPdf");
+      const blob = await exportClientJourneyReportPdf({ operator: "Daouda" });
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = `metrexpert-rapport-parcours-client-${new Date().toISOString().slice(0, 10)}.pdf`;
+      anchor.click();
+      URL.revokeObjectURL(url);
+      toast.success("Rapport PDF du parcours client téléchargé.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Le rapport PDF n’a pas pu être généré.");
+    } finally { setJourneyPdfPending(false); }
+  }
+
+  const purgeRunRows = purgeRuns.data ?? [];
+  const lastPurgeRun = purgeRunRows[0];
+  const successfulPurgeCount = purgeRunRows.filter((run) => run.status === "success").length;
+  const lastBackupLabel = backupStatus.data?.lastSuccessfulBackupAt ? new Date(backupStatus.data.lastSuccessfulBackupAt).toLocaleString("fr-FR") : "Aucune sauvegarde enregistrée";
 
   const activeCodesCount =
     codes.data?.filter(
@@ -432,6 +465,49 @@ export default function Admin() {
             </div>
           </div>
         </header>
+
+        <section className="mb-6 border border-[#3A4A42] bg-[#16201C] p-5" aria-labelledby="operations-title">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+            <div>
+              <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-[#C9A15A]">REP. OPS-02</p>
+              <h2 id="operations-title" className="mt-1 font-serif text-2xl">Suivi opérationnel</h2>
+              <p className="mt-1 max-w-2xl text-xs text-[#AEB7B0]">La date de sauvegarde est enregistrée après confirmation manuelle d’un export réussi. Elle ne signifie pas qu’un backup automatique a été exécuté.</p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Button type="button" variant="outline" onClick={() => markBackupSuccessful.mutate()} disabled={markBackupSuccessful.isPending} className="border-[#7C9A76] text-[#7C9A76]">
+                {markBackupSuccessful.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" /> : <DatabaseBackup className="mr-2 h-4 w-4" aria-hidden="true" />}
+                Enregistrer une sauvegarde réussie
+              </Button>
+              <Button type="button" variant="outline" onClick={() => void handleJourneyPdfExport()} disabled={journeyPdfPending} className="border-[#C9A15A] text-[#C9A15A]">
+                {journeyPdfPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" /> : <FileText className="mr-2 h-4 w-4" aria-hidden="true" />}
+                Rapport parcours client PDF
+              </Button>
+            </div>
+          </div>
+          <div className="mt-5 grid gap-3 md:grid-cols-3">
+            <div className="border border-[#3A4A42] bg-[#0F1613] p-4" aria-live="polite">
+              <p className="font-mono text-[10px] uppercase tracking-wider text-[#AEB7B0]">Dernière sauvegarde réussie</p>
+              <p className="mt-2 font-mono text-sm text-[#C9A15A]">{lastBackupLabel}</p>
+              {backupFeedback === "success" && <p className="mt-2 text-xs text-[#7C9A76]">Enregistrement confirmé.</p>}
+              {backupFeedback === "error" && <p className="mt-2 text-xs text-[#D98472]">Échec de l’enregistrement.</p>}
+            </div>
+            <div className="border border-[#3A4A42] bg-[#0F1613] p-4">
+              <p className="font-mono text-[10px] uppercase tracking-wider text-[#AEB7B0]">Exécutions réussies visibles</p>
+              <p className="mt-2 font-mono text-2xl text-[#7C9A76]">{successfulPurgeCount}</p>
+            </div>
+            <div className="border border-[#3A4A42] bg-[#0F1613] p-4">
+              <p className="font-mono text-[10px] uppercase tracking-wider text-[#AEB7B0]">Dernière purge</p>
+              <p className="mt-2 font-mono text-sm text-[#EDEAE2]">{lastPurgeRun ? new Date(lastPurgeRun.completedAt).toLocaleString("fr-FR") : "Aucune exécution"}</p>
+              <p className={`mt-1 text-xs ${lastPurgeRun?.status === "failed" ? "text-[#D98472]" : "text-[#7C9A76]"}`}>{lastPurgeRun ? (lastPurgeRun.status === "success" ? "Succès" : "Échec") : "En attente"}</p>
+            </div>
+          </div>
+          <div className="mt-5 overflow-x-auto border border-[#3A4A42]">
+            <table className="min-w-full text-left text-xs" aria-label="Historique des purges automatiques">
+              <thead className="bg-[#0F1613] font-mono text-[10px] uppercase tracking-wider text-[#AEB7B0]"><tr><th className="px-3 py-3">Date</th><th className="px-3 py-3">Type</th><th className="px-3 py-3">Statut</th><th className="px-3 py-3">Contacts supprimés</th><th className="px-3 py-3">Détail</th></tr></thead>
+              <tbody>{purgeRunRows.length ? purgeRunRows.map((run) => <tr key={run.id} className="border-t border-[#3A4A42]"><td className="px-3 py-3 font-mono text-[#EDEAE2]">{new Date(run.completedAt).toLocaleString("fr-FR")}</td><td className="px-3 py-3 text-[#AEB7B0]">{run.runType === "automatic" ? "Automatique" : "Manuelle"}</td><td className={`px-3 py-3 font-semibold ${run.status === "success" ? "text-[#7C9A76]" : "text-[#D98472]"}`}>{run.status === "success" ? "Succès" : "Échec"}</td><td className="px-3 py-3 font-mono text-[#C9A15A]">{run.deletedCount}</td><td className="max-w-xs px-3 py-3 text-[#AEB7B0]">{run.errorMessage || `Rétention : ${run.retentionDays} jours`}</td></tr>) : <tr><td colSpan={5} className="px-3 py-5 text-center text-[#AEB7B0]">Aucune purge enregistrée pour le moment.</td></tr>}</tbody>
+            </table>
+          </div>
+        </section>
 
         <div className="grid gap-6 lg:grid-cols-[360px_1fr]">
           <Card className="border-[#3A4A42] bg-[#16201C] text-[#EDEAE2]">

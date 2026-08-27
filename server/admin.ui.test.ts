@@ -23,6 +23,8 @@ const testState = vi.hoisted(() => ({
   purgeRetention: vi.fn(),
   purgeShouldFail: false,
   retentionDays: 365,
+  lastSuccessfulBackupAt: null as Date | null,
+  purgeRuns: [] as Array<{ id: number; runType: "manual" | "automatic"; status: "success" | "failed"; deletedCount: number; retentionDays: number; cutoff: Date; taskUid: string | null; errorMessage: string | null; startedAt: Date; completedAt: Date }>,
   paymentRequests: [] as Array<{ id: number; clientName: string; phone: string; email: string | null; planQuota: number; amountXof: number; paymentMethod: string; paymentReference: string; status: "pending" | "confirmed" | "rejected"; accessCodeId: number | null; adminNote: string | null; createdAt: Date; reviewedAt: Date | null }>,
 }));
 
@@ -37,6 +39,8 @@ beforeEach(() => {
   testState.purgeRetention.mockReset();
   testState.purgeShouldFail = false;
   testState.retentionDays = 365;
+  testState.lastSuccessfulBackupAt = null;
+  testState.purgeRuns = [];
   testState.paymentRequests = [];
   window.localStorage.clear();
   Object.defineProperty(navigator, "clipboard", {
@@ -55,6 +59,9 @@ vi.mock("@/lib/trpc", () => ({
       adminListCodes: { useQuery: () => ({ data: testState.codes, isLoading: false, refetch: vi.fn() }) },
       adminListFreeTrials: { useQuery: () => ({ data: testState.trials, isLoading: false, refetch: vi.fn() }) },
       adminGetFreeTrialRetention: { useQuery: () => ({ data: { retentionDays: testState.retentionDays }, isLoading: false, isFetching: false, refetch: vi.fn() }) },
+      adminGetBackupStatus: { useQuery: () => ({ data: { lastSuccessfulBackupAt: testState.lastSuccessfulBackupAt }, isLoading: false, isFetching: false, refetch: vi.fn() }) },
+      adminMarkBackupSuccessful: { useMutation: (options?: { onSuccess?: (data: { lastSuccessfulBackupAt: Date }) => void; onError?: () => void }) => ({ isPending: false, mutate: () => { testState.lastSuccessfulBackupAt = new Date(); options?.onSuccess?.({ lastSuccessfulBackupAt: testState.lastSuccessfulBackupAt }); } }) },
+      adminListPurgeRuns: { useQuery: () => ({ data: testState.purgeRuns, isLoading: false, isFetching: false, refetch: vi.fn() }) },
       adminSetFreeTrialRetention: { useMutation: (options?: { onSuccess?: (data: { retentionDays: number }) => void }) => ({ isPending: false, mutate: (input: { retentionDays: number }) => { testState.saveRetention(input); testState.retentionDays = input.retentionDays; options?.onSuccess?.({ retentionDays: input.retentionDays }); } }) },
       adminPurgeExpiredFreeTrials: { useMutation: (options?: { onSuccess?: (data: { deletedCount: number; retentionDays: number; cutoff: Date }) => void; onError?: (error: Error) => void }) => ({ isPending: false, mutate: () => { testState.purgeRetention(); if (testState.purgeShouldFail) options?.onError?.(new Error("Session administrateur expirée.")); else options?.onSuccess?.({ deletedCount: 0, retentionDays: testState.retentionDays, cutoff: new Date() }); } }) },
       adminListPaymentRequests: { useQuery: () => ({ data: testState.paymentRequests, isLoading: false, refetch: vi.fn() }) },
@@ -117,7 +124,7 @@ describe("Admin panel UI", () => {
     expect(source).toContain("Recharger les données");
     expect(source).toContain("Vérification de l’accès administrateur");
     expect(source).toContain("isRefreshingAdminData");
-    expect(source).toContain("Promise.all([codes.refetch(), trials.refetch(), paymentRequests.refetch(), retention.refetch()])");
+    expect(source).toContain("Promise.all([codes.refetch(), trials.refetch(), paymentRequests.refetch(), retention.refetch(), backupStatus.refetch(), purgeRuns.refetch()])");
   });
 
   it("renders a protected administrator unlock screen before exposing client management", () => {
@@ -273,3 +280,16 @@ describe("Admin panel UI", () => {
     expect(testState.disable).toHaveBeenCalledWith({ id: 7 });
   });
 });
+
+
+  it("renders operational backup, PDF and purge history controls", () => {
+    testState.adminUnlocked = true;
+    testState.lastSuccessfulBackupAt = new Date("2026-08-27T10:00:00Z");
+    testState.purgeRuns = [{ id: 1, runType: "automatic", status: "success", deletedCount: 2, retentionDays: 365, cutoff: new Date("2025-08-27T10:00:00Z"), taskUid: "T_test", errorMessage: null, startedAt: new Date("2026-08-27T10:00:00Z"), completedAt: new Date("2026-08-27T10:01:00Z") }];
+    render(React.createElement(Admin));
+    expect(screen.getByText("Suivi opérationnel")).toBeTruthy();
+    expect(screen.getByText("Dernière sauvegarde réussie")).toBeTruthy();
+    expect(screen.getByText("Automatique")).toBeTruthy();
+    expect(screen.getAllByText("Succès").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByRole("button", { name: "Rapport parcours client PDF" })).toBeTruthy();
+  });

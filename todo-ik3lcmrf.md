@@ -447,3 +447,12 @@
 - [x] Documenter les commandes sûres de sauvegarde et restauration de la base, sans exposer les secrets.
 - [x] Rédiger le test complet du parcours client avec critères de réussite et points de contrôle.
 - [x] Livrer la procédure d’exploitation et les limites à l’utilisateur.
+
+
+## Session suivi sauvegardes, PDF et purges — 27/08/2026
+
+- [x] Ajouter dans Admin un indicateur de date et heure de dernière sauvegarde réussie.
+- [x] Ajouter l’export PDF téléchargeable du rapport de test du parcours client.
+- [x] Ajouter dans Admin un tableau de bord visuel de l’historique et du statut des purges automatiques.
+- [x] Ajouter les tests Vitest des trois fonctionnalités.
+- [x] Exécuter TypeScript, tests, build et contrôle responsive avant checkpoint.

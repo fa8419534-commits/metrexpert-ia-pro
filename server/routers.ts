@@ -13,6 +13,7 @@ import { createClientAccessCode, DAILY_LIMIT, disableClientAccessCode, getClient
 import type { GenerationQuotaReservation } from "./security";
 import { createPaymentRequest, getClientPaymentHistory, getPaymentRequest, listPaymentRequests, reviewPaymentRequest } from "./paymentRequests";
 import { buildHypotheses, runQuantityChecks } from "./quantityChecks";
+import { getLastSuccessfulBackupAt, listPurgeRuns, markSuccessfulBackupAt, recordPurgeRun } from "./opsTracking";
 
 const inFlightGenerationRequests = new Map<string, number>();
 const IDEMPOTENCY_KEY_TTL_MS = 10 * 60 * 1000;
@@ -256,7 +257,21 @@ export const appRouter = router({
     adminListFreeTrials: adminProcedure.query(() => listFreeTrialContacts()),
     adminGetFreeTrialRetention: adminProcedure.query(async () => ({ retentionDays: await getFreeTrialRetentionDays() })),
     adminSetFreeTrialRetention: adminProcedure.input(z.object({ retentionDays: z.number().int().min(30).max(730) })).mutation(async ({ input }) => ({ retentionDays: await setFreeTrialRetentionDays(input.retentionDays) })),
-    adminPurgeExpiredFreeTrials: adminProcedure.mutation(async () => purgeExpiredFreeTrialContacts()),
+    adminGetBackupStatus: adminProcedure.query(async () => ({ lastSuccessfulBackupAt: await getLastSuccessfulBackupAt() })),
+    adminMarkBackupSuccessful: adminProcedure.mutation(async () => ({ lastSuccessfulBackupAt: await markSuccessfulBackupAt() })),
+    adminListPurgeRuns: adminProcedure.query(async () => listPurgeRuns()),
+    adminPurgeExpiredFreeTrials: adminProcedure.mutation(async () => {
+      const startedAt = new Date();
+      try {
+        const result = await purgeExpiredFreeTrialContacts();
+        await recordPurgeRun({ runType: "manual", status: "success", ...result, startedAt, completedAt: new Date() });
+        return result;
+      } catch (error) {
+        const retentionDays = await getFreeTrialRetentionDays();
+        await recordPurgeRun({ runType: "manual", status: "failed", deletedCount: 0, retentionDays, cutoff: new Date(Date.now() - retentionDays * 86_400_000), errorMessage: error instanceof Error ? error.message : String(error), startedAt, completedAt: new Date() });
+        throw error;
+      }
+    }),
     adminMarkFreeTrialWhatsAppContacted: adminProcedure.input(z.object({ id: z.number().int().positive() })).mutation(({ input }) => markFreeTrialWhatsAppContacted(input.id).then((lastWhatsAppContactAt) => ({ success: true as const, lastWhatsAppContactAt }))),
     adminMarkFreeTrialConverted: adminProcedure.input(z.object({ id: z.number().int().positive() })).mutation(({ input }) => markFreeTrialConverted(input.id).then(() => ({ success: true as const }))),
     adminMarkFreeTrialUnsubscribed: adminProcedure.input(z.object({ id: z.number().int().positive() })).mutation(({ input }) => markFreeTrialUnsubscribed(input.id).then(() => ({ success: true as const }))),
