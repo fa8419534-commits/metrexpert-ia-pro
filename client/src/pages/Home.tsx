@@ -201,6 +201,7 @@ export default function Home() {
   const [download, setDownload] = useState<GeneratedDownload | null>(null);
   const [onboardingStep, setOnboardingStep] = useState(1);
   const [draftRestored, setDraftRestored] = useState(false);
+  const [draftSaveNotice, setDraftSaveNotice] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
   const [previewGeometryDrafts, setPreviewGeometryDrafts] = useState<GeometryDraft[]>([]);
   const [previewQuery, setPreviewQuery] = useState("");
@@ -239,8 +240,16 @@ export default function Home() {
   useEffect(() => {
     setSignatureImage(readStoredBrandImage(SIGNATURE_STORAGE_KEY));
     setStampImage(readStoredBrandImage(STAMP_STORAGE_KEY));
+    const exampleRequested = new URLSearchParams(window.location.search).get("example") === "1";
+    if (exampleRequested) {
+      setDescription(EXAMPLE_PROJECT_DESCRIPTION);
+      setOnboardingStep(2);
+      setDraftRestored(false);
+      trackOnboardingEvent("example_started", 2);
+      window.history.replaceState({}, "", window.location.pathname);
+    }
     try {
-      const rawDraft = window.localStorage.getItem(FORM_DRAFT_STORAGE_KEY);
+      const rawDraft = exampleRequested ? null : window.localStorage.getItem(FORM_DRAFT_STORAGE_KEY);
       if (rawDraft) {
         const draft = JSON.parse(rawDraft) as Partial<{ description: string; clientPhone: string; clientEmail: string; trialPhone: string; trialEmail: string; trialConsent: boolean; verifiedBy: string; validationDate: string; onboardingStep: number }>;
         if (typeof draft.description === "string") setDescription(draft.description);
@@ -266,7 +275,12 @@ export default function Home() {
     if (!draftHydratedRef.current) return;
     try {
       const hasMeaningfulDraft = Boolean(description.trim() || clientPhone.trim() || clientEmail.trim() || trialPhone.trim() || trialEmail.trim() || trialConsent || verifiedBy.trim() || validationDate.trim() || onboardingStep > 1);
-      if (hasMeaningfulDraft) window.localStorage.setItem(FORM_DRAFT_STORAGE_KEY, JSON.stringify({ description, clientPhone, clientEmail, trialPhone, trialEmail, trialConsent, verifiedBy, validationDate, onboardingStep }));
+      if (hasMeaningfulDraft) {
+        window.localStorage.setItem(FORM_DRAFT_STORAGE_KEY, JSON.stringify({ description, clientPhone, clientEmail, trialPhone, trialEmail, trialConsent, verifiedBy, validationDate, onboardingStep }));
+        setDraftSaveNotice(true);
+        const noticeTimer = window.setTimeout(() => setDraftSaveNotice(false), 1600);
+        return () => window.clearTimeout(noticeTimer);
+      }
       else window.localStorage.removeItem(FORM_DRAFT_STORAGE_KEY);
     } catch {
       // Le formulaire reste utilisable même si le stockage local est indisponible.
@@ -580,6 +594,7 @@ export default function Home() {
                 {!checklistComplete && <p className="mt-3 border-l-2 border-[#C9A15A] pl-3 text-xs text-[#C9A15A]" role="status">Complétez les éléments signalés avant de générer le fichier.</p>}
               </section>
               <div className="mb-3 flex flex-wrap items-center justify-between gap-3"><label htmlFor="description" className="field-label">Description du projet <span>REQUIS</span></label><div className="flex items-center gap-2">{draftRestored && <span className="font-mono text-[10px] uppercase tracking-wide text-[#7C9A76]" role="status">Brouillon restauré</span>}<button type="button" onClick={() => setHelpOpen((open) => !open)} aria-expanded={helpOpen} aria-controls="description-help" className="border border-[#C9A15A] px-3 py-2 font-mono text-[10px] uppercase tracking-wide text-[#C9A15A]">Aide — exemple</button>{draftRestored && <button type="button" onClick={clearSavedDraft} className="border border-[#3A4A42] px-3 py-2 font-mono text-[10px] uppercase tracking-wide text-[#AEB7B0]">Effacer le brouillon</button>}</div></div>
+              {draftSaveNotice && <p className="mb-2 font-mono text-[10px] uppercase tracking-wider text-[#7C9A76]" role="status" aria-live="polite">Brouillon sauvegardé automatiquement</p>}
               {helpOpen && <aside id="description-help" className="mb-3 border border-[#C9A15A]/70 bg-[#16201C] p-4 text-xs leading-5 text-[#AEB7B0]" role="note"><p className="font-mono text-[10px] uppercase tracking-wider text-[#C9A15A]">Exemple de description bien remplie</p><p className="mt-2">{EXAMPLE_PROJECT_DESCRIPTION}</p><button type="button" onClick={useExampleDescription} className="mt-3 border border-[#7C9A76] px-3 py-2 font-mono text-[10px] uppercase tracking-wide text-[#7C9A76]">Utiliser cet exemple</button></aside>}
               <Textarea id="description" value={description} onChange={(event) => setDescription(event.target.value)} placeholder="Ex. Construction d’une villa R+1 de 180 m² à Abidjan, avec fondations en béton armé, murs en agglos..." className="technical-input min-h-40 resize-none" />
               <section className="mt-5 border border-[#3A4A42] bg-[#16201C] p-4" aria-labelledby="geometry-title">

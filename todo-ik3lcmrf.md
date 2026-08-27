@@ -5510,3 +5510,19 @@ Décision provisoire : privilégier d’abord un guide interactif déterministe,
 - [x] Garder les événements agrégés et minimisés.
 - [x] Documenter les limites du stockage local et des statistiques historiques.
 - [x] Fin de session.
+
+
+## Session notification de brouillon, exemple d’accueil et compétence réutilisable — 27/08/2026
+
+- [x] Ajouter une notification visuelle discrète à chaque sauvegarde automatique du formulaire.
+- [x] Ajouter le bouton « Commencer avec l’exemple » sur la page d’accueil.
+- [x] Préremplir uniquement avec des données types fictives et non sensibles.
+- [x] Créer une compétence réutilisable selon la procédure skill-creator.
+- [x] Initialiser la compétence avec init_skill.py et supprimer les fichiers exemples inutiles.
+- [x] Rédiger et valider le SKILL.md de la compétence.
+- [x] Ajouter les tests UI de la notification et du bouton d’exemple.
+- [x] Valider la compétence avec quick_validate.py.
+- [x] Exécuter TypeScript, tests, build et contrôle responsive.
+- [x] Relire le suivi avant checkpoint.
+- [x] Sauvegarder un checkpoint projet et livrer le fichier SKILL.md.
+- [x] Ne pas publier automatiquement, ne pas envoyer de communication externe et ne pas toucher aux quotas, paiements ou secrets.

@@ -119,6 +119,17 @@ describe("generation quota UI errors", () => {
     expect(source).toContain("help_example_used");
   });
 
+  it("exposes the automatic draft-save notification and the landing example entry point", () => {
+    const homeSource = readFileSync(resolve(process.cwd(), "client/src/pages/Home.tsx"), "utf8");
+    const landingSource = readFileSync(resolve(process.cwd(), "client/src/pages/Landing.tsx"), "utf8");
+    expect(homeSource).toContain("Brouillon sauvegardé automatiquement");
+    expect(homeSource).toContain("setDraftSaveNotice(true)");
+    expect(homeSource).toContain('new URLSearchParams(window.location.search).get("example") === "1"');
+    expect(homeSource).toContain('trackOnboardingEvent("example_started", 2)');
+    expect(landingSource).toContain('href="/etude?example=1"');
+    expect(landingSource).toContain("Commencer avec l’exemple");
+  });
+
   it("renders the aggregated onboarding analytics section behind the Admin page", () => {
     const source = readFileSync(resolve(process.cwd(), "client/src/pages/Admin.tsx"), "utf8");
     expect(source).toContain("aggregateOnboardingEvents");
