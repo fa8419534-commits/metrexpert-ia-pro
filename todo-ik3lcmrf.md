@@ -5694,5 +5694,5 @@ Décision provisoire : privilégier d’abord un guide interactif déterministe,
 - [x] Vérifier les tests, TypeScript et le build sans consommer un nouvel essai
 - [x] Publier le correctif puis relancer le pilote n°2 contrôlé
 
-- [ ] Corriger l’erreur d’encodage PDF WinAnsi provoquée par les symboles emoji dans les observations générées
+- [x] Corriger l’erreur d’encodage PDF WinAnsi provoquée par les symboles emoji dans les observations générées
 - [ ] Rejouer l’aperçu PDF et vérifier le téléchargement XLSX après correction

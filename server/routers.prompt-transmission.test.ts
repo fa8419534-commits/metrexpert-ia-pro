@@ -57,8 +57,10 @@ describe("estimate.generate prompt transmission", () => {
     expect(request.messages[0].content).toContain("CONVENTION DÉTERMINISTE — PRIX DE PEINTURE AMBIGU");
     expect(request.messages[0].content).toContain("180 m², pas 360 m²-couche");
     expect(request.messages[0].content).toContain("HYPOTHÈSE NON DÉFINITIVE");
-    expect(request.response_format.json_schema.schema.required).toEqual(["projectTitle", "geometry", "measures"]);
-    expect(request.response_format.json_schema.schema.properties.measures.items.required).toEqual(["code", "designation", "unit", "quantity"]);
-    expect(request.response_format.json_schema.schema.properties.geometry.items.required).toEqual(["code", "designation", "formula", "unit"]);
+    expect(request.response_format.json_schema.schema.required).toEqual(["projectTitle", "client", "location", "summary", "currency", "geometry", "measures"]);
+    expect(request.response_format.json_schema.schema.properties.measures.items.required).toEqual(["code", "designation", "unit", "quantity", "unitPrice", "factor", "notes"]);
+    expect(request.response_format.json_schema.schema.properties.geometry.items.required).toEqual(["code", "designation", "formula", "unit", "length", "width", "height", "openingArea", "quantity", "notes"]);
+    expect(request.response_format.json_schema.schema.properties.measures.items.properties.unitPrice.type).toEqual(["number", "null"]);
+    expect(request.response_format.json_schema.schema.properties.geometry.items.properties.height.type).toEqual(["number", "null"]);
   });
 });

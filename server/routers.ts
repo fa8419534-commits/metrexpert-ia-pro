@@ -37,10 +37,10 @@ const estimateSchema = {
   type: "object",
   properties: {
     projectTitle: { type: "string" },
-    client: { type: "string" },
-    location: { type: "string" },
-    summary: { type: "string" },
-    currency: { type: "string" },
+    client: { type: ["string", "null"] },
+    location: { type: ["string", "null"] },
+    summary: { type: ["string", "null"] },
+    currency: { type: ["string", "null"] },
     geometry: {
       type: "array",
       items: {
@@ -49,7 +49,7 @@ const estimateSchema = {
           code: { type: "string" }, designation: { type: "string" }, formula: { type: "string", enum: ["linear", "surface", "volume", "count"] }, unit: { type: "string" },
           length: { type: ["number", "null"] }, width: { type: ["number", "null"] }, height: { type: ["number", "null"] }, openingArea: { type: ["number", "null"] }, quantity: { type: ["number", "null"] }, notes: { type: ["string", "null"] },
         },
-        required: ["code", "designation", "formula", "unit"], additionalProperties: false,
+        required: ["code", "designation", "formula", "unit", "length", "width", "height", "openingArea", "quantity", "notes"], additionalProperties: false,
       },
     },
     measures: {
@@ -61,16 +61,15 @@ const estimateSchema = {
           designation: { type: "string" },
           unit: { type: "string" },
           quantity: { type: "number" },
-          unitPrice: { type: "number" },
-          factor: { type: "number" },
-          notes: { type: "string" },
+                    unitPrice: { type: ["number", "null"] },
+          factor: { type: ["number", "null"] },
+          notes: { type: ["string", "null"] },
         },
-        required: ["code", "designation", "unit", "quantity"],
-        additionalProperties: false,
+        required: ["code", "designation", "unit", "quantity", "unitPrice", "factor", "notes"], additionalProperties: false,
       },
     },
   },
-  required: ["projectTitle", "geometry", "measures"],
+  required: ["projectTitle", "client", "location", "summary", "currency", "geometry", "measures"],
   additionalProperties: false,
 } as const;
 

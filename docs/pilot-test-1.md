@@ -43,3 +43,18 @@ Après environ 20 secondes, la génération échoue avec le message utilisateur 
 - Résultat : génération réussie, classeur annoncé avec 5 postes, statut LIVRABLE PRÊT, téléchargement XLSX et aperçu PDF disponibles.
 - Contrôle métier visible : surface nette des murs 98,54 m² après déduction de 7,86 m² d’ouvertures ; volumes et prix à 0 lorsque les données indispensables manquent ; mention d’essai gratuit visible.
 - Le total affiché est 0 FCFA, cohérent avec l’absence volontaire de prix unitaires ; aucune valeur n’a été inventée.
+
+## Contrôle post-pilote n°2
+La version publiée corrigée a généré un classeur avec 5 postes et l’aperçu interactif affichait les onglets Couverture, Métré, DQE, Hypothèses, Géométrie et Contrôles. Le total de 0 FCFA est cohérent avec l’absence de prix unitaires.
+
+Lors de l’ouverture de l’aperçu PDF sur la version précédente, une erreur a été détectée : `WinAnsi cannot encode "" (0x1f534)`, causée par le symbole rouge utilisé dans les observations. Le correctif a remplacé les marqueurs emoji par `[!]`, `[OK]` et `[ATTENTION]`, puis 123 tests ont réussi. Le retest PDF sur la version publiée nécessite toutefois une nouvelle génération, car le résultat précédent n’est pas conservé après rechargement de la page.
+
+## Retest publié du PDF après correctif
+La version publiée corrigée est accessible. Un nouveau contact fictif distinct a été saisi (`+225 0700000002`, `pilote3@example.ci`) et les deux formats sont reconnus. Le brouillon conserve la description et le consentement. Une nouvelle génération sera nécessaire pour vérifier l’aperçu PDF et le téléchargement XLSX sur la version corrigée ; elle reste volontairement séparée du pilote n°2 précédent.
+
+Le retest utilise un nouveau téléphone fictif et un nouvel e-mail, avec le brouillon restauré et la checklist affichée à 4/4. La navigation par repères amène bien à l’étape 4/4, mais le bouton de génération reste plus bas dans la page ; aucune génération supplémentaire n’a encore été lancée à ce stade.
+
+La navigation publiée a restauré la checklist 4/4 et le contact du retest, mais le bouton de génération n’est pas exposé dans les éléments interactifs du viewport après les repères ; aucune nouvelle génération n’a donc été déclenchée par erreur.
+
+## Retest PDF publié — résultat
+Une nouvelle génération a été lancée une seule fois avec le contact fictif `+225 0700000002` / `pilote3@example.ci`. La génération échoue désormais avant la création du livrable avec le message : « La réponse de l’IA n’est pas lisible. Référence : ec28b972-def1-460a-a023-8597ae8f27a6. » Aucun aperçu PDF ni classeur XLSX n’est disponible. Le correctif WinAnsi n’a pas encore pu être exercé sur un nouveau livrable ; il faut diagnostiquer cette réponse IA et vérifier la restitution du quota associée.
