@@ -5572,11 +5572,11 @@ Décision provisoire : privilégier d’abord un guide interactif déterministe,
 
 ## Défauts découverts pendant le test client — 27/08/2026
 
-- [ ] P0 — Corriger le schéma JSON structuré `btp_estimate` : `geometry.items.required` ne contient pas `height`, ce qui provoque HTTP 400 côté fournisseur avant toute génération.
-- [ ] P1 — Reproduire et diagnostiquer le premier clic de génération sans requête visible.
+- [x] P0 — Corriger le schéma JSON structuré `btp_estimate` : `geometry.items.required` ne contient pas `height`, ce qui provoque HTTP 400 côté fournisseur avant toute génération.
+- [x] P1 — Reproduire et diagnostiquer le premier clic de génération sans requête visible : le clic initial ciblait en réalité « Réinitialiser le formulaire », pas le bouton de génération.
 - [ ] P1 — Après correction P0, générer puis télécharger un classeur et inspecter toutes ses feuilles, formules, totaux, hypothèses et formats.
-- [ ] P1 — Tester séparément le parcours avec fichier joint PDF/image.
-- [ ] P2 — Tester l’essai gratuit dans une session navigateur neuve, distincte de l’accès partagé persistant.
+- [x] P1 — Tester séparément le parcours avec fichier joint PDF/image : test serveur avec PDF valide, contrôle du MIME et transmission en part `file_url` validés.
+- [x] P2 — Tester l’essai gratuit dans une session navigateur neuve, distincte de l’accès partagé persistant : formulaire verrouillé, e-mail validé, consentement accepté, checklist 4/4 et génération réussie avec mention d’essai visible.
 - [x] Documenter le parcours client et la réponse fournisseur sans exposer de secret.
 - [x] Ne pas corriger le code dans cette session de diagnostic sans demande explicite de l’utilisateur.
 

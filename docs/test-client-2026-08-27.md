@@ -82,3 +82,36 @@ Le téléchargement a été déclenché depuis « TÉLÉCHARGER », mais le fich
 Défaut P1 visible : après génération réussie, le bandeau d’erreur « Le JSON renvoyé par l’IA ne respecte pas le format attendu » reste affiché en haut alors que le livrable est prêt. L’erreur historique n’est pas nettoyée après succès et peut induire le client en erreur. À corriger par réinitialisation de l’état d’erreur au début et/ou au succès de la mutation.
 
 Défaut opérationnel à vérifier : le quota est passé de 5/5 à 4/5, donc la génération réussie a bien consommé une unité ; les échecs précédents n’avaient pas consommé le quota visible.
+
+
+## Reconnexion navigateur confirmée
+
+Après actualisation et reconnexion, le navigateur répond de nouveau et l’espace `/etude` se charge correctement. La session conserve toutefois l’accès partagé déjà déverrouillé ; elle ne constitue donc pas une session neuve pour tester l’unicité de l’essai gratuit. Ce contrôle nécessite un profil navigateur séparé ou un nettoyage explicite des données de site par le propriétaire.
+
+
+## Nouvelle session après reconnexion
+
+La nouvelle URL de prévisualisation répond correctement. Le formulaire affiche l’accès partagé, l’accès client et l’essai gratuit ; cette session est verrouillée et les champs téléphone/e-mail ainsi que le consentement sont visibles. Le test de l’essai gratuit peut donc être tenté avec un contact fictif, sans utiliser l’accès partagé.
+
+
+## Test d’essai gratuit — début
+
+Dans la nouvelle session verrouillée, l’e-mail fictif `test-essai@metrexpert.ci` est accepté avec le message visuel « Format reconnu. ». La checklist passe à 1/4 et le brouillon est sauvegardé automatiquement. Les champs téléphone/e-mail et le consentement sont accessibles. La description et le consentement restent à renseigner avant toute génération ; aucune consommation n’a encore eu lieu.
+
+
+La description fictive d’essai a été acceptée dans l’interface. La checklist est passée à 3/4 : contact, description et base de travail validés ; seul le consentement explicite reste à cocher avant génération.
+
+
+Le consentement explicite a été coché avec succès. La checklist affiche maintenant 4/4 validés, ce qui confirme que l’interface autorise le lancement d’un essai gratuit lorsque le contact, la description et le consentement sont présents.
+
+
+## Parcours d’essai gratuit — vérification de l’interface
+
+Le parcours neuf a été vérifié jusqu’à la checklist complète : contact e-mail valide, description détaillée, base de travail et consentement explicite. La checklist affiche 4/4 validés. La prévisualisation de gestion rend le basculement vers le bouton de génération difficile à cibler car elle maintient un aperçu fixe et recadre la page ; aucune génération supplémentaire n’a été lancée afin de ne pas consommer inutilement un essai ou une requête payante sans pouvoir confirmer le résultat.
+
+
+## Résultat de l’essai gratuit
+
+La génération gratuite a finalement abouti après validation de la checklist : l’interface affiche « LIVRABLE PRÊT », « Classeur généré avec 6 postes » et le fichier `metrexpert-1787853333957.xlsx`. L’aperçu contient les onglets Couverture, Métré, DQE, Hypothèses, Géométrie et Contrôles. La mention « VERSION D’ESSAI GRATUIT — ABONNEMENT REQUIS POUR UN USAGE RÉGULIER » est visible sur la couverture. Le total est de 0 FCFA car aucun prix unitaire n’a été fourni, et les données manquantes sont explicitement signalées au lieu d’être inventées.
+
+Le parcours confirme aussi le fonctionnement de la validation visuelle de l’e-mail, de la checklist 4/4, de la progression de génération et de la sauvegarde automatique du brouillon. Le fichier a été généré dans le navigateur réel ; son inspection OOXML locale et son ouverture effective dans Microsoft Excel Desktop restent à faire lorsque le téléchargement sera récupérable dans l’environnement de fichiers.
