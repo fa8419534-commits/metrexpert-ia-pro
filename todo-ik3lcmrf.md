@@ -5579,3 +5579,8 @@ Décision provisoire : privilégier d’abord un guide interactif déterministe,
 - [ ] P2 — Tester l’essai gratuit dans une session navigateur neuve, distincte de l’accès partagé persistant.
 - [x] Documenter le parcours client et la réponse fournisseur sans exposer de secret.
 - [x] Ne pas corriger le code dans cette session de diagnostic sans demande explicite de l’utilisateur.
+
+- [x] Corriger le message d’erreur LLM historique qui restait visible après une génération réussie, en réinitialisant la mutation au lancement et en masquant l’alerte lorsqu’un livrable est disponible
+- [x] Rejouer la suite complète Vitest : 112 tests réussis
+- [x] Vérifier TypeScript et build de production après le correctif
+- [x] Documenter la limite de récupération locale du fichier téléchargé dans My Browser et l’absence de validation Microsoft Excel Desktop dans cette session

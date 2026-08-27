@@ -46,9 +46,9 @@ const estimateSchema = {
         type: "object",
         properties: {
           code: { type: "string" }, designation: { type: "string" }, formula: { type: "string", enum: ["linear", "surface", "volume", "count"] }, unit: { type: "string" },
-          length: { type: "number" }, width: { type: "number" }, height: { type: "number" }, openingArea: { type: "number" }, quantity: { type: "number" }, notes: { type: "string" },
+          length: { type: ["number", "null"] }, width: { type: ["number", "null"] }, height: { type: ["number", "null"] }, openingArea: { type: ["number", "null"] }, quantity: { type: ["number", "null"] }, notes: { type: ["string", "null"] },
         },
-        required: ["code", "designation", "formula", "unit"], additionalProperties: false,
+        required: ["code", "designation", "formula", "unit", "length", "width", "height", "openingArea", "quantity", "notes"], additionalProperties: false,
       },
     },
     measures: {
@@ -69,7 +69,7 @@ const estimateSchema = {
       },
     },
   },
-  required: ["projectTitle", "client", "location", "summary", "currency", "measures"],
+  required: ["projectTitle", "client", "location", "summary", "currency", "geometry", "measures"],
   additionalProperties: false,
 } as const;
 
@@ -185,28 +185,33 @@ export async function buildEstimateWorkbookFromRequest(estimate: ProjectEstimate
 }
 
 export function validateEstimate(value: unknown): ProjectEstimate {
+  const optionalText = (max: number) => z.string().max(max).nullish().transform((entry) => entry ?? undefined);
+  const optionalNumber = (positive = false) => (positive ? z.number().finite().positive() : z.number().finite().nonnegative()).nullish().transform((entry) => entry ?? undefined);
   const parsed = z.object({
     projectTitle: z.string().min(1).max(240),
-    client: z.string().max(240).optional(),
-    location: z.string().max(240).optional(),
-    summary: z.string().max(4_000).optional(),
-    currency: z.string().max(12).optional(),
+    client: optionalText(240),
+    location: optionalText(240),
+    summary: optionalText(4_000),
+    currency: optionalText(12),
     geometry: z.array(z.object({
       code: z.string().min(1).max(40), designation: z.string().min(1).max(240), formula: z.enum(["linear", "surface", "volume", "count"]), unit: z.string().min(1).max(20),
-      length: z.number().finite().nonnegative().optional(), width: z.number().finite().nonnegative().optional(), height: z.number().finite().nonnegative().optional(), openingArea: z.number().finite().nonnegative().optional(), quantity: z.number().finite().nonnegative().optional(), notes: z.string().max(500).optional(),
+      length: optionalNumber(), width: optionalNumber(), height: optionalNumber(), openingArea: optionalNumber(), quantity: optionalNumber(), notes: optionalText(500),
     })).max(100).optional(),
     measures: z.array(z.object({
       code: z.string().min(1).max(40),
       designation: z.string().min(1).max(500),
       unit: z.string().min(1).max(20),
       quantity: z.number().finite().nonnegative(),
-          unitPrice: z.number().finite().nonnegative().optional(),
-          factor: z.number().finite().positive().optional(),
-          notes: z.string().max(1_000).optional(),
+      unitPrice: optionalNumber(),
+      factor: optionalNumber(true),
+      notes: optionalText(1_000),
     })).min(1).max(500),
   }).safeParse(value);
 
   if (!parsed.success) {
+    console.error("[Estimate] Structured result validation failed", {
+      issues: parsed.error.issues.map((issue) => ({ path: issue.path, code: issue.code, message: issue.message })),
+    });
     throw new TRPCError({ code: "BAD_REQUEST", message: "Le JSON renvoyé par l’IA ne respecte pas le format attendu." });
   }
   return parsed.data;
