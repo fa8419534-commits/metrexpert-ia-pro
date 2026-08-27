@@ -178,6 +178,18 @@ describe("Admin panel UI", () => {
     expect(screen.getByText("Échecs / 30 jours").parentElement?.textContent).toContain("1");
   });
 
+  it("requires confirmation before the targeted Heartbeat check", async () => {
+    testState.adminUnlocked = true;
+    testState.codes = [{ id: 91, clientName: "Client Heartbeat", monthlyQuota: 15, monthlyRemaining: 12, expiresAt: new Date("2026-09-27T00:00:00Z"), disabledAt: null }];
+    render(React.createElement(Admin));
+    const heartbeatButton = screen.getAllByRole("button", { name: /Heartbeat$/ })[0];
+    fireEvent.click(heartbeatButton);
+    await waitFor(() => expect(screen.getByRole("alertdialog").textContent).toContain("Déclencher le contrôle Heartbeat"));
+    expect(screen.getByRole("alertdialog").textContent).toContain("Aucun quota ne sera consommé");
+    fireEvent.click(screen.getByRole("button", { name: "Annuler" }));
+    await waitFor(() => expect(screen.queryByRole("alertdialog")).toBeNull());
+  });
+
   it("exposes the targeted Heartbeat check and CSV export actions", () => {
     const source = readFileSync(resolve(process.cwd(), "client/src/pages/Admin.tsx"), "utf8");
     expect(source).toContain("adminRunHeartbeatCheck");

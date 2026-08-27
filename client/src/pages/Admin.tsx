@@ -150,6 +150,7 @@ export default function Admin() {
   const [purgeStatusFilter, setPurgeStatusFilter] = useState<"all" | "success" | "failed">("all");
   const [heartbeatStatusFilter, setHeartbeatStatusFilter] = useState<"all" | "success" | "failed">("all");
   const [heartbeatChecks, setHeartbeatChecks] = useState<Record<number, "pending" | "success" | "error">>({});
+  const [heartbeatTarget, setHeartbeatTarget] = useState<{ id: number; clientName: string; monthlyRemaining: number; expiresAt: Date | string } | null>(null);
 
   useEffect(() => {
     if (trialStartDate) window.localStorage.setItem("metrexpert.trials.startDate", trialStartDate);
@@ -844,7 +845,7 @@ export default function Admin() {
                             </td>
                             <td className="px-3 py-4 text-right">
                               <div className="flex flex-col items-end gap-2">
-                                <Button type="button" variant="outline" size="sm" className={`border-[#3A4A42] ${heartbeatChecks[code.id] === "success" ? "text-[#7C9A76]" : heartbeatChecks[code.id] === "error" ? "text-[#D98472]" : "text-[#AEB7B0]"}`} onClick={() => heartbeatCheck.mutate({ id: code.id })} disabled={heartbeatCheck.isPending && heartbeatChecks[code.id] === "pending"}>{heartbeatChecks[code.id] === "pending" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}<span className="ml-1">Heartbeat</span></Button>
+                                <Button type="button" variant="outline" size="sm" className={`border-[#3A4A42] ${heartbeatChecks[code.id] === "success" ? "text-[#7C9A76]" : heartbeatChecks[code.id] === "error" ? "text-[#D98472]" : "text-[#AEB7B0]"}`} onClick={() => setHeartbeatTarget({ id: code.id, clientName: code.clientName, monthlyRemaining: code.monthlyRemaining, expiresAt: code.expiresAt })} disabled={heartbeatCheck.isPending && heartbeatChecks[code.id] === "pending"}>{heartbeatChecks[code.id] === "pending" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}<span className="ml-1">Heartbeat</span></Button>
                                 {disabled && <a href={`/?plan=${code.monthlyQuota}#paiement`} className="inline-flex items-center gap-1 border border-[#C9A15A] px-3 py-2 font-mono text-[10px] uppercase tracking-wider text-[#C9A15A] hover:bg-[#C9A15A] hover:text-[#0F1613]"><RefreshCw className="h-3.5 w-3.5" aria-hidden="true" />Renouveler</a>}
                                 {!disabled && (
                                   <Button
@@ -996,6 +997,24 @@ export default function Admin() {
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               )}
               Confirmer la révocation
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={Boolean(heartbeatTarget)} onOpenChange={(open) => { if (!open) setHeartbeatTarget(null); }}>
+        <AlertDialogContent className="border-[#3A4A42] bg-[#16201C] text-[#EDEAE2]">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="font-serif text-2xl">Déclencher le contrôle Heartbeat ?</AlertDialogTitle>
+            <AlertDialogDescription className="text-[#AEB7B0]">
+              Un contrôle manuel va être lancé pour <strong className="text-[#EDEAE2]">{heartbeatTarget?.clientName}</strong>. Il vérifiera uniquement l’état actuel de son accès, son quota restant et sa date d’expiration. Aucun quota ne sera consommé et aucun paiement ne sera modifié.
+              {heartbeatTarget && <span className="mt-3 block font-mono text-xs text-[#C9A15A]">Quota restant : {heartbeatTarget.monthlyRemaining} · Expire le : {new Date(heartbeatTarget.expiresAt).toLocaleDateString("fr-FR")}</span>}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="border-[#3A4A42] text-[#EDEAE2]" onClick={() => setHeartbeatTarget(null)}>Annuler</AlertDialogCancel>
+            <AlertDialogAction className="bg-[#C9A15A] text-[#0F1613] hover:bg-[#d8b574]" onClick={() => { if (heartbeatTarget) { heartbeatCheck.mutate({ id: heartbeatTarget.id }); setHeartbeatTarget(null); } }} disabled={heartbeatCheck.isPending}>
+              {heartbeatCheck.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Confirmer le contrôle
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

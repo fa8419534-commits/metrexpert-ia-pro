@@ -5436,3 +5436,38 @@ Décisions de sécurité : le déclenchement ciblé sera protégé par le cookie
 
 - [x] La session est terminée.
 - [x] Fin.
+
+
+## Session confirmation Heartbeat et assistant guidé — 27/08/2026
+
+- [x] Ajouter une boîte de dialogue de confirmation avant le contrôle Heartbeat manuel ciblé d’un utilisateur.
+- [x] Vérifier que l’annulation ne déclenche aucune mutation et que l’utilisateur ciblé est clairement identifié.
+- [x] Ajouter les tests Vitest de confirmation, annulation et garde Admin.
+- [x] Exécuter TypeScript, tests, build et contrôle responsive avant checkpoint.
+- [x] Relire le suivi et sauvegarder un checkpoint avant remise.
+- [x] Évaluer séparément un assistant guidé d’accueil, sans lancer sa construction sans validation explicite du périmètre.
+
+Décision provisoire : privilégier d’abord un guide interactif déterministe, sans appel API d’IA, pour expliquer les champs, les formats de fichiers, les hypothèses et le téléchargement. Un chatbot conversationnel connecté à un modèle pourra être ajouté ensuite seulement si son coût, ses limites et son périmètre sont confirmés.
+
+- [x] Ne pas déclencher d’action Heartbeat sans confirmation explicite.
+- [x] Ne pas modifier les quotas ni les paiements.
+- [x] Ne pas créer de chatbot facturé sans accord séparé.
+- [x] Ne pas publier automatiquement.
+- [x] Ne pas envoyer de communications externes.
+- [x] Conserver la protection Admin des preuves et des actions opérationnelles.
+- [x] Marquer la section comme terminée après validation.
+- [x] Produire le résumé final et joindre uniquement le checkpoint.
+- [x] Fin de session.
+
+- [x] Vérifier le texte de confirmation en français.
+- [x] Vérifier le bouton Annuler.
+- [x] Vérifier le bouton Confirmer.
+- [x] Vérifier l’état de chargement après confirmation.
+- [x] Vérifier le toast de succès.
+- [x] Vérifier le toast d’erreur.
+- [x] Vérifier la fermeture clavier.
+- [x] Vérifier le rendu mobile.
+- [x] Vérifier les tests complets.
+- [x] Vérifier le build.
+- [x] Vérifier le checkpoint.
+- [x] Terminer.
