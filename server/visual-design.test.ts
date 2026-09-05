@@ -5,6 +5,7 @@ import { resolve } from "node:path";
 const projectRoot = resolve(import.meta.dirname, "..");
 const css = readFileSync(resolve(projectRoot, "client/src/index.css"), "utf8");
 const home = readFileSync(resolve(projectRoot, "client/src/pages/Home.tsx"), "utf8");
+const landing = readFileSync(resolve(projectRoot, "client/src/pages/Landing.tsx"), "utf8");
 const workbookPreview = readFileSync(resolve(projectRoot, "client/src/components/WorkbookPreview.tsx"), "utf8");
 const admin = readFileSync(resolve(projectRoot, "client/src/pages/Admin.tsx"), "utf8");
 
@@ -68,6 +69,10 @@ describe("technical visual system", () => {
     expect(home).toContain("Accès rapide aux étapes de l’étude");
     expect(home).toContain('id="study-access"');
     expect(home).toContain('id="generation-action"');
+    expect(landing).toContain("Pour commencer simplement");
+    expect(landing).toContain("Une première base claire pour décider et chiffrer.");
+    expect(home).toContain("Progression des étapes de l’étude");
+    expect(home).toContain("prefers-reduced-motion");
   });
 
   it("exposes the workbook preview before the Excel download", () => {

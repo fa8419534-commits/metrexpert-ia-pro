@@ -19,3 +19,7 @@ La prochaine amélioration utile sans nouvelle dépense API est un **mode mobile
 ## Contrôle après amélioration mobile
 
 Le repère mobile est présent dans le DOM avec quatre ancres vers l’accès, la description, le contrôle géométrique et la génération. Le rendu global reste cohérent sur 390 px ; la page demeure longue par choix documentaire, mais l’utilisateur dispose maintenant d’un accès direct à l’étape active. La suite complète reste à 123 tests réussis et le build de production réussit avec seulement l’avertissement existant de bundle volumineux.
+
+## Page commerciale et transitions — contrôle final
+
+La page d’accueil mobile conserve un hero lisible avec trois actions : tester l’espace, commencer avec l’exemple et parler du projet. La nouvelle section commerciale est intégrée après le hero avec une proposition prudente, trois repères de valeur et un CTA vers l’étude. L’espace mobile conserve son cartouche technique ; le rail d’étapes reste volontairement plus bas dans la page afin de ne pas surcharger le premier écran. Les transitions utilisent un déplacement doux et basculent automatiquement vers un comportement immédiat lorsque `prefers-reduced-motion` est activé.

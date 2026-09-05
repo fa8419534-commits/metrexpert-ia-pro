@@ -5703,3 +5703,12 @@ Décision provisoire : privilégier d’abord un guide interactif déterministe,
 - [x] Implémenter cette amélioration en conservant les parcours existants
 - [x] Tester les parcours public, client et administrateur
 - [x] Documenter les limites et préparer une version de test stable
+
+## Page commerciale et transitions mobiles
+- [x] Auditer la page d’accueil actuelle et les CTA existants
+- [x] Intégrer une présentation commerciale honnête des livrables et du processus
+- [x] Ajouter des transitions sobres entre les étapes mobiles
+- [x] Respecter prefers-reduced-motion et l’accessibilité clavier
+- [x] Tester responsive, Vitest et build avant publication
+
+- [x] Corriger le test de design pour vérifier la page Landing commerciale et les transitions réduites au bon endroit

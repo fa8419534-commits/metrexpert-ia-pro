@@ -200,6 +200,7 @@ export function GuidedOnboarding({ step, onStepChange }: { step: number; onStepC
 }
 
 export function MobileStudyRail({ step, onStepChange }: { step: number; onStepChange: (step: number) => void }) {
+  const [transitioning, setTransitioning] = useState(false);
   const anchors = [
     { number: 1, label: "Accès", target: "study-access" },
     { number: 2, label: "Description", target: "description" },
@@ -208,14 +209,20 @@ export function MobileStudyRail({ step, onStepChange }: { step: number; onStepCh
   ] as const;
   const goToStep = (nextStep: number, target: string) => {
     onStepChange(nextStep);
-    window.requestAnimationFrame(() => document.getElementById(target)?.scrollIntoView({ behavior: "smooth", block: "start" }));
+    setTransitioning(true);
+    window.requestAnimationFrame(() => {
+      const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      document.getElementById(target)?.scrollIntoView({ behavior: reducedMotion ? "auto" : "smooth", block: "start" });
+      window.setTimeout(() => setTransitioning(false), reducedMotion ? 0 : 220);
+    });
   };
   const active = anchors[step - 1] || anchors[0];
-  return <nav className="sticky top-2 z-20 mb-5 border border-[#C9A15A]/70 bg-[#0F1613]/95 p-3 shadow-sm backdrop-blur sm:hidden" aria-label="Accès rapide aux étapes de l’étude">
+  return <nav className={`sticky top-2 z-20 mb-5 border border-[#C9A15A]/70 bg-[#0F1613]/95 p-3 shadow-sm backdrop-blur transition-[border-color,transform] duration-200 motion-reduce:transition-none sm:hidden ${transitioning ? "scale-[0.99] border-[#7C9A76]" : ""}`} aria-label="Accès rapide aux étapes de l’étude">
     <div className="flex items-center justify-between gap-3">
       <span className="font-mono text-[10px] uppercase tracking-wider text-[#C9A15A]">Étape {step}/4 · {active.label}</span>
       <button type="button" onClick={() => goToStep(active.number, active.target)} className="border border-[#C9A15A] px-3 py-2 font-mono text-[10px] uppercase tracking-wider text-[#C9A15A]">Voir l’étape active</button>
     </div>
+    <div className="mt-3 h-1 border border-[#3A4A42] bg-[#16201C]" role="progressbar" aria-label="Progression des étapes de l’étude" aria-valuemin={1} aria-valuemax={4} aria-valuenow={step}><div className="h-full bg-[#C9A15A] transition-[width] duration-200 motion-reduce:transition-none" style={{ width: `${step * 25}%` }} /></div>
     <div className="mt-3 grid grid-cols-4 gap-1" role="list">
       {anchors.map((anchor) => <button key={anchor.number} type="button" role="listitem" aria-current={step === anchor.number ? "step" : undefined} onClick={() => goToStep(anchor.number, anchor.target)} className={`border px-2 py-2 text-left font-mono text-[9px] uppercase tracking-wider ${step === anchor.number ? "border-[#C9A15A] bg-[#16201C] text-[#EDEAE2]" : "border-[#3A4A42] text-[#87938B]"}`}><span className="block text-[#C9A15A]">0{anchor.number}</span><span className="mt-1 block truncate">{anchor.label}</span></button>)}
     </div>
