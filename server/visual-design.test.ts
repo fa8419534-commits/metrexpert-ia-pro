@@ -64,6 +64,10 @@ describe("technical visual system", () => {
     expect(home).toContain("disabled={generate.isPending}");
     expect(home).toContain("generation_blocked_checklist");
     expect(home).toContain("checklistComplete");
+    expect(home).toContain("MobileStudyRail");
+    expect(home).toContain("Accès rapide aux étapes de l’étude");
+    expect(home).toContain('id="study-access"');
+    expect(home).toContain('id="generation-action"');
   });
 
   it("exposes the workbook preview before the Excel download", () => {

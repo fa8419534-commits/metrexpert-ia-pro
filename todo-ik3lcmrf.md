@@ -5696,3 +5696,10 @@ Décision provisoire : privilégier d’abord un guide interactif déterministe,
 
 - [x] Corriger l’erreur d’encodage PDF WinAnsi provoquée par les symboles emoji dans les observations générées
 - [x] Rejouer l’aperçu PDF et vérifier le téléchargement XLSX après correction
+
+## Reprise de construction — stabilité et premiers clients
+- [x] Auditer les fonctionnalités actuellement publiées et les tâches encore ouvertes
+- [x] Identifier l’amélioration prioritaire sans nouvelle dépense API
+- [x] Implémenter cette amélioration en conservant les parcours existants
+- [x] Tester les parcours public, client et administrateur
+- [x] Documenter les limites et préparer une version de test stable
