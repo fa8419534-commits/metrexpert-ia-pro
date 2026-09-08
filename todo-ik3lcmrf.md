@@ -5712,3 +5712,10 @@ Décision provisoire : privilégier d’abord un guide interactif déterministe,
 - [x] Tester responsive, Vitest et build avant publication
 
 - [x] Corriger le test de design pour vérifier la page Landing commerciale et les transitions réduites au bon endroit
+
+## FAQ détaillée et preuve de confiance honnête
+- [x] Auditer la FAQ et les sections de confiance déjà présentes sur l’accueil
+- [x] Ajouter une FAQ détaillée sur le fonctionnement, les données, les livrables, les quotas et la vérification humaine
+- [x] Ajouter une section de confiance fondée sur la méthode, les contrôles et les cas d’usage, sans inventer de témoignages
+- [x] Prévoir un emplacement pour de vrais témoignages après obtention de l’autorisation des clients
+- [x] Tester le rendu responsive, l’accessibilité, Vitest et le build avant publication

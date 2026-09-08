@@ -71,6 +71,10 @@ describe("technical visual system", () => {
     expect(home).toContain('id="generation-action"');
     expect(landing).toContain("Pour commencer simplement");
     expect(landing).toContain("Une première base claire pour décider et chiffrer.");
+    expect(landing).toContain("Exemples d’utilisation");
+    expect(landing).toContain("Puis-je joindre un plan PDF ?");
+    expect(landing).toContain("Aucun témoignage client n’est publié pour le moment.");
+    expect(landing).toContain("Retours clients — à venir");
     expect(home).toContain("Progression des étapes de l’étude");
     expect(home).toContain("prefers-reduced-motion");
   });
