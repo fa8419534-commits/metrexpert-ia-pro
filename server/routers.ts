@@ -14,6 +14,7 @@ import { createClientAccessCode, DAILY_LIMIT, disableClientAccessCode, getClient
 import type { GenerationQuotaReservation } from "./security";
 import { createPaymentRequest, getClientPaymentHistory, getPaymentProofUrl, getPaymentRequest, listPaymentRequests, reviewPaymentProof, reviewPaymentRequest, uploadPaymentProof } from "./paymentRequests";
 import { buildHypotheses, runQuantityChecks } from "./quantityChecks";
+import { calculateLocally } from "./localCalculationEngine";
 import { getLastSuccessfulBackupAt, listPurgeRuns, markSuccessfulBackupAt, recordPurgeRun } from "./opsTracking";
 
 const inFlightGenerationRequests = new Map<string, number>();
@@ -76,6 +77,7 @@ const estimateSchema = {
 export const requestSchema = z.object({
   idempotencyKey: z.string().uuid("Identifiant de génération invalide."),
   description: z.string().trim().min(20, "Décrivez le projet avec au moins 20 caractères.").max(50_000),
+  engineMode: z.enum(["local", "assisted"]).default("assisted"),
   geometry: z.array(z.object({
     code: z.string().trim().min(1).max(40),
     designation: z.string().trim().min(1).max(240),
@@ -87,10 +89,6 @@ export const requestSchema = z.object({
     openingArea: z.number().finite().nonnegative().optional(),
     quantity: z.number().finite().nonnegative().optional(),
     notes: z.string().max(500).optional(),
-  }).superRefine((value, ctx) => {
-    if (value.formula !== "count" && value.length === undefined) ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["length"], message: "La longueur est requise pour cette formule." });
-    if (["surface", "volume"].includes(value.formula) && value.width === undefined) ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["width"], message: "La largeur est requise pour cette formule." });
-    if (value.formula === "volume" && value.height === undefined) ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["height"], message: "La hauteur est requise pour un volume." });
   })).max(100).optional(),
   clientPhone: z.string().trim().max(80).optional(),
   clientEmail: z.string().trim().max(160).optional(),
@@ -192,6 +190,44 @@ export type EstimateRequestMetadata = Pick<ProjectEstimate, "clientPhone" | "cli
 
 export async function buildEstimateWorkbookFromRequest(estimate: ProjectEstimate, metadata: EstimateRequestMetadata) {
   return buildEstimateWorkbook({ ...estimate, ...metadata });
+}
+
+async function buildGenerationResponse(estimate: ProjectEstimate, input: z.infer<typeof requestSchema>, isFreeTrial: boolean) {
+  const normalizedEstimate = normalizeEstimateAmbiguities(estimate);
+  const geometryChecks = runQuantityChecks(normalizedEstimate).filter((check) => (normalizedEstimate.geometry ?? []).some((dimension) => dimension.code === check.code));
+  const workbook = await buildEstimateWorkbookFromRequest(normalizedEstimate, {
+    clientPhone: input.clientPhone || undefined,
+    clientEmail: input.clientEmail || undefined,
+    verifiedBy: input.verifiedBy || undefined,
+    validationDate: input.validationDate || undefined,
+    signatureImageDataUrl: input.signatureImageDataUrl || undefined,
+    stampImageDataUrl: input.stampImageDataUrl || undefined,
+    trialVersion: isFreeTrial,
+  });
+  return {
+    filename: `metrexpert-${Date.now()}.xlsx`,
+    mimeType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    data: workbook.toString("base64"),
+    lineCount: normalizedEstimate.measures.length,
+    engine: input.engineMode,
+    preview: {
+      projectTitle: normalizedEstimate.projectTitle,
+      client: normalizedEstimate.client || "À compléter",
+      location: normalizedEstimate.location || "À compléter",
+      clientPhone: input.clientPhone || "À compléter",
+      clientEmail: input.clientEmail || "À compléter",
+      verifiedBy: input.verifiedBy || "À compléter",
+      validationDate: input.validationDate || "À compléter",
+      trialVersion: isFreeTrial,
+      currency: normalizedEstimate.currency || "FCFA",
+      summary: normalizedEstimate.summary || "Résumé non renseigné.",
+      hypotheses: normalizedEstimate.hypotheses?.length ? normalizedEstimate.hypotheses : buildHypotheses(normalizedEstimate),
+      measures: normalizedEstimate.measures,
+      geometry: normalizedEstimate.geometry ?? [],
+      geometryChecks,
+      total: normalizedEstimate.measures.reduce((sum, item) => sum + item.quantity * (item.factor ?? 1) * (item.unitPrice ?? 0), 0),
+    },
+  };
 }
 
 export function validateEstimate(value: unknown, requestId?: string): ProjectEstimate {
@@ -347,6 +383,10 @@ export const appRouter = router({
           if (!trial.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Vous avez déjà utilisé votre essai gratuit. Contactez-moi pour un abonnement au WhatsApp +225 01 51 61 05 12." });
           trialReservation = trial;
           isFreeTrial = true;
+        }
+        if (input.engineMode === "local") {
+          const localEstimate = calculateLocally({ description: input.description, geometry: input.geometry });
+          return await buildGenerationResponse(localEstimate, input, isFreeTrial);
         }
         const userContent: Array<Record<string, unknown>> = [{
           type: "text",

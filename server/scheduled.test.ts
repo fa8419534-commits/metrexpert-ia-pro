@@ -36,8 +36,9 @@ describe("callback planifiée de rétention", () => {
   });
 
   it("purge les contacts échus et renvoie un résultat idempotent", async () => {
-    await reserveFreeTrial("Ancien", "+225 07 00 00 00 11", undefined, new Date("2025-01-01T10:00:00Z"));
-    await reserveFreeTrial("Récent", "+225 07 00 00 00 12", undefined, new Date("2026-08-20T10:00:00Z"));
+    const now = Date.now();
+    await reserveFreeTrial("Ancien", "+225 07 00 00 00 11", undefined, new Date(now - 60 * 86_400_000));
+    await reserveFreeTrial("Récent", "+225 07 00 00 00 12", undefined, new Date(now - 5 * 86_400_000));
     await setFreeTrialRetentionDays(30);
     vi.mocked(sdk.authenticateRequest).mockResolvedValue({ isCron: true, taskUid: "task-retention" } as never);
     const response = createResponse();
