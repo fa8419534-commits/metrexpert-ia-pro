@@ -1,5 +1,6 @@
 import type { Express } from "express";
 import { ENV } from "./env";
+import { getMemoryStorageEntry } from "../storage";
 
 export function registerStorageProxy(app: Express) {
   // Express 5/path-to-regexp no longer accepts the Express 4 `/*` syntax.
@@ -11,7 +12,14 @@ export function registerStorageProxy(app: Express) {
     }
 
     if (!ENV.forgeApiUrl || !ENV.forgeApiKey) {
-      res.status(500).send("Storage proxy not configured");
+      const entry = getMemoryStorageEntry(key);
+      if (!entry) {
+        res.status(404).send("Storage object not found");
+        return;
+      }
+      res.set("Content-Type", entry.contentType);
+      res.set("Cache-Control", "no-store");
+      res.send(entry.data);
       return;
     }
 
